@@ -6,10 +6,11 @@ a dense, video-led, brand-organized storefront with alternating dark/light "bays
 champagne-gold accent (`#C8A55B`), display serif headlines and a clean grotesk sans.
 
 > **Status:** Phase 1 (Frontend) is complete. The full site is clickable and demo-ready
-> against a typed mock-data layer with **zero backend required**. Payments are **Cash on
-> Delivery** today; **UPI** is wired to switch on via a single env flag (see below). Phase 2
-> (Supabase + Razorpay UPI + admin) swaps the mock layer for real queries behind the same
-> function signatures.
+> against a typed mock-data layer with **zero backend required**. Checkout takes **UPI**
+> today — pay to our VPA via a generated QR / UPI ID and enter the transaction reference
+> (orders stay `pending` until the payment is verified — fail closed). **Cash on Delivery**
+> is "coming soon" and flips on via a single env flag. Phase 2 (Supabase + Razorpay UPI +
+> admin) swaps the mock layer for real queries and a verified gateway.
 
 ## Stack
 
@@ -49,13 +50,15 @@ See [`.env.example`](./.env.example) for the full list. The most relevant in Pha
 | --- | --- | --- |
 | `NEXT_PUBLIC_SITE_URL` | Canonical URL (metadata, sitemap, OG) | `http://localhost:3000` |
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | wa.me number for support / order deep links | `919999999999` |
-| `NEXT_PUBLIC_PAYMENT_MODE` | `cod` \| `upi` \| `both` — controls checkout options | `cod` |
+| `NEXT_PUBLIC_PAYMENT_MODE` | `upi` \| `cod` \| `both` — controls checkout options | `upi` |
+| `NEXT_PUBLIC_UPI_VPA` | UPI ID shown at checkout for the pay-to QR | `horology365@upi` |
 | `NEXT_PUBLIC_GA4_ID` / `NEXT_PUBLIC_META_PIXEL_ID` | Analytics (scripts only load when set) | _unset_ |
 
-**Enabling UPI later:** set `NEXT_PUBLIC_PAYMENT_MODE=upi` (or `both`) and add the
-Razorpay keys. The checkout UI, the `/api/orders` route, and the order model already
-branch on this flag — COD stays "pending", UPI becomes "paid" only after a verified
-signature (Phase 2).
+**Switching payment modes:** UPI is active now (`upi`). Set
+`NEXT_PUBLIC_PAYMENT_MODE=cod` to make Cash on Delivery the live method, or `both` to
+offer both. The checkout UI, the `/api/orders` route and the order model all branch on
+this flag. Set `NEXT_PUBLIC_UPI_VPA` to your real UPI ID before going live; the QR is
+generated client-side from the standard NPCI `upi://pay` URI.
 
 ## Project structure
 

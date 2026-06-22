@@ -31,7 +31,7 @@ const img = (id: string, w = 900) =>
  * to small web clips). Served same-origin so it always plays; each clip has a
  * matching poster frame in /public/posters as a crisp fallback.
  */
-const VIDEO_COUNT = 6;
+const VIDEO_COUNT = 8;
 
 interface Seed {
   slug: string;
@@ -651,6 +651,76 @@ const seeds: Seed[] = [
     stock: 8,
     tags: ["designer", "jewellery"],
   },
+
+  // ── More Casio ──
+  { slug: "casio-mtp-1303", title: "Casio Enticer MTP-1303 Steel", brandSlug: "casio", category: "mens-watches", price: 3995, mrp: 4995, photo: "1524592094714-0f0654e20314", description: "A clean three-hand dress watch on a steel bracelet with a date window. Everyday smart, easy on the wallet.", rating: 4.4, reviewCount: 187, stock: 32, hasVideo: true, tags: ["analog", "dress"] },
+  { slug: "casio-edifice-efr", title: "Casio Edifice EFR-526 Chronograph", brandSlug: "casio", category: "mens-watches", price: 8995, mrp: 11495, photo: "1547996160-81dfa63595aa", description: "A motorsport-inspired chronograph with a tachymeter bezel and bold dial. Built for the fast lane.", rating: 4.6, reviewCount: 121, stock: 17, isFeatured: true, tags: ["chronograph", "sport"] },
+  { slug: "casio-baby-g-pink", title: "Casio Baby-G BA-110 Pink", brandSlug: "casio", category: "womens-watches", price: 6995, mrp: 8495, photo: "1612817159949-195b6eb9e31a", description: "Shock-resistant, sporty and unmistakably fun in blush pink. Tough never looked this cute.", rating: 4.5, reviewCount: 143, stock: 21, tags: ["sport", "digital"] },
+
+  // ── More Timex ──
+  { slug: "timex-expedition-scout", title: "Timex Expedition Scout 40mm", brandSlug: "timex", category: "mens-watches", price: 7495, mrp: 9495, photo: "1542496658-e33a6d0d50f6", description: "A rugged outdoor field watch with INDIGLO and a leather strap. Trail-ready, city-smart.", rating: 4.6, reviewCount: 98, stock: 24, isFeatured: true, hasVideo: true, tags: ["field", "outdoor"] },
+  { slug: "timex-fairfield-chrono", title: "Timex Fairfield Chronograph", brandSlug: "timex", category: "mens-watches", price: 8995, mrp: 10995, photo: "1587836374828-4dbafa94cf0e", description: "A minimalist chronograph with a cream dial and slim case. Timeless, understated, versatile.", rating: 4.5, reviewCount: 64, stock: 15, tags: ["chronograph", "minimal"] },
+  { slug: "timex-easy-reader", title: "Timex Easy Reader 38mm", brandSlug: "timex", category: "womens-watches", price: 5495, mrp: 6995, photo: "1539874754764-5a96559165b0", description: "Big, clear numerals on a soft leather strap. The fuss-free classic that just works.", rating: 4.4, reviewCount: 77, stock: 28, tags: ["analog", "classic"] },
+
+  // ── More Armani Exchange ──
+  { slug: "ax-hampton-leather", title: "AX Hampton Brown Leather", brandSlug: "armani-exchange", category: "mens-watches", price: 11995, mrp: 14995, photo: "1614164185128-e4ec99c436d7", description: "A refined dress watch with a navy dial and tan leather. Milan polish for the everyday.", rating: 4.5, reviewCount: 58, stock: 16, isFeatured: true, tags: ["dress", "leather"] },
+  { slug: "ax-drexler-blue", title: "AX Drexler Blue Steel", brandSlug: "armani-exchange", category: "mens-watches", price: 13495, mrp: 16995, photo: "1434056886845-dac89ffe9b56", description: "A bold blue chronograph on a brushed-steel bracelet. Weekend-to-boardroom confidence.", rating: 4.4, reviewCount: 44, stock: 12, hasVideo: true, tags: ["chronograph", "steel"] },
+  { slug: "ax-lady-mesh-silver", title: "AX Lady Silver Mesh", brandSlug: "armani-exchange", category: "womens-watches", price: 11495, mrp: 13995, photo: "1518131672697-613becd4fab5", description: "A slim silver mesh band with a crisp white dial. Effortless office-to-evening.", rating: 4.5, reviewCount: 37, stock: 14, tags: ["mesh", "minimal"] },
+
+  // ── More Titan ──
+  { slug: "titan-nebula-gold", title: "Titan Nebula 18kt Gold", brandSlug: "titan", category: "mens-watches", price: 38995, mrp: 44995, photo: "1547996160-81dfa63595aa", description: "Solid 18kt gold case and a mother-of-pearl dial. A genuine heirloom-grade dress watch.", rating: 4.9, reviewCount: 52, stock: 5, isFeatured: true, tags: ["gold", "luxury", "dress"] },
+  { slug: "titan-karishma-classic", title: "Titan Karishma Classic", brandSlug: "titan", category: "mens-watches", price: 3495, mrp: 4495, photo: "1524592094714-0f0654e20314", description: "The dependable everyday companion — slim case, gold-tone accents, all-day comfort.", rating: 4.3, reviewCount: 219, stock: 40, tags: ["analog", "everyday"] },
+  { slug: "titan-octane-chrono", title: "Titan Octane Sport Chronograph", brandSlug: "titan", category: "mens-watches", price: 9995, mrp: 12495, photo: "1508057198894-247b23fe5ade", description: "A sporty chronograph with a textured dial and silicone strap. Built to keep pace.", rating: 4.5, reviewCount: 86, stock: 19, hasVideo: true, tags: ["chronograph", "sport"] },
+
+  // ── More Fastrack ──
+  { slug: "fastrack-tickergh", title: "Fastrack FS1 Pro Smartwatch", brandSlug: "fastrack", category: "mens-watches", price: 3999, mrp: 5995, photo: "1508057198894-247b23fe5ade", description: "AMOLED display, 100+ sports modes and Bluetooth calling. Bold features, bolder price.", rating: 4.2, reviewCount: 356, stock: 45, isFeatured: true, tags: ["smartwatch", "bestseller"] },
+  { slug: "fastrack-denim-blue", title: "Fastrack Denim Blue Dial", brandSlug: "fastrack", category: "mens-watches", price: 2695, mrp: 3495, photo: "1542496658-e33a6d0d50f6", description: "A washed-denim dial and tan strap with casual everyday energy. Easy, affordable, cool.", rating: 4.1, reviewCount: 132, stock: 30, tags: ["analog", "casual"] },
+  { slug: "fastrack-reflex-play", title: "Fastrack Reflex Play Coral", brandSlug: "fastrack", category: "womens-watches", price: 2999, mrp: 3995, photo: "1518131672697-613becd4fab5", description: "A lightweight smartwatch in coral with health tracking and swappable straps. Move on.", rating: 4.2, reviewCount: 174, stock: 27, tags: ["smartwatch", "colour"] },
+
+  // ── More Sonata ──
+  { slug: "sonata-volt-led", title: "Sonata Volt+ LED Digital", brandSlug: "sonata", category: "mens-watches", price: 1295, mrp: 1695, photo: "1495856458515-0637185db551", description: "A bright LED digital with day, date and alarm. Honest value that lasts.", rating: 4.0, reviewCount: 198, stock: 52, tags: ["digital", "value"] },
+  { slug: "sonata-poolside-women", title: "Sonata Poolside Rose", brandSlug: "sonata", category: "womens-watches", price: 1595, mrp: 2095, photo: "1612817159949-195b6eb9e31a", description: "A cheerful rose dial on a slim bracelet. Light, pretty, perfect for daily wear.", rating: 4.2, reviewCount: 96, stock: 36, tags: ["analog", "everyday"] },
+  { slug: "sonata-classic-leather", title: "Sonata Classic Brown Leather", brandSlug: "sonata", category: "mens-watches", price: 1695, mrp: 2195, photo: "1614164185128-e4ec99c436d7", description: "A simple white dial on a brown leather strap. The no-nonsense daily workhorse.", rating: 4.1, reviewCount: 121, stock: 44, tags: ["leather", "classic"] },
+
+  // ── More Fossil ──
+  { slug: "fossil-grant-brown", title: "Fossil Grant Brown Leather Chrono", brandSlug: "fossil", category: "mens-watches", price: 11995, mrp: 14995, photo: "1614164185128-e4ec99c436d7", description: "Roman numerals, exposed sub-dials and rich brown leather. Vintage charm, modern build.", rating: 4.7, reviewCount: 142, stock: 14, isFeatured: true, hasVideo: true, tags: ["chronograph", "leather"] },
+  { slug: "fossil-jacqueline-rose", title: "Fossil Jacqueline Rose Leather", brandSlug: "fossil", category: "womens-watches", price: 9995, mrp: 12495, photo: "1539874754764-5a96559165b0", description: "A slim rose-gold case with a moonphase-style sub-dial on blush leather. Quietly romantic.", rating: 4.6, reviewCount: 73, stock: 18, tags: ["leather", "rose-gold"] },
+  { slug: "fossil-townsman-auto", title: "Fossil Townsman Automatic Skeleton", brandSlug: "fossil", category: "mens-watches", price: 16995, mrp: 20995, photo: "1587836374828-4dbafa94cf0e", description: "A see-through automatic movement and a domed crystal. Mechanical soul at a fair price.", rating: 4.7, reviewCount: 61, stock: 0, isPreorder: true, dropDate: "2026-07-08", tags: ["automatic", "skeleton", "preorder"] },
+
+  // ── More Diesel ──
+  { slug: "diesel-overflow-black", title: "Diesel Overflow All-Black", brandSlug: "diesel", category: "mens-watches", price: 16995, mrp: 20995, photo: "1542496658-e33a6d0d50f6", description: "Blacked-out, oversized and unapologetic. A statement that needs no introduction.", rating: 4.4, reviewCount: 88, stock: 11, isFeatured: true, tags: ["oversized", "black"] },
+  { slug: "diesel-spiked-gold", title: "Diesel Spiked Gold-Tone", brandSlug: "diesel", category: "mens-watches", price: 18995, mrp: 22995, photo: "1547996160-81dfa63595aa", description: "Gold-tone steel with a spiked bezel and textured dial. Maximalist, fearless, loud.", rating: 4.3, reviewCount: 54, stock: 8, hasVideo: true, tags: ["gold", "statement"] },
+  { slug: "diesel-flayed-chrono", title: "Diesel Flayed Chronograph", brandSlug: "diesel", category: "mens-watches", price: 19995, mrp: 24995, photo: "1533139502658-0198f920d8e8", description: "An industrial chronograph with an exposed dial and chunky case. Built like a tool.", rating: 4.4, reviewCount: 47, stock: 10, tags: ["chronograph", "oversized"] },
+
+  // ── More Michael Kors ──
+  { slug: "mk-runway-silver", title: "Michael Kors Runway Silver", brandSlug: "michael-kors", category: "womens-watches", price: 19995, mrp: 24995, photo: "1518131672697-613becd4fab5", description: "A sleek silver-tone bracelet with an oversized dial. Minimal glamour with maximum presence.", rating: 4.6, reviewCount: 108, stock: 12, isFeatured: true, hasVideo: true, tags: ["steel", "glam"] },
+  { slug: "mk-parker-pave", title: "Michael Kors Parker Pavé Gold", brandSlug: "michael-kors", category: "womens-watches", price: 22995, mrp: 27995, photo: "1526045431048-f857369baa09", description: "Three sub-dials ringed with crystals on a gold-tone bracelet. Full-glam statement piece.", rating: 4.7, reviewCount: 96, stock: 9, tags: ["chronograph", "gold", "glam"] },
+  { slug: "mk-bradshaw-gold", title: "Michael Kors Bradshaw Gold", brandSlug: "michael-kors", category: "womens-watches", price: 23995, mrp: 28995, photo: "1612817159949-195b6eb9e31a", description: "A bold oversized chronograph in polished gold-tone. The jet-set classic.", rating: 4.7, reviewCount: 134, stock: 0, isPreorder: true, dropDate: "2026-07-15", tags: ["chronograph", "gold", "preorder"] },
+
+  // ── More Guess ──
+  { slug: "guess-letterm-gold", title: "Guess Letter M Gold Logo", brandSlug: "guess", category: "womens-watches", price: 12995, mrp: 16495, photo: "1612817159949-195b6eb9e31a", description: "A gold-tone logo-dial bracelet watch with signature swagger. Made to be noticed.", rating: 4.4, reviewCount: 67, stock: 15, isFeatured: true, tags: ["gold", "logo"] },
+  { slug: "guess-moonlight-silver", title: "Guess Moonlight Silver Crystal", brandSlug: "guess", category: "womens-watches", price: 13495, mrp: 16995, photo: "1518131672697-613becd4fab5", description: "A crystal-pavé dial on a silver bracelet. Sparkle that follows you into the night.", rating: 4.5, reviewCount: 58, stock: 13, hasVideo: true, tags: ["crystal", "glam"] },
+  { slug: "guess-king-black", title: "Guess King Black & Steel", brandSlug: "guess", category: "mens-watches", price: 15995, mrp: 19995, photo: "1547996160-81dfa63595aa", description: "A bold multifunction dial in black and steel. Confident, contemporary, unmistakably Guess.", rating: 4.3, reviewCount: 41, stock: 11, tags: ["multifunction", "steel"] },
+
+  // ── More Lacoste ──
+  { slug: "lacoste-tiebreaker", title: "Lacoste Tiebreaker Steel", brandSlug: "lacoste", category: "mens-watches", price: 12495, mrp: 15495, photo: "1434056886845-dac89ffe9b56", description: "A clean steel-bracelet sport watch with the signature croc. Court-ready, city-cool.", rating: 4.5, reviewCount: 49, stock: 17, isFeatured: true, tags: ["sport", "steel"] },
+  { slug: "lacoste-12-12-white", title: "Lacoste 12.12 White Silicone", brandSlug: "lacoste", category: "mens-watches", price: 9995, mrp: 12495, photo: "1508057198894-247b23fe5ade", description: "An iconic polo-inspired dial on a fresh white strap. Sporty French minimalism.", rating: 4.4, reviewCount: 62, stock: 22, hasVideo: true, tags: ["silicone", "sport"] },
+  { slug: "lacoste-club-brown", title: "Lacoste Club Brown Leather", brandSlug: "lacoste", category: "mens-watches", price: 10995, mrp: 13495, photo: "1614164185128-e4ec99c436d7", description: "A relaxed everyday watch with a navy dial and brown leather. Easy weekend energy.", rating: 4.4, reviewCount: 38, stock: 18, tags: ["leather", "casual"] },
+
+  // ── More French Connection ──
+  { slug: "fcuk-noir-chrono", title: "French Connection Noir Chronograph", brandSlug: "french-connection", category: "mens-watches", price: 7495, mrp: 9495, photo: "1533139502658-0198f920d8e8", description: "A blacked-out minimalist chronograph on a mesh band. London cool, dialled up.", rating: 4.3, reviewCount: 34, stock: 16, isFeatured: true, tags: ["chronograph", "minimal"] },
+  { slug: "fcuk-rose-mesh", title: "French Connection Rose Mesh", brandSlug: "french-connection", category: "womens-watches", price: 6495, mrp: 8495, photo: "1612817159949-195b6eb9e31a", description: "A rose-gold mesh band and slim case. Pared-back elegance for every day.", rating: 4.3, reviewCount: 41, stock: 19, tags: ["mesh", "rose-gold"] },
+  { slug: "fcuk-cream-leather", title: "French Connection Cream Leather", brandSlug: "french-connection", category: "womens-watches", price: 5995, mrp: 7995, photo: "1539874754764-5a96559165b0", description: "A clean cream dial on a soft leather strap. Understated London minimalism.", rating: 4.2, reviewCount: 27, stock: 23, tags: ["leather", "minimal"] },
+
+  // ── More Carter London ──
+  { slug: "carter-classic-blue", title: "Carter London Classic Blue", brandSlug: "carter-london", category: "mens-watches", price: 6995, mrp: 9995, photo: "1614164185128-e4ec99c436d7", description: "A sunburst blue dial on a leather strap. Affordable British formality, beautifully done.", rating: 4.4, reviewCount: 36, stock: 18, isFeatured: true, tags: ["dress", "leather"] },
+  { slug: "carter-skeleton-auto", title: "Carter London Skeleton Automatic", brandSlug: "carter-london", category: "mens-watches", price: 9995, mrp: 13995, photo: "1587836374828-4dbafa94cf0e", description: "An open-heart automatic with an exposed balance wheel. Mechanical character on a budget.", rating: 4.5, reviewCount: 28, stock: 0, isPreorder: true, dropDate: "2026-07-02", hasVideo: true, tags: ["automatic", "skeleton", "preorder"] },
+  { slug: "carter-chrono-steel", title: "Carter London Chrono Steel", brandSlug: "carter-london", category: "mens-watches", price: 8995, mrp: 11995, photo: "1434056886845-dac89ffe9b56", description: "A crisp multi-dial chronograph on a steel bracelet. Dress-watch poise, everyday price.", rating: 4.3, reviewCount: 22, stock: 14, tags: ["chronograph", "steel"] },
+
+  // ── More Titan Raga ──
+  { slug: "titan-raga-aurora", title: "Titan Raga Aurora Crystal", brandSlug: "titan-raga", category: "womens-watches", price: 10995, mrp: 13495, photo: "1535632066927-ab7c9ab60908", description: "A crystal-studded bezel and shimmering dial on a slim bracelet. Everyday sparkle.", rating: 4.6, reviewCount: 84, stock: 16, isFeatured: true, hasVideo: true, tags: ["crystal", "jewellery"] },
+  { slug: "titan-raga-pretties", title: "Titan Raga Pretties Rose", brandSlug: "titan-raga", category: "womens-watches", price: 8995, mrp: 11495, photo: "1612817159949-195b6eb9e31a", description: "A delicate rose-gold case with a pearl dial. Feminine, refined, easy to love.", rating: 4.5, reviewCount: 67, stock: 20, tags: ["rose-gold", "jewellery"] },
+  { slug: "titan-raga-power-pearl", title: "Titan Raga Power Pearl", brandSlug: "titan-raga", category: "womens-watches", price: 13995, mrp: 16995, photo: "1518131672697-613becd4fab5", description: "A bold mother-of-pearl dial framed in gold-tone steel. Boardroom-ready glamour.", rating: 4.7, reviewCount: 53, stock: 12, tags: ["jewellery", "gold"] },
 ];
 
 export const products: Product[] = seeds.map(build);
@@ -670,6 +740,15 @@ export function getProductsByCategory(category: CategorySlug): Product[] {
 export const featuredProducts = products.filter((p) => p.isFeatured);
 export const preorderProducts = products.filter((p) => p.isPreorder);
 export const videoProducts = products.filter((p) => Boolean(p.videoUrl));
+
+/** Top sellers by review volume — used for the homepage best-sellers grid. */
+export const bestSellers = [...products]
+  .filter((p) => !p.isPreorder)
+  .sort((a, b) => b.reviewCount - a.reviewCount)
+  .slice(0, 8);
+
+/** Newest in (tail of the catalog) — fills the category/home grids. */
+export const newArrivals = [...products].slice(-12).reverse();
 
 export function getRelatedProducts(product: Product, limit = 4): Product[] {
   return products

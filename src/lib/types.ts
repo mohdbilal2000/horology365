@@ -118,6 +118,8 @@ export interface CheckoutDetails {
   state: string;
   pincode: string;
   paymentMethod: PaymentMethod;
+  /** UPI transaction reference / UTR entered after paying (UPI orders). */
+  upiReference?: string;
 }
 
 export type OrderStatus = "pending" | "paid" | "shipped" | "delivered";

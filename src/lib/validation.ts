@@ -39,6 +39,15 @@ export function validateCheckout(input: Partial<CheckoutDetails>): {
     errors.paymentMethod = "Choose a payment method.";
   }
 
+  // UPI orders must carry a transaction reference (UTR) entered after paying.
+  if (input.paymentMethod === "upi") {
+    const ref = (input.upiReference ?? "").trim();
+    if (ref.length < 8) {
+      errors.upiReference =
+        "Enter the UPI reference / UTR from your payment app.";
+    }
+  }
+
   return { ok: Object.keys(errors).length === 0, errors };
 }
 

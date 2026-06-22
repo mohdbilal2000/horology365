@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import QRCode from "qrcode";
 import {
   useCartStore,
   cartSubtotal,
@@ -11,7 +12,7 @@ import {
 } from "@/lib/store/cart";
 import { validateCheckout, type FieldErrors } from "@/lib/validation";
 import { formatINR } from "@/lib/utils";
-import { COD_ENABLED, UPI_ENABLED } from "@/lib/config";
+import { COD_ENABLED, UPI_ENABLED, UPI, buildUpiUri } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import type { CheckoutDetails, Order, PaymentMethod } from "@/lib/types";
 
@@ -24,7 +25,8 @@ const INITIAL: CheckoutDetails = {
   city: "",
   state: "",
   pincode: "",
-  paymentMethod: COD_ENABLED ? "cod" : "upi",
+  paymentMethod: UPI_ENABLED ? "upi" : "cod",
+  upiReference: "",
 };
 
 export default function CheckoutPage() {
@@ -37,10 +39,34 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [copied, setCopied] = useState(false);
+
   const subtotal = cartSubtotal(items);
   const shipping = cartShipping(subtotal);
   const savings = cartSavings(items);
   const total = subtotal + shipping;
+
+  const upiUri = buildUpiUri(total, "Horology365 order");
+
+  // Generate the UPI QR whenever the payable amount changes.
+  useEffect(() => {
+    if (!UPI_ENABLED || total <= 0) {
+      setQrDataUrl("");
+      return;
+    }
+    let cancelled = false;
+    QRCode.toDataURL(upiUri, { margin: 1, width: 320, errorCorrectionLevel: "M" })
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [upiUri, total]);
 
   function update<K extends keyof CheckoutDetails>(
     key: K,
@@ -210,27 +236,102 @@ export default function CheckoutPage() {
             <fieldset className="space-y-3">
               <legend className="font-serif text-xl">Payment method</legend>
               <PaymentOption
-                method="cod"
-                selected={form.paymentMethod === "cod"}
-                onSelect={() => update("paymentMethod", "cod")}
-                disabled={!COD_ENABLED}
-                title="Cash on Delivery"
-                subtitle="Pay when your watch arrives. Available now."
-              />
-              <PaymentOption
                 method="upi"
                 selected={form.paymentMethod === "upi"}
                 onSelect={() => UPI_ENABLED && update("paymentMethod", "upi")}
                 disabled={!UPI_ENABLED}
-                title="UPI / Online Payment"
+                title="UPI"
+                subtitle="Pay instantly via any UPI app — GPay, PhonePe, Paytm."
+              />
+              <PaymentOption
+                method="cod"
+                selected={form.paymentMethod === "cod"}
+                onSelect={() => COD_ENABLED && update("paymentMethod", "cod")}
+                disabled={!COD_ENABLED}
+                title="Cash on Delivery"
                 subtitle={
-                  UPI_ENABLED
-                    ? "Pay instantly via any UPI app."
-                    : "Coming soon — UPI checkout is being enabled."
+                  COD_ENABLED
+                    ? "Pay when your watch arrives."
+                    : "Coming soon — pay on delivery is being enabled."
                 }
               />
               {errors.paymentMethod ? (
                 <p className="text-sm text-red-600">{errors.paymentMethod}</p>
+              ) : null}
+
+              {/* UPI pay panel — VPA + QR + reference */}
+              {form.paymentMethod === "upi" ? (
+                <div className="mt-2 rounded-2xl border border-gold/30 bg-gold/5 p-5">
+                  <p className="text-sm font-semibold text-ink">
+                    Pay {formatINR(total)} to complete your order
+                  </p>
+                  <div className="mt-4 grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
+                    <div className="mx-auto rounded-xl bg-white p-3 shadow-product sm:mx-0">
+                      {qrDataUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={qrDataUrl}
+                          alt="UPI payment QR code"
+                          width={160}
+                          height={160}
+                          className="h-40 w-40"
+                        />
+                      ) : (
+                        <div className="flex h-40 w-40 items-center justify-center text-xs text-ink-500">
+                          Generating QR…
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-xs font-semibold uppercase tracking-label text-ink-500">
+                          Scan, or pay to UPI ID
+                        </span>
+                        <div className="mt-1 flex items-center gap-2">
+                          <code className="rounded-lg bg-bone-200 px-3 py-1.5 text-sm font-semibold">
+                            {UPI.vpa}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard
+                                ?.writeText(UPI.vpa)
+                                .then(() => {
+                                  setCopied(true);
+                                  window.setTimeout(() => setCopied(false), 1500);
+                                })
+                                .catch(() => undefined);
+                            }}
+                            className="rounded-lg border border-bone-300 px-3 py-1.5 text-xs font-medium transition hover:border-gold hover:text-gold-600"
+                          >
+                            {copied ? "Copied!" : "Copy"}
+                          </button>
+                        </div>
+                      </div>
+                      <a
+                        href={upiUri}
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-600 hover:text-gold-700"
+                      >
+                        Open in a UPI app →
+                      </a>
+                      <p className="text-xs text-ink-500">
+                        After paying, enter the UPI reference / UTR below so we can
+                        verify and ship your order.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Field
+                      label="UPI transaction reference / UTR"
+                      value={form.upiReference ?? ""}
+                      onChange={(v) => update("upiReference", v)}
+                      error={errors.upiReference}
+                      placeholder="e.g. 4567 8910 1234"
+                      inputMode="numeric"
+                      required
+                    />
+                  </div>
+                </div>
               ) : null}
             </fieldset>
 
@@ -287,9 +388,9 @@ export default function CheckoutPage() {
             >
               {submitting
                 ? "Placing order…"
-                : form.paymentMethod === "cod"
-                  ? "Place order (COD)"
-                  : "Pay now"}
+                : form.paymentMethod === "upi"
+                  ? "I've paid — place order"
+                  : "Place order (COD)"}
             </button>
             <p className="mt-3 text-center text-xs text-ink-500">
               By placing your order you agree to our{" "}

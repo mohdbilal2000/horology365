@@ -3,10 +3,11 @@ import { TrustStrip } from "@/components/TrustStrip";
 import { BrandLogoWall } from "@/components/BrandLogoWall";
 import { BrandBay } from "@/components/BrandBay";
 import { CategoryBlock } from "@/components/CategoryBlock";
-import { VideoWall } from "@/components/VideoWall";
 import { OfferBand } from "@/components/OfferBand";
 import { DropCarousel } from "@/components/DropCarousel";
 import { ReviewsSection } from "@/components/ReviewCard";
+import { SectionHeader } from "@/components/SectionHeader";
+import { ProductGrid } from "@/components/ProductGrid";
 import {
   activeBanners,
   activeBrands,
@@ -15,7 +16,7 @@ import {
   getProductBySlug,
   getProductsByBrand,
   preorderProducts,
-  videoProducts,
+  bestSellers,
   offers,
   reviews,
 } from "@/lib/mock";
@@ -44,8 +45,20 @@ export default function HomePage() {
         />
       ))}
 
+      {/* Best Sellers — a full grid of the most-loved watches. */}
+      <section className="band-dark aurora grain relative overflow-hidden py-14 sm:py-20">
+        <div className="shell relative z-[2]">
+          <SectionHeader
+            label="Most Loved"
+            title="Best Sellers"
+            viewAllHref="/category/mens-watches"
+            viewAllLabel="Shop all"
+          />
+          <ProductGrid products={bestSellers} />
+        </div>
+      </section>
+
       <CategoryBlock categories={categories} />
-      <VideoWall products={videoProducts} />
       <OfferBand offers={offers} />
       <DropCarousel products={preorderProducts} />
       <ReviewsSection reviews={reviews} />

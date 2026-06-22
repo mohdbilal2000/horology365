@@ -12,14 +12,33 @@ export const SITE = {
 export type PaymentMode = "cod" | "upi" | "both";
 
 /**
- * Current payment mode. COD is live now; UPI is enabled later by
- * flipping NEXT_PUBLIC_PAYMENT_MODE to "upi" or "both".
+ * Current payment mode. UPI is live now (pay to our VPA via any UPI app);
+ * Cash on Delivery is "coming soon" and switched on later by setting
+ * NEXT_PUBLIC_PAYMENT_MODE to "cod" or "both".
  */
 export const PAYMENT_MODE: PaymentMode =
-  (process.env.NEXT_PUBLIC_PAYMENT_MODE as PaymentMode) || "cod";
+  (process.env.NEXT_PUBLIC_PAYMENT_MODE as PaymentMode) || "upi";
 
 export const COD_ENABLED = PAYMENT_MODE === "cod" || PAYMENT_MODE === "both";
 export const UPI_ENABLED = PAYMENT_MODE === "upi" || PAYMENT_MODE === "both";
+
+/** UPI collect details used to render the pay-to VPA + QR at checkout. */
+export const UPI = {
+  vpa: process.env.NEXT_PUBLIC_UPI_VPA || "horology365@upi",
+  payeeName: process.env.NEXT_PUBLIC_UPI_PAYEE_NAME || "Horology365",
+} as const;
+
+/** Build a standard UPI deep-link / QR payload (NPCI URI scheme). */
+export function buildUpiUri(amount: number, note: string): string {
+  const params = new URLSearchParams({
+    pa: UPI.vpa,
+    pn: UPI.payeeName,
+    am: String(amount),
+    cu: "INR",
+    tn: note,
+  });
+  return `upi://pay?${params.toString()}`;
+}
 
 export const FREE_SHIPPING_THRESHOLD = 1499;
 export const FLAT_SHIPPING = 79;

@@ -29,4 +29,32 @@ export const offers: Offer[] = [
     productSlug: "mk-lexington-gold",
     badge: "Editor's Pick",
   },
+  {
+    id: "of-casio-edifice",
+    title: "Casio Edifice EFR-526",
+    subtitle: "Motorsport chronograph",
+    productSlug: "casio-edifice-efr",
+    badge: "22% Off",
+  },
+  {
+    id: "of-diesel-overflow",
+    title: "Diesel Overflow",
+    subtitle: "All-black, oversized statement",
+    productSlug: "diesel-overflow-black",
+    badge: "Bold Buy",
+  },
+  {
+    id: "of-guess-frontier",
+    title: "Guess Frontier Crystal",
+    subtitle: "Full crystal-set bezel",
+    productSlug: "guess-frontier-crystal",
+    badge: "22% Off",
+  },
+  {
+    id: "of-titan-octane",
+    title: "Titan Octane Chrono",
+    subtitle: "Sport chronograph, ready to ship",
+    productSlug: "titan-octane-chrono",
+    badge: "Hot",
+  },
 ];

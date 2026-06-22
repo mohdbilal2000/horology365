@@ -1,6 +1,6 @@
 const ITEMS = [
   { label: "100% Authentic", sub: "Sealed-box, brand warranty" },
-  { label: "UPI Secure", sub: "Pay on delivery today" },
+  { label: "UPI Secure", sub: "Pay via any UPI app" },
   { label: "Easy Returns", sub: "7-day no-questions returns" },
   { label: "WhatsApp Support", sub: "Real humans, fast replies" },
 ] as const;

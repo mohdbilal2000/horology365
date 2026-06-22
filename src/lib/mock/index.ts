@@ -16,6 +16,8 @@ export {
   featuredProducts,
   preorderProducts,
   videoProducts,
+  bestSellers,
+  newArrivals,
   getProductBySlug,
   getProductsByBrand,
   getProductsByCategory,

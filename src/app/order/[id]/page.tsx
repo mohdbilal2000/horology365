@@ -81,9 +81,22 @@ export default function OrderConfirmationPage({ params }: PageProps) {
               {formatINR(order.total)} ready at delivery.
             </p>
           ) : (
-            <p className="mt-4 text-sm text-ink-500">
-              Payment received via UPI. A receipt is on its way.
-            </p>
+            <div className="mt-4 text-sm text-ink-500">
+              <p>
+                Paid via <strong>UPI</strong> — {formatINR(order.total)}.
+              </p>
+              {order.details.upiReference ? (
+                <p className="mt-1">
+                  Ref:{" "}
+                  <span className="font-mono text-ink-700">
+                    {order.details.upiReference}
+                  </span>
+                </p>
+              ) : null}
+              <p className="mt-1 text-gold-700">
+                We’re verifying your payment and will dispatch once confirmed.
+              </p>
+            </div>
           )}
         </div>
 

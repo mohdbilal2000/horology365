@@ -148,7 +148,7 @@ export default async function ProductPage({ params }: PageProps) {
 
             <ul className="mt-8 grid grid-cols-2 gap-3 border-t border-bone-300 pt-6 text-sm text-ink-600">
               <li>✓ 100% authentic, brand warranty</li>
-              <li>✓ Pay on delivery (COD)</li>
+              <li>✓ UPI-secure checkout</li>
               <li>✓ 7-day easy returns</li>
               <li>✓ WhatsApp order support</li>
             </ul>

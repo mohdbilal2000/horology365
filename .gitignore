@@ -30,3 +30,7 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# generated client deck (regenerate via scripts/capture-deck.cjs)
+*.pdf
+/tmp

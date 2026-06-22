@@ -48,10 +48,10 @@ export function SiteHeader() {
     <>
       <header
         className={cn(
-          "sticky top-0 z-40 w-full border-b transition-colors duration-300",
+          "sticky top-0 z-40 w-full border-b backdrop-blur-xl transition-all duration-300",
           scrolled
-            ? "border-bone/10 bg-ink/95 backdrop-blur supports-[backdrop-filter]:bg-ink/80"
-            : "border-transparent bg-ink",
+            ? "border-white/10 bg-ink/80 shadow-glass"
+            : "border-white/5 bg-ink/55",
         )}
       >
         <div className="shell flex h-16 items-center justify-between gap-4 text-bone lg:h-20">
@@ -115,7 +115,7 @@ export function SiteHeader() {
             >
               <BagIcon />
               {count > 0 ? (
-                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-bold text-ink">
+                <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-bold text-white">
                   {count}
                 </span>
               ) : null}

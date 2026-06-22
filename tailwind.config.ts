@@ -1,55 +1,63 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Horology365 — "The Showroom" design tokens.
- * One accent across the whole site: champagne gold.
- * Display serif headlines + clean grotesk sans for body/UI.
+ * Horology365 — "The Showroom", white & blue edition.
+ * One accent across the whole site: electric blue (token still named `gold`
+ * for backwards-compat with existing class names — its value is now blue).
+ * Minimal, translucent, Apple/Google-style glass surfaces.
+ * Display: Sora. Body/UI: Manrope.
  */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx,mdx}"],
   theme: {
     extend: {
       colors: {
+        // Accent (blue). Kept under the `gold` key so all existing
+        // text-gold/bg-gold/ring-gold/btn-gold usages recolor at once.
         gold: {
-          DEFAULT: "#C8A55B",
-          50: "#FBF7EE",
-          100: "#F4EAD0",
-          200: "#E7D3A2",
-          300: "#D9BC73",
-          400: "#C8A55B",
-          500: "#B58E3F",
-          600: "#947232",
-          700: "#6F5526",
-          800: "#4A391A",
-          900: "#261D0D",
+          DEFAULT: "#2563EB",
+          50: "#EFF6FF",
+          100: "#DBEAFE",
+          200: "#BFDBFE",
+          300: "#93C5FD",
+          400: "#60A5FA",
+          500: "#3B82F6",
+          600: "#2563EB",
+          700: "#1D4ED8",
+          800: "#1E40AF",
+          900: "#1E3A8A",
         },
+        // Deep blue-tinted darks for the dark bands.
         ink: {
-          DEFAULT: "#0B0B0D",
-          900: "#0B0B0D",
-          800: "#141417",
-          700: "#1C1C21",
-          600: "#26262C",
-          500: "#3A3A42",
+          DEFAULT: "#0A1326",
+          900: "#0A1326",
+          800: "#0F1C36",
+          700: "#16263F",
+          600: "#22344F",
+          500: "#33496A",
         },
+        // Cool near-white for the light bands.
         bone: {
-          DEFAULT: "#F7F5F0",
+          DEFAULT: "#F4F7FB",
           100: "#FFFFFF",
-          200: "#F7F5F0",
-          300: "#EDE9E0",
-          400: "#E2DCCF",
+          200: "#F4F7FB",
+          300: "#E6ECF4",
+          400: "#D3DDEA",
         },
       },
       fontFamily: {
-        serif: ["var(--font-serif)", "Georgia", "serif"],
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        // `serif` token now points at the Sora display face.
+        serif: ["var(--font-serif)", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       letterSpacing: {
         label: "0.22em",
       },
       boxShadow: {
-        product: "0 18px 40px -22px rgba(11, 11, 13, 0.45)",
-        "product-hover": "0 28px 60px -24px rgba(11, 11, 13, 0.55)",
-        gold: "0 10px 30px -12px rgba(200, 165, 91, 0.55)",
+        product: "0 18px 50px -28px rgba(10, 19, 38, 0.45)",
+        "product-hover": "0 30px 70px -30px rgba(10, 19, 38, 0.5)",
+        gold: "0 12px 34px -12px rgba(37, 99, 235, 0.5)",
+        glass: "0 8px 32px -12px rgba(10, 19, 38, 0.18)",
       },
       maxWidth: {
         shell: "1440px",
@@ -82,3 +90,4 @@ const config: Config = {
 };
 
 export default config;
+

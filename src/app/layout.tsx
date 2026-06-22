@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Manrope, Sora } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -8,14 +8,15 @@ import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { Analytics } from "@/components/Analytics";
 import { SITE } from "@/lib/config";
 
-const sans = Inter({
+const sans = Manrope({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const serif = Playfair_Display({
+const serif = Sora({
   subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
   variable: "--font-serif",
   display: "swap",
 });
@@ -68,7 +69,7 @@ export default function RootLayout({
       <body className="flex min-h-screen flex-col">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-gold focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-ink"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-gold focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
         >
           Skip to content
         </a>

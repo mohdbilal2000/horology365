@@ -46,21 +46,41 @@
     @apply mx-auto w-full max-w-shell px-5 sm:px-8 lg:px-12;
   }
 
-  /* Champagne-gold primary CTA. */
+  /* Electric-blue primary CTA. */
   .btn-gold {
     @apply inline-flex items-center justify-center gap-2 rounded-full bg-gold px-7 py-3
-      text-sm font-semibold uppercase tracking-wide text-ink shadow-gold
-      transition duration-300 ease-showroom hover:bg-gold-300 hover:shadow-product-hover
+      text-sm font-semibold tracking-wide text-white shadow-gold
+      transition duration-300 ease-showroom hover:bg-gold-700 hover:shadow-product-hover
       active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-outline {
     @apply inline-flex items-center justify-center gap-2 rounded-full border border-current
-      px-7 py-3 text-sm font-semibold uppercase tracking-wide transition duration-300
+      px-7 py-3 text-sm font-semibold tracking-wide transition duration-300
       ease-showroom active:scale-[0.98];
   }
   .btn-outline:hover {
-    background-color: color-mix(in srgb, currentColor 10%, transparent);
+    background-color: color-mix(in srgb, currentColor 8%, transparent);
+  }
+
+  /* ── Apple/Google-style translucent glass surfaces ── */
+  .glass {
+    background-color: rgba(255, 255, 255, 0.62);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+  }
+  .glass-dark {
+    background-color: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .glass-chip {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
   }
 
   .btn-ghost {
@@ -116,18 +136,18 @@
 
   /* ── Showroom motion & texture ─────────────────────────── */
 
-  /* Subtle film grain overlay for a premium, tactile feel. */
+  /* Barely-there grain (kept very subtle for a clean, minimal feel). */
   .grain::after {
     content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.06;
+    opacity: 0.03;
     z-index: 1;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
-  /* Soft animated champagne "aurora" glow blobs for dark bands. */
+  /* Soft animated blue "aurora" glow blobs for dark bands. */
   .aurora {
     position: relative;
     isolation: isolate;
@@ -139,9 +159,9 @@
     z-index: -1;
     pointer-events: none;
     background:
-      radial-gradient(40% 50% at 15% 20%, rgba(200, 165, 91, 0.18), transparent 70%),
-      radial-gradient(35% 45% at 85% 80%, rgba(200, 165, 91, 0.12), transparent 70%);
-    filter: blur(20px);
+      radial-gradient(42% 52% at 12% 18%, rgba(59, 130, 246, 0.28), transparent 70%),
+      radial-gradient(38% 48% at 88% 82%, rgba(37, 99, 235, 0.2), transparent 72%);
+    filter: blur(26px);
     animation: aurora-drift 18s ease-in-out infinite alternate;
   }
 
@@ -168,7 +188,7 @@
     transform: translateX(130%) skewX(-18deg);
   }
 
-  /* Animated gold gradient border (for the hero showcase). */
+  /* Animated blue/white gradient border (for the hero showcase). */
   .gold-border {
     position: relative;
   }
@@ -180,10 +200,10 @@
     padding: 1px;
     background: linear-gradient(
       130deg,
-      rgba(200, 165, 91, 0.7),
-      rgba(200, 165, 91, 0.05) 40%,
-      rgba(200, 165, 91, 0.05) 60%,
-      rgba(200, 165, 91, 0.7)
+      rgba(96, 165, 250, 0.8),
+      rgba(255, 255, 255, 0.1) 40%,
+      rgba(255, 255, 255, 0.1) 60%,
+      rgba(37, 99, 235, 0.8)
     );
     background-size: 200% 200%;
     animation: border-flow 6s ease infinite;

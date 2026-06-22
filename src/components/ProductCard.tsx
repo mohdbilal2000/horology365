@@ -60,7 +60,7 @@ export function ProductCard({
           {/* Badges */}
           <div className="absolute left-3 top-3 flex flex-col gap-1.5">
             {product.isPreorder ? (
-              <span className="rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ink">
+              <span className="rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
                 Pre-order
               </span>
             ) : null}
@@ -84,7 +84,7 @@ export function ProductCard({
             <button
               type="button"
               onClick={handleAdd}
-              className="absolute inset-x-3 bottom-3 translate-y-2 rounded-full bg-ink/90 py-2.5 text-xs font-semibold uppercase tracking-wide text-bone opacity-0 backdrop-blur transition-all duration-300 ease-showroom hover:bg-gold hover:text-ink group-hover:translate-y-0 group-hover:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
+              className="absolute inset-x-3 bottom-3 translate-y-2 rounded-full bg-ink/90 py-2.5 text-xs font-semibold uppercase tracking-wide text-bone opacity-0 backdrop-blur transition-all duration-300 ease-showroom hover:bg-gold hover:text-white group-hover:translate-y-0 group-hover:opacity-100 focus-visible:translate-y-0 focus-visible:opacity-100"
             >
               {product.isPreorder ? "Pre-order" : "Add to cart"}
             </button>

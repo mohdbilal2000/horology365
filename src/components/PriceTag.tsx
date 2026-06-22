@@ -39,7 +39,7 @@ export function PriceTag({
           {badge ? (
             <span
               className={cn(
-                "rounded-full bg-gold px-2 py-0.5 font-bold text-ink",
+                "rounded-full bg-gold px-2 py-0.5 font-bold text-white",
                 s.off,
               )}
             >

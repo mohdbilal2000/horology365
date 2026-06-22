@@ -38,15 +38,12 @@ export function VideoHero({ slides }: VideoHeroProps) {
     return () => window.clearInterval(timer);
   }, [slides.length, paused]);
 
-  // Play only the active slide's watch video.
   useEffect(() => {
     videoRefs.current.forEach((video, i) => {
       if (!video) return;
       if (i === active) {
         video.currentTime = 0;
-        video.play().catch(() => {
-          /* poster fallback remains visible */
-        });
+        video.play().catch(() => {});
       } else {
         video.pause();
       }
@@ -57,7 +54,7 @@ export function VideoHero({ slides }: VideoHeroProps) {
 
   return (
     <section
-      className="band-dark aurora grain relative overflow-hidden"
+      className="band-dark aurora relative overflow-hidden"
       aria-roledescription="carousel"
       aria-label="Featured watches"
     >
@@ -86,22 +83,32 @@ export function VideoHero({ slides }: VideoHeroProps) {
                 )}
                 aria-hidden={i !== active}
               >
-                <div className="grid items-center gap-8 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
-                  {/* ── Info ── */}
-                  <div className={cn("order-2 lg:order-1", i === active && "animate-fade-up")}>
-                    <span className="inline-flex items-center gap-2 eyebrow">
-                      <span className="h-px w-8 bg-gold" aria-hidden="true" />
+                <div className="gold-border glass-dark grid overflow-hidden rounded-[28px] shadow-product-hover lg:grid-cols-[1fr_1.05fr]">
+                  {/* ── Info panel ── */}
+                  <div
+                    className={cn(
+                      "order-2 flex flex-col justify-center gap-5 p-7 sm:p-10 lg:order-1 lg:p-14",
+                      i === active && "animate-fade-up",
+                    )}
+                  >
+                    <span className="glass-chip inline-flex w-fit items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-label text-gold-300">
+                      <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
                       {banner.eyebrow}
                     </span>
-                    <h1 className="mt-4 font-serif text-4xl leading-[1.03] text-balance sm:text-6xl lg:text-7xl">
+
+                    <h1 className="font-serif text-4xl font-bold leading-[1.04] tracking-tight text-balance sm:text-5xl lg:text-6xl">
                       {banner.headline}
                     </h1>
-                    <p className="mt-5 max-w-md text-bone/70 sm:text-lg">
+
+                    <p className="max-w-md text-base leading-relaxed text-bone/70 sm:text-lg">
                       {banner.subhead}
                     </p>
 
-                    {/* The featured watch */}
-                    <div className="mt-7 inline-flex items-center gap-4 rounded-2xl border border-bone/10 bg-ink-700/60 p-3 pr-6 backdrop-blur-md">
+                    {/* Featured watch chip */}
+                    <Link
+                      href={`/product/${product.slug}`}
+                      className="glass-chip group inline-flex w-fit items-center gap-4 rounded-2xl p-3 pr-6 transition hover:bg-white/15"
+                    >
                       <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-ink-600">
                         {cover ? (
                           <Image
@@ -114,85 +121,78 @@ export function VideoHero({ slides }: VideoHeroProps) {
                         ) : null}
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-[11px] font-semibold uppercase tracking-label text-gold">
+                        <span className="block text-[11px] font-semibold uppercase tracking-label text-gold-300">
                           {brandName}
                         </span>
-                        <Link
-                          href={`/product/${product.slug}`}
-                          className="block truncate font-medium transition hover:text-gold"
-                        >
+                        <span className="block truncate font-medium text-bone transition group-hover:text-gold-200">
                           {product.title}
-                        </Link>
+                        </span>
                         <span className="mt-1 block">
                           <PriceTag price={product.price} mrp={product.mrp} size="sm" />
                         </span>
                       </span>
-                    </div>
+                    </Link>
 
-                    <div className="mt-8 flex flex-wrap items-center gap-3">
+                    <div className="mt-1 flex flex-wrap items-center gap-3">
                       <Link href={banner.ctaHref} className="btn-gold shine">
                         {banner.ctaLabel}
                       </Link>
                       <Link
                         href={`/product/${product.slug}`}
-                        className="btn-outline border-bone/40 text-bone"
+                        className="btn-outline border-white/30 text-bone"
                       >
                         View watch
                       </Link>
                     </div>
                   </div>
 
-                  {/* ── Watch video, inside the card ── */}
-                  <div className="order-1 lg:order-2">
-                    <div className="gold-border shine group relative overflow-hidden rounded-3xl bg-ink-700 shadow-product-hover">
-                      <div className="relative aspect-[4/5] sm:aspect-[16/11] lg:aspect-[4/5]">
-                        <video
-                          ref={(el) => {
-                            videoRefs.current[i] = el;
-                          }}
-                          className="h-full w-full object-cover"
-                          poster={banner.posterUrl}
-                          muted
-                          loop
-                          playsInline
-                          preload={i === 0 ? "auto" : "none"}
-                          aria-label={`${brandName} ${product.title} in motion`}
-                          tabIndex={-1}
-                        >
-                          <source src={banner.videoUrl} type="video/mp4" />
-                        </video>
-                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-ink/20" />
+                  {/* ── Watch video ── */}
+                  <div className="relative order-1 min-h-[280px] lg:order-2 lg:min-h-[600px]">
+                    <video
+                      ref={(el) => {
+                        videoRefs.current[i] = el;
+                      }}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      poster={banner.posterUrl}
+                      muted
+                      loop
+                      playsInline
+                      preload={i === 0 ? "auto" : "none"}
+                      aria-label={`${brandName} ${product.title} in motion`}
+                      tabIndex={-1}
+                    >
+                      <source src={banner.videoUrl} type="video/mp4" />
+                    </video>
+                    {/* readability + blend into the card on the left edge */}
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-ink/60 lg:to-ink/40" />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/40 to-transparent" />
 
-                        {/* Floating discount chip */}
-                        {off > 0 ? (
-                          <span className="absolute right-4 top-4 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-ink shadow-gold">
-                            {off}% OFF
-                          </span>
-                        ) : null}
-                        {product.isPreorder && product.dropDate ? (
-                          <span className="absolute left-4 top-4 rounded-full bg-ink/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-gold backdrop-blur">
-                            Drops {formatDropDate(product.dropDate)}
-                          </span>
-                        ) : null}
+                    {off > 0 ? (
+                      <span className="glass-chip absolute right-5 top-5 rounded-full px-3.5 py-1.5 text-xs font-bold text-white">
+                        {off}% OFF
+                      </span>
+                    ) : null}
+                    {product.isPreorder && product.dropDate ? (
+                      <span className="glass-chip absolute left-5 top-5 rounded-full px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-gold-200">
+                        Drops {formatDropDate(product.dropDate)}
+                      </span>
+                    ) : null}
 
-                        {/* Caption */}
-                        <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3">
-                          <span className="rounded-xl bg-ink/55 px-3 py-2 backdrop-blur-md">
-                            <span className="block text-[10px] font-semibold uppercase tracking-label text-gold">
-                              Now showing
-                            </span>
-                            <span className="block text-sm font-medium text-bone">
-                              {brandName}
-                            </span>
-                          </span>
-                          <StarRating
-                            rating={product.rating}
-                            reviewCount={product.reviewCount}
-                            size="sm"
-                            className="rounded-full bg-ink/55 px-3 py-1.5 text-bone backdrop-blur-md"
-                          />
-                        </div>
-                      </div>
+                    <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-3">
+                      <span className="glass-chip rounded-2xl px-3.5 py-2">
+                        <span className="block text-[10px] font-semibold uppercase tracking-label text-gold-200">
+                          Now showing
+                        </span>
+                        <span className="block text-sm font-medium text-white">
+                          {brandName}
+                        </span>
+                      </span>
+                      <StarRating
+                        rating={product.rating}
+                        reviewCount={product.reviewCount}
+                        size="sm"
+                        className="glass-chip rounded-full px-3.5 py-2 text-white"
+                      />
                     </div>
                   </div>
                 </div>
@@ -202,7 +202,7 @@ export function VideoHero({ slides }: VideoHeroProps) {
 
           {/* Controls */}
           {slides.length > 1 ? (
-            <div className="mt-8 flex items-center justify-between">
+            <div className="mt-7 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {slides.map(({ banner }, i) => (
                   <button
@@ -213,7 +213,7 @@ export function VideoHero({ slides }: VideoHeroProps) {
                     aria-current={i === active}
                     className={cn(
                       "h-1.5 rounded-full transition-all duration-500",
-                      i === active ? "w-10 bg-gold" : "w-5 bg-bone/30 hover:bg-bone/60",
+                      i === active ? "w-10 bg-gold" : "w-5 bg-white/25 hover:bg-white/50",
                     )}
                   />
                 ))}
@@ -223,7 +223,7 @@ export function VideoHero({ slides }: VideoHeroProps) {
                   type="button"
                   aria-label="Previous slide"
                   onClick={() => go(-1)}
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-bone/20 text-bone transition hover:bg-gold hover:text-ink"
+                  className="glass-chip flex h-11 w-11 items-center justify-center rounded-full text-bone transition hover:bg-gold hover:text-white"
                 >
                   <span aria-hidden="true">‹</span>
                 </button>
@@ -231,7 +231,7 @@ export function VideoHero({ slides }: VideoHeroProps) {
                   type="button"
                   aria-label="Next slide"
                   onClick={() => go(1)}
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-bone/20 text-bone transition hover:bg-gold hover:text-ink"
+                  className="glass-chip flex h-11 w-11 items-center justify-center rounded-full text-bone transition hover:bg-gold hover:text-white"
                 >
                   <span aria-hidden="true">›</span>
                 </button>

@@ -52,7 +52,7 @@ export function OfferBand({ offers }: OfferBandProps) {
                         className="object-cover transition-transform duration-500 ease-showroom group-hover:scale-105"
                       />
                     ) : null}
-                    <span className="absolute left-3 top-3 rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ink">
+                    <span className="absolute left-3 top-3 rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
                       {offer.badge}
                     </span>
                   </div>

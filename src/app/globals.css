@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --band-dark: #0b0b0d;
+    --band-light: #f7f5f0;
+  }
+
+  * {
+    @apply border-bone-300;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bone text-ink font-sans antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible, on-brand focus ring for keyboard users everywhere. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    @apply outline-none ring-2 ring-gold ring-offset-2 ring-offset-current;
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    @apply bg-gold/30 text-ink;
+  }
+}
+
+@layer components {
+  /* Section "bays" — alternating dark / light bands. */
+  .band-dark {
+    @apply bg-ink text-bone;
+  }
+  .band-light {
+    @apply bg-bone text-ink;
+  }
+
+  .shell {
+    @apply mx-auto w-full max-w-shell px-5 sm:px-8 lg:px-12;
+  }
+
+  /* Champagne-gold primary CTA. */
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-gold px-7 py-3
+      text-sm font-semibold uppercase tracking-wide text-ink shadow-gold
+      transition duration-300 ease-showroom hover:bg-gold-300 hover:shadow-product-hover
+      active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-current
+      px-7 py-3 text-sm font-semibold uppercase tracking-wide transition duration-300
+      ease-showroom active:scale-[0.98];
+  }
+  .btn-outline:hover {
+    background-color: color-mix(in srgb, currentColor 10%, transparent);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm
+      font-medium transition;
+  }
+  .btn-ghost:hover {
+    background-color: color-mix(in srgb, currentColor 10%, transparent);
+  }
+
+  /* Small uppercase letter-spaced eyebrow label. */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-label text-gold;
+  }
+
+  .display-title {
+    @apply font-serif text-3xl leading-tight sm:text-4xl lg:text-5xl;
+  }
+
+  /* Consistent product photo treatment everywhere. */
+  .product-frame {
+    @apply relative overflow-hidden rounded-2xl bg-bone-300/60;
+  }
+
+  /* Hide scrollbar on horizontal carousels but keep scrollability. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  /* Scroll-reveal: elements fade-up when .is-visible is toggled by observer. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition:
+      opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+  }
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Band-adaptive muted foreground (Tailwind can't alpha currentColor). */
+  .text-c-50 {
+    color: color-mix(in srgb, currentColor 50%, transparent);
+  }
+  .text-c-55 {
+    color: color-mix(in srgb, currentColor 55%, transparent);
+  }
+  .text-c-60 {
+    color: color-mix(in srgb, currentColor 60%, transparent);
+  }
+  .border-c-20 {
+    border-color: color-mix(in srgb, currentColor 20%, transparent);
+  }
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

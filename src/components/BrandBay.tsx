@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Carousel } from "@/components/ui/Carousel";
 import { ProductCard } from "@/components/ProductCard";
 import { BrandWordmark } from "@/components/BrandWordmark";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Reveal } from "@/components/ui/Reveal";
 import { cn } from "@/lib/utils";
 import type { Brand, Product } from "@/lib/types";
@@ -24,17 +25,8 @@ export function BrandBay({ brand, products, tone }: BrandBayProps) {
       <div className="shell">
         <Reveal className="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex items-center gap-4">
-            <div
-              className={cn(
-                "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl font-serif text-lg font-semibold",
-                tone === "dark" ? "bg-bone text-ink" : "bg-ink text-gold",
-              )}
-            >
-              {brand.name
-                .split(" ")
-                .map((w) => w[0])
-                .slice(0, 2)
-                .join("")}
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-bone p-3 shadow-product ring-1 ring-bone-400/40">
+              <BrandLogo brand={brand} wordmarkSize="sm" className="text-ink" />
             </div>
             <div>
               <span className="eyebrow">Brand Bay</span>

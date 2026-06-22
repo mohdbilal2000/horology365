@@ -114,6 +114,105 @@
     text-wrap: balance;
   }
 
+  /* ── Showroom motion & texture ─────────────────────────── */
+
+  /* Subtle film grain overlay for a premium, tactile feel. */
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.06;
+    z-index: 1;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Soft animated champagne "aurora" glow blobs for dark bands. */
+  .aurora {
+    position: relative;
+    isolation: isolate;
+  }
+  .aurora::before {
+    content: "";
+    position: absolute;
+    inset: -20% -10%;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(40% 50% at 15% 20%, rgba(200, 165, 91, 0.18), transparent 70%),
+      radial-gradient(35% 45% at 85% 80%, rgba(200, 165, 91, 0.12), transparent 70%);
+    filter: blur(20px);
+    animation: aurora-drift 18s ease-in-out infinite alternate;
+  }
+
+  /* Diagonal light sweep across a surface (used on hover). */
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-130%) skewX(-18deg);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.28),
+      transparent
+    );
+    transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+  .shine:hover::after {
+    transform: translateX(130%) skewX(-18deg);
+  }
+
+  /* Animated gold gradient border (for the hero showcase). */
+  .gold-border {
+    position: relative;
+  }
+  .gold-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      130deg,
+      rgba(200, 165, 91, 0.7),
+      rgba(200, 165, 91, 0.05) 40%,
+      rgba(200, 165, 91, 0.05) 60%,
+      rgba(200, 165, 91, 0.7)
+    );
+    background-size: 200% 200%;
+    animation: border-flow 6s ease infinite;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  @keyframes aurora-drift {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    100% {
+      transform: translate3d(3%, -3%, 0) scale(1.08);
+    }
+  }
+  @keyframes border-flow {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
   /* Band-adaptive muted foreground (Tailwind can't alpha currentColor). */
   .text-c-50 {
     color: color-mix(in srgb, currentColor 50%, transparent);

@@ -13,8 +13,8 @@ export function VideoWall({ products }: VideoWallProps) {
   if (products.length === 0) return null;
 
   return (
-    <section className="band-dark py-14 sm:py-20">
-      <div className="shell">
+    <section className="band-dark aurora grain relative overflow-hidden py-14 sm:py-20">
+      <div className="shell relative z-[2]">
         <SectionHeader label="In Motion" title="The Video Wall" />
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {products.map((product, i) => (

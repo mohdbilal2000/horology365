@@ -46,7 +46,7 @@ export function ProductCard({
         className="flex flex-col"
         aria-label={`${brandName} ${product.title}`}
       >
-        <div className="product-frame aspect-square">
+        <div className="product-frame aspect-square shine ring-1 ring-transparent transition-all duration-300 group-hover:shadow-product-hover group-hover:ring-gold/40">
           {cover ? (
             <Image
               src={cover.url}

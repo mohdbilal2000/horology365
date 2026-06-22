@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Carousel } from "@/components/ui/Carousel";
 import { ProductCard } from "@/components/ProductCard";
+import { BrandWordmark } from "@/components/BrandWordmark";
 import { Reveal } from "@/components/ui/Reveal";
 import { cn } from "@/lib/utils";
 import type { Brand, Product } from "@/lib/types";
@@ -26,27 +26,22 @@ export function BrandBay({ brand, products, tone }: BrandBayProps) {
           <div className="flex items-center gap-4">
             <div
               className={cn(
-                "relative h-14 w-14 shrink-0 overflow-hidden rounded-xl p-2",
-                tone === "dark" ? "bg-bone" : "bg-ink-700",
+                "flex h-14 w-14 shrink-0 items-center justify-center rounded-xl font-serif text-lg font-semibold",
+                tone === "dark" ? "bg-bone text-ink" : "bg-ink text-gold",
               )}
             >
-              <Image
-                src={brand.logoUrl}
-                alt={`${brand.name} logo`}
-                fill
-                sizes="56px"
-                className="object-contain p-2"
-              />
+              {brand.name
+                .split(" ")
+                .map((w) => w[0])
+                .slice(0, 2)
+                .join("")}
             </div>
             <div>
               <span className="eyebrow">Brand Bay</span>
-              <h3
-                id={`bay-${brand.slug}`}
-                className="font-serif text-2xl leading-tight sm:text-3xl"
-              >
-                {brand.name}
+              <h3 id={`bay-${brand.slug}`}>
+                <BrandWordmark name={brand.name} size="lg" />
               </h3>
-              <p className="mt-0.5 text-sm text-c-60">{brand.tagline}</p>
+              <p className="mt-1 text-sm text-c-60">{brand.tagline}</p>
             </div>
           </div>
           <Link

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { Brand } from "@/lib/types";
@@ -68,14 +67,12 @@ export function BrandMegaMenu({ brands }: BrandMegaMenuProps) {
               role="menuitem"
               className="group flex items-center gap-3 rounded-xl p-2.5 transition hover:bg-bone-200"
             >
-              <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-bone-200">
-                <Image
-                  src={brand.logoUrl}
-                  alt=""
-                  fill
-                  sizes="36px"
-                  className="object-contain p-1"
-                />
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ink text-xs font-serif font-semibold text-gold">
+                {brand.name
+                  .split(" ")
+                  .map((w) => w[0])
+                  .slice(0, 2)
+                  .join("")}
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium group-hover:text-gold">

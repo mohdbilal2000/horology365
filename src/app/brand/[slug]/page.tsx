@@ -47,18 +47,18 @@ export default async function BrandPage({ params }: PageProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/50 to-ink/20" />
         <div className="shell relative flex h-full flex-col justify-end pb-8">
           <div className="flex items-center gap-4">
-            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-bone p-2">
-              <Image
-                src={brand.logoUrl}
-                alt={`${brand.name} logo`}
-                fill
-                sizes="64px"
-                className="object-contain p-2"
-              />
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-bone font-serif text-xl font-semibold text-ink">
+              {brand.name
+                .split(" ")
+                .map((w) => w[0])
+                .slice(0, 2)
+                .join("")}
             </div>
             <div>
               <span className="eyebrow">Brand Collection</span>
-              <h1 className="font-serif text-3xl sm:text-5xl">{brand.name}</h1>
+              <h1 className="font-serif text-3xl uppercase tracking-[0.12em] sm:text-5xl">
+                {brand.name}
+              </h1>
             </div>
           </div>
           <p className="mt-3 max-w-xl text-bone/75">{brand.tagline}</p>

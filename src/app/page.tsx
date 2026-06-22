@@ -1,4 +1,4 @@
-import { VideoHero } from "@/components/VideoHero";
+import { VideoHero, type HeroSlide } from "@/components/VideoHero";
 import { TrustStrip } from "@/components/TrustStrip";
 import { BrandLogoWall } from "@/components/BrandLogoWall";
 import { BrandBay } from "@/components/BrandBay";
@@ -11,6 +11,8 @@ import {
   activeBanners,
   activeBrands,
   categories,
+  getBrandBySlug,
+  getProductBySlug,
   getProductsByBrand,
   preorderProducts,
   videoProducts,
@@ -19,9 +21,16 @@ import {
 } from "@/lib/mock";
 
 export default function HomePage() {
+  const heroSlides: HeroSlide[] = activeBanners.flatMap((banner) => {
+    const product = getProductBySlug(banner.productSlug);
+    if (!product) return [];
+    const brandName = getBrandBySlug(product.brandSlug)?.name ?? "";
+    return [{ banner, product, brandName }];
+  });
+
   return (
     <>
-      <VideoHero banners={activeBanners} />
+      <VideoHero slides={heroSlides} />
       <TrustStrip />
       <BrandLogoWall brands={activeBrands} />
 

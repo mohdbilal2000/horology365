@@ -61,12 +61,17 @@ export interface Product {
 
 export interface Banner {
   id: string;
+  /** Small uppercase eyebrow (e.g. "This Week's Drop"). */
+  eyebrow: string;
   headline: string;
   subhead: string;
   ctaLabel: string;
   ctaHref: string;
+  /** Ambient background video (muted, looped) — free stock, hotlink-safe. */
   videoUrl: string;
   posterUrl: string;
+  /** Featured watch shown on the slide card; resolved from the catalog. */
+  productSlug: string;
   sortOrder: number;
 }
 

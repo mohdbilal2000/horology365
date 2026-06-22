@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { SectionHeader } from "@/components/SectionHeader";
+import { BrandWordmark } from "@/components/BrandWordmark";
 import { Reveal } from "@/components/ui/Reveal";
 import type { Brand } from "@/lib/types";
 
@@ -23,18 +23,10 @@ export function BrandLogoWall({ brands }: BrandLogoWallProps) {
             <Reveal key={brand.id} delay={(i % 7) * 40}>
               <Link
                 href={`/brand/${brand.slug}`}
-                className="group flex h-24 items-center justify-center rounded-xl border border-bone-300 bg-bone-100 p-5 transition duration-300 ease-showroom hover:-translate-y-1 hover:border-gold hover:shadow-product sm:h-28"
+                className="group flex h-24 items-center justify-center rounded-xl border border-bone-300 bg-bone-100 p-5 text-center text-ink-600 transition duration-300 ease-showroom hover:-translate-y-1 hover:border-gold hover:text-ink hover:shadow-product sm:h-28"
                 aria-label={`Shop ${brand.name}`}
               >
-                <span className="relative block h-full w-full">
-                  <Image
-                    src={brand.logoUrl}
-                    alt={`${brand.name} logo`}
-                    fill
-                    sizes="160px"
-                    className="object-contain opacity-80 grayscale transition duration-300 group-hover:opacity-100 group-hover:grayscale-0"
-                  />
-                </span>
+                <BrandWordmark name={brand.name} size="sm" className="transition group-hover:text-gold-600" />
               </Link>
             </Reveal>
           ))}

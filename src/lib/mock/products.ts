@@ -26,8 +26,15 @@ const PHOTOS = [
 const img = (id: string, w = 900) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=70`;
 
-const VIDEO =
-  "https://videos.pexels.com/video-files/4990236/4990236-uhd_1440_2560_25fps.mp4";
+/**
+ * Free, hotlink-safe stock clips (CC0). Used as muted autoplay loops on the
+ * video wall; each card always has an Unsplash poster as a crisp fallback.
+ */
+const VIDEOS = [
+  "https://cdn.pixabay.com/video/2020/08/30/48569-454825064_large.mp4",
+  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+  "https://download.samplelib.com/mp4/sample-5s.mp4",
+];
 
 interface Seed {
   slug: string;
@@ -48,9 +55,14 @@ interface Seed {
   tags?: string[];
 }
 
+let videoCursor = 0;
+
 function build(seed: Seed): Product {
   const photoB = PHOTOS[(PHOTOS.indexOf(seed.photo) + 4) % PHOTOS.length]!;
   const photoC = PHOTOS[(PHOTOS.indexOf(seed.photo) + 8) % PHOTOS.length]!;
+  const videoUrl = seed.hasVideo
+    ? VIDEOS[videoCursor++ % VIDEOS.length]
+    : undefined;
   return {
     id: `pr-${seed.slug}`,
     slug: seed.slug,
@@ -65,7 +77,7 @@ function build(seed: Seed): Product {
       { url: img(photoB, 1200), alt: `${seed.title} — dial detail` },
       { url: img(photoC, 1200), alt: `${seed.title} — strap detail` },
     ],
-    videoUrl: seed.hasVideo ? VIDEO : undefined,
+    videoUrl,
     videoPoster: seed.hasVideo ? img(seed.photo, 800) : undefined,
     rating: seed.rating,
     reviewCount: seed.reviewCount,

@@ -1,46 +1,56 @@
 import type { Banner } from "@/lib/types";
 
 /**
- * Hero video slides. Pexels CDN clips are used for the demo; replace with
- * brand-shot footage in Supabase Storage for production.
+ * Hero slides. Each slide showcases a real watch from the catalog (resolved
+ * by `productSlug`) over an ambient, muted free-stock video.
+ *
+ * Video sources are CC0 / hotlink-safe (Pixabay + MDN cc0 + samplelib); every
+ * slide also has an Unsplash poster, so the hero is always crisp even if a
+ * video is slow or blocked. Swap for brand-shot footage in Supabase Storage
+ * for production.
  */
 export const banners: Banner[] = [
   {
     id: "bn-drop",
-    headline: "This Week's Drop Is Live",
+    eyebrow: "This Week's Drop",
+    headline: "The Drop Is Live",
     subhead:
       "Pre-order the next batch before it lands. Lock today's price, skip the wait.",
     ctaLabel: "Shop the Drop",
     ctaHref: "#weekly-drop",
-    videoUrl:
-      "https://videos.pexels.com/video-files/4990236/4990236-uhd_1440_2560_25fps.mp4",
+    videoUrl: "https://cdn.pixabay.com/video/2020/08/30/48569-454825064_large.mp4",
     posterUrl:
-      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1920&q=70",
+      "https://images.unsplash.com/photo-1508057198894-247b23fe5ade?auto=format&fit=crop&w=1920&q=70",
+    productSlug: "casio-g-shock-ga2100",
     sortOrder: 1,
   },
   {
-    id: "bn-brands",
-    headline: "14 Brands. One Showroom.",
+    id: "bn-glam",
+    eyebrow: "Editor's Pick",
+    headline: "Jet-Set Glamour",
     subhead:
-      "Casio to Michael Kors — authentic watches, UPI-secure checkout, easy returns.",
-    ctaLabel: "Browse Brands",
-    ctaHref: "#featured-brands",
+      "Pavé dials and gold-tone steel from Michael Kors — effortless, everyday luxe.",
+    ctaLabel: "Shop the Look",
+    ctaHref: "/brand/michael-kors",
     videoUrl:
-      "https://videos.pexels.com/video-files/5532771/5532771-hd_1080_1920_25fps.mp4",
+      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
     posterUrl:
-      "https://images.unsplash.com/photo-1434056886845-dac89ffe9b56?auto=format&fit=crop&w=1920&q=70",
+      "https://images.unsplash.com/photo-1526045431048-f857369baa09?auto=format&fit=crop&w=1920&q=70",
+    productSlug: "mk-lexington-gold",
     sortOrder: 2,
   },
   {
-    id: "bn-sale",
-    headline: "Up to 30% Off Marked Price",
-    subhead: "Real discounts on real watches. No inflated MRP games.",
+    id: "bn-slim",
+    eyebrow: "Up to 30% Off",
+    headline: "Quietly Iconic",
+    subhead:
+      "The ultra-slim Titan Edge — real discounts on real watches, no inflated MRP games.",
     ctaLabel: "View Offers",
     ctaHref: "#offers",
-    videoUrl:
-      "https://videos.pexels.com/video-files/7710243/7710243-hd_1080_1920_30fps.mp4",
+    videoUrl: "https://download.samplelib.com/mp4/sample-5s.mp4",
     posterUrl:
-      "https://images.unsplash.com/photo-1526045431048-f857369baa09?auto=format&fit=crop&w=1920&q=70",
+      "https://images.unsplash.com/photo-1434056886845-dac89ffe9b56?auto=format&fit=crop&w=1920&q=70",
+    productSlug: "titan-edge-ceramic",
     sortOrder: 3,
   },
 ];

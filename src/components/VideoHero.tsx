@@ -96,7 +96,7 @@ export function VideoHero({ slides }: VideoHeroProps) {
                       {banner.eyebrow}
                     </span>
 
-                    <h1 className="font-serif text-4xl font-bold leading-[1.04] tracking-tight text-balance sm:text-5xl lg:text-6xl">
+                    <h1 className="t-display font-bold text-balance">
                       {banner.headline}
                     </h1>
 

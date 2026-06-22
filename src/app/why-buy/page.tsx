@@ -44,7 +44,7 @@ export default function WhyBuyPage() {
         intro="Buying a watch online shouldn't feel like a gamble. Here's how we make it safe, simple and worth it."
       />
 
-      <div className="shell py-14 sm:py-20">
+      <div className="shell section-y">
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {REASONS.map((reason, i) => (
             <div

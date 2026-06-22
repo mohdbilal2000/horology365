@@ -34,11 +34,12 @@ export function ReviewCard({ review }: { review: Review }) {
 export function ReviewsSection({ reviews }: { reviews: Review[] }) {
   if (reviews.length === 0) return null;
   return (
-    <section className="band-light py-14 sm:py-20">
+    <section className="band-light section-y">
       <div className="shell">
         <SectionHeader
           label="Verified Buyers"
           title="What the Wrist Says"
+          description="Sealed boxes, on-time drops and real support — in our buyers' words."
           align="center"
         />
         <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -23,7 +23,7 @@ export function LegalPage({
   return (
     <div className="band-light">
       <PageHeader label={label} title={title} intro={intro} />
-      <div className="shell max-w-3xl py-12 sm:py-16">
+      <div className="shell max-w-3xl section-y">
         <p className="text-sm text-ink-500">Last updated: {updated}</p>
         <div className="mt-8 space-y-8">
           {sections.map((section) => (

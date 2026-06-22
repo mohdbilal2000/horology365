@@ -29,7 +29,7 @@ const SOCIALS = [
 export function SiteFooter() {
   return (
     <footer className="band-dark border-t border-bone/10">
-      <div className="shell py-14 sm:py-16">
+      <div className="shell section-y">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
           {/* Brand blurb */}
           <div className="lg:col-span-2">

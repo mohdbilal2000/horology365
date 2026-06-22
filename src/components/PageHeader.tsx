@@ -7,7 +7,7 @@ interface PageHeaderProps {
 export function PageHeader({ label, title, intro }: PageHeaderProps) {
   return (
     <header className="band-dark">
-      <div className="shell py-14 sm:py-20">
+      <div className="shell section-y">
         <span className="eyebrow">{label}</span>
         <h1 className="display-title mt-3 max-w-3xl text-balance">{title}</h1>
         {intro ? (

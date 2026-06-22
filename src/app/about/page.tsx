@@ -24,7 +24,7 @@ export default function AboutPage() {
         intro="Horology365 began with a simple frustration: great fashion watches were either overpriced at the mall or a gamble online. We fixed both."
       />
 
-      <div className="shell grid gap-12 py-14 sm:py-20 lg:grid-cols-2">
+      <div className="shell grid gap-12 section-y lg:grid-cols-2">
         <div className="space-y-4 text-ink-700">
           <h2 className="font-serif text-2xl text-ink">The pre-order drop model</h2>
           <p>

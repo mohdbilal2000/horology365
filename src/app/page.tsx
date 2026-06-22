@@ -46,11 +46,12 @@ export default function HomePage() {
       ))}
 
       {/* Best Sellers — a full grid of the most-loved watches. */}
-      <section className="band-dark aurora grain relative overflow-hidden py-14 sm:py-20">
+      <section className="band-dark aurora grain relative overflow-hidden section-y">
         <div className="shell relative z-[2]">
           <SectionHeader
             label="Most Loved"
             title="Best Sellers"
+            description="The watches our customers reach for first, ranked by demand."
             viewAllHref="/category/mens-watches"
             viewAllLabel="Shop all"
           />

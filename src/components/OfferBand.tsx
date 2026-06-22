@@ -25,11 +25,12 @@ export function OfferBand({ offers }: OfferBandProps) {
   if (resolved.length === 0) return null;
 
   return (
-    <section id="offers" className="band-dark aurora grain relative overflow-hidden py-14 sm:py-20">
+    <section id="offers" className="band-dark aurora grain relative overflow-hidden section-y">
       <div className="shell relative z-[2]">
         <SectionHeader
           label="Marked Down"
           title="Offers & Sale"
+          description="Real reductions on real watches — honest MRP, no inflated strike-throughs."
           viewAllHref="/category/mens-watches"
           viewAllLabel="See all deals"
         />

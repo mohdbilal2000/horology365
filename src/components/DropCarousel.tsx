@@ -14,11 +14,12 @@ export function DropCarousel({ products }: DropCarouselProps) {
   if (products.length === 0) return null;
 
   return (
-    <section id="weekly-drop" className="band-light py-14 sm:py-20">
+    <section id="weekly-drop" className="band-light section-y">
       <div className="shell">
         <SectionHeader
           label="Pre-order Now"
           title="This Week's Drop"
+          description="Reserve the next batch before it lands and lock today's price."
           viewAllHref="/category/mens-watches"
           viewAllLabel="All pre-orders"
         />

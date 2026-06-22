@@ -2,56 +2,125 @@ import Image from "next/image";
 import Link from "next/link";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Reveal } from "@/components/ui/Reveal";
+import { cn } from "@/lib/utils";
 import type { Category } from "@/lib/types";
 
 interface CategoryBlockProps {
   categories: Category[];
 }
 
+/**
+ * Bento composition — one large primary tile + stacked secondary tiles, sized
+ * on a 3×2 grid so the proportions stay deliberate rather than uniform.
+ */
 export function CategoryBlock({ categories }: CategoryBlockProps) {
+  const mens = categories.find((c) => c.slug === "mens-watches") ?? categories[0];
+  const womens =
+    categories.find((c) => c.slug === "womens-watches") ?? categories[1];
+  if (!mens) return null;
+
   return (
-    <section className="band-light py-14 sm:py-20">
+    <section className="band-light section-y">
       <div className="shell">
-        <SectionHeader label="Find Your Fit" title="Shop by Category" />
-        <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
-          {categories.map((category, i) => (
-            <Reveal key={category.id} delay={i * 80}>
-              <Link
-                href={`/category/${category.slug}`}
-                className="group relative block aspect-[16/10] overflow-hidden rounded-2xl"
-                aria-label={`Shop ${category.name}`}
-              >
-                <Image
-                  src={category.imageUrl}
-                  alt={category.name}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover transition-transform duration-700 ease-showroom group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/25 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-6 text-bone sm:p-8">
-                  <span className="eyebrow">Collection</span>
-                  <h3 className="mt-1 font-serif text-2xl sm:text-3xl">
-                    {category.name}
-                  </h3>
-                  <p className="mt-1 max-w-sm text-sm text-bone/75">
-                    {category.description}
-                  </p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-gold">
-                    Shop now
-                    <span
-                      aria-hidden="true"
-                      className="transition-transform duration-300 ease-showroom group-hover:translate-x-1"
-                    >
-                      →
-                    </span>
-                  </span>
-                </div>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
+        <SectionHeader
+          label="Find Your Fit"
+          title="Shop by Category"
+          description="Two collections, one standard of finish. Start where your wrist leads."
+        />
+        <Reveal>
+          <div className="grid auto-rows-[180px] grid-cols-1 gap-4 sm:auto-rows-[200px] sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+            {/* Primary — large */}
+            <CategoryTile
+              href={`/category/${mens.slug}`}
+              title={mens.name}
+              copy={mens.description}
+              image={mens.imageUrl}
+              eyebrow="Collection"
+              className="sm:col-span-2 sm:row-span-2"
+              big
+            />
+            {/* Secondary */}
+            {womens ? (
+              <CategoryTile
+                href={`/category/${womens.slug}`}
+                title={womens.name}
+                copy={womens.description}
+                image={womens.imageUrl}
+                eyebrow="Collection"
+                className="lg:row-span-1"
+              />
+            ) : null}
+            {/* Promo tile — the drop */}
+            <CategoryTile
+              href="/#weekly-drop"
+              title="This Week's Drop"
+              copy="Pre-order the next batch — lock today's price."
+              image="/posters/watch-5.jpg"
+              eyebrow="Pre-order"
+            />
+          </div>
+        </Reveal>
       </div>
     </section>
+  );
+}
+
+function CategoryTile({
+  href,
+  title,
+  copy,
+  image,
+  eyebrow,
+  className,
+  big = false,
+}: {
+  href: string;
+  title: string;
+  copy: string;
+  image: string;
+  eyebrow: string;
+  className?: string;
+  big?: boolean;
+}) {
+  return (
+    <Reveal as="div" className={cn("h-full", className)}>
+      <Link
+        href={href}
+        className="group relative flex h-full w-full items-end overflow-hidden rounded-3xl"
+        aria-label={`Shop ${title}`}
+      >
+        <Image
+          src={image}
+          alt={title}
+          fill
+          sizes={big ? "(max-width: 640px) 100vw, 66vw" : "(max-width: 640px) 100vw, 33vw"}
+          className="object-cover transition-transform duration-700 ease-showroom group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/25 to-transparent" />
+        <div className={cn("relative p-5", big && "p-7 sm:p-9")}>
+          <span className="text-[11px] font-semibold uppercase tracking-label text-gold-300">
+            {eyebrow}
+          </span>
+          <h3 className={cn("mt-1 text-bone", big ? "t-h2" : "t-h3")}>{title}</h3>
+          <p
+            className={cn(
+              "mt-1 max-w-sm text-bone/70",
+              big ? "text-sm sm:text-base" : "hidden text-sm sm:line-clamp-2 sm:block",
+            )}
+          >
+            {copy}
+          </p>
+          <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-gold-200">
+            Shop now
+            <span
+              aria-hidden="true"
+              className="transition-transform duration-300 ease-showroom group-hover:translate-x-1"
+            >
+              →
+            </span>
+          </span>
+        </div>
+      </Link>
+    </Reveal>
   );
 }

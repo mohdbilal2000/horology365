@@ -61,7 +61,7 @@ export default function OrderConfirmationPage({ params }: PageProps) {
 
   return (
     <div className="band-light">
-      <div className="shell max-w-2xl py-12 sm:py-16">
+      <div className="shell max-w-2xl section-y">
         <div className="rounded-2xl border border-bone-300 bg-bone-100 p-8 text-center shadow-product">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/15 text-gold">
             <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">

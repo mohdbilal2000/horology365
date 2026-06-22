@@ -10,11 +10,12 @@ interface BrandLogoWallProps {
 
 export function BrandLogoWall({ brands }: BrandLogoWallProps) {
   return (
-    <section id="featured-brands" className="band-light py-14 sm:py-20">
+    <section id="featured-brands" className="band-light section-y">
       <div className="shell">
         <SectionHeader
           label="The Roster"
           title="Featured Brands"
+          description="Fourteen houses, from everyday icons to glamour names — all authentic, all in one showroom."
           viewAllHref="#weekly-drop"
           viewAllLabel="Shop the drop"
         />

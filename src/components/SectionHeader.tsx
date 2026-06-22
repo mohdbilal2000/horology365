@@ -5,6 +5,8 @@ interface SectionHeaderProps {
   /** Small uppercase letter-spaced eyebrow label. */
   label: string;
   title: string;
+  /** Optional supporting line under the title. */
+  description?: string;
   viewAllHref?: string;
   viewAllLabel?: string;
   className?: string;
@@ -14,27 +16,40 @@ interface SectionHeaderProps {
 export function SectionHeader({
   label,
   title,
+  description,
   viewAllHref,
   viewAllLabel = "View all",
   className,
   align = "left",
 }: SectionHeaderProps) {
+  const centered = align === "center";
   return (
     <div
       className={cn(
-        "mb-8 flex flex-col gap-3 sm:mb-10 sm:flex-row sm:items-end sm:justify-between",
-        align === "center" && "sm:flex-col sm:items-center sm:text-center",
+        "mb-10 sm:mb-12",
+        centered
+          ? "flex flex-col items-center text-center"
+          : "flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between",
         className,
       )}
     >
-      <div className={cn(align === "center" && "sm:items-center")}>
-        <span className="eyebrow">{label}</span>
-        <h2 className="display-title mt-2 text-balance">{title}</h2>
+      <div className={cn("max-w-2xl", centered && "flex flex-col items-center")}>
+        <span className="eyebrow inline-flex items-center gap-2">
+          <span className="h-px w-6 bg-gold" aria-hidden="true" />
+          {label}
+        </span>
+        <h2 className="t-h2 mt-3">{title}</h2>
+        {description ? (
+          <p className="t-lead mt-3 text-c-60">{description}</p>
+        ) : null}
       </div>
       {viewAllHref ? (
         <Link
           href={viewAllHref}
-          className="group inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold uppercase tracking-wide text-gold transition hover:text-gold-300"
+          className={cn(
+            "group inline-flex shrink-0 items-center gap-2 rounded-full border border-c-20 px-4 py-2 text-sm font-semibold tracking-wide transition hover:border-gold hover:text-gold",
+            centered && "mt-6",
+          )}
         >
           {viewAllLabel}
           <span

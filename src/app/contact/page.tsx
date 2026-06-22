@@ -24,7 +24,7 @@ export default function ContactPage() {
         intro="The fastest way to reach us is WhatsApp. For anything else, drop us a message below."
       />
 
-      <div className="shell grid gap-10 py-14 sm:py-20 lg:grid-cols-2">
+      <div className="shell grid gap-10 section-y lg:grid-cols-2">
         <div className="space-y-6">
           <ContactCard
             title="WhatsApp"

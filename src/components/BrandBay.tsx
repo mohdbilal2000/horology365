@@ -19,7 +19,7 @@ export function BrandBay({ brand, products, tone }: BrandBayProps) {
 
   return (
     <section
-      className={cn("py-14 sm:py-20", tone === "dark" ? "band-dark" : "band-light")}
+      className={cn("section-y", tone === "dark" ? "band-dark" : "band-light")}
       aria-labelledby={`bay-${brand.slug}`}
     >
       <div className="shell">

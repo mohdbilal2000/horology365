@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SITE } from "@/lib/config";
 import { activeBrands } from "@/lib/mock/brands";
 import { whatsappLink } from "@/lib/utils";
+import { NewsletterForm } from "@/components/NewsletterForm";
 
 const ONLINE_SHOPPING = [
   { label: "Men's Watches", href: "/category/mens-watches" },
@@ -28,7 +29,21 @@ const SOCIALS = [
 
 export function SiteFooter() {
   return (
-    <footer className="band-dark border-t border-bone/10">
+    <footer className="band-dark border-t border-white/10">
+      {/* Newsletter / drop-alert band */}
+      <div className="border-b border-white/10">
+        <div className="shell flex flex-col gap-6 py-10 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-lg">
+            <h2 className="t-h3">Never miss a drop.</h2>
+            <p className="mt-1.5 text-sm text-bone/60">
+              Get early access to every batch and member-only offers, straight to
+              your inbox.
+            </p>
+          </div>
+          <NewsletterForm />
+        </div>
+      </div>
+
       <div className="shell section-y">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
           {/* Brand blurb */}

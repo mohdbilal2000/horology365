@@ -153,6 +153,22 @@
     @apply relative overflow-hidden rounded-2xl bg-bone-300/60;
   }
 
+  /* Adaptive card surface — tints relative to the band it sits on, so the
+     same card reads correctly on both dark and light sections. */
+  .surface-card {
+    background-color: color-mix(in srgb, currentColor 4%, transparent);
+    border: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+    transition:
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 0.3s ease,
+      border-color 0.3s ease;
+  }
+  .surface-card:hover {
+    background-color: color-mix(in srgb, currentColor 7%, transparent);
+    border-color: color-mix(in srgb, currentColor 16%, transparent);
+  }
+
   /* Hide scrollbar on horizontal carousels but keep scrollability. */
   .no-scrollbar {
     scrollbar-width: none;

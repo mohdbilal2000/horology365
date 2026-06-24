@@ -152,7 +152,7 @@ export function VideoHero({ slides }: VideoHeroProps) {
                       ref={(el) => {
                         videoRefs.current[i] = el;
                       }}
-                      className="absolute inset-0 h-full w-full object-cover"
+                      className="absolute inset-0 h-full w-full object-cover [object-position:center]"
                       poster={banner.posterUrl}
                       muted
                       loop

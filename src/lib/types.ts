@@ -134,3 +134,41 @@ export interface Order {
   status: OrderStatus;
   createdAt: string;
 }
+
+// ─── Admin / inventory model (Brand → Model → Variant) ──────────
+// Mirrors the Phase 2 Supabase schema: a Model is a product line; a Variant
+// is the actual SKU you sell (a colourway / strap), each with its own
+// availability — live stock or a pre-order batch.
+
+export type VariantAvailability = "in_stock" | "preorder" | "in_delivery";
+
+export interface Variant {
+  id: string;
+  /** Colourway / strap name, e.g. "Matte Black". */
+  name: string;
+  /** Swatch colour (hex) shown on the storefront selector. */
+  colorHex: string;
+  sku: string;
+  availability: VariantAvailability;
+  /** Units on hand (in_stock / in_delivery). */
+  stockQty: number;
+  /** Size of the pre-order batch we'll bring in. */
+  preorderTarget: number;
+  /** How many customers have reserved so far. */
+  preorderReserved: number;
+  /** Expected drop / dispatch date for pre-orders (ISO date). */
+  dropDate?: string;
+}
+
+export interface AdminModel {
+  id: string;
+  brandSlug: string;
+  title: string;
+  categorySlug: CategorySlug;
+  description: string;
+  price: number;
+  mrp: number;
+  imageUrl: string;
+  variants: Variant[];
+  createdAt: string;
+}

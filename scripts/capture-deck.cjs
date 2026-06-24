@@ -64,6 +64,8 @@ const PAGES = [
   { path: "/about", title: "About Us", note: "Brand story + the pre-order drop model", device: "desktop" },
   { path: "/why-buy", title: "Why Buy From Us", note: "Trust-building reasons", device: "desktop" },
   { path: "/contact", title: "Contact", note: "WhatsApp-first support + form", device: "desktop" },
+  { path: "/admin", title: "Admin — Inventory", note: "Brand / Model / Variant stock & pre-order pipeline", device: "desktop" },
+  { path: "/admin/products/new", title: "Admin — Add Product", note: "Guided builder with live preview", device: "desktop" },
 ];
 
 const FORCE_CSS = `
@@ -153,6 +155,13 @@ async function autoScroll(page) {
     });
   }
 
+  // Standard fonts use WinAnsi (CP1252); strip glyphs it can't encode.
+  const clean = (str) =>
+    str
+      .replace(/→/g, "/")
+      .replace(/[↗←↑↓]/g, "")
+      .replace(/[^\x00-ſ]/g, "");
+
   for (const s of shots) {
     const bytes = fs.readFileSync(s.file);
     const img = await pdf.embedJpg(bytes);
@@ -166,9 +175,9 @@ async function autoScroll(page) {
     // header bar
     pg.drawRectangle({ x: 0, y: pageH - HEADER, width: PAGE_W, height: HEADER, color: INK });
     pg.drawRectangle({ x: 0, y: pageH - HEADER, width: 6, height: HEADER, color: GOLD });
-    pg.drawText(s.title, { x: 32, y: pageH - 40, size: 24, font: fontBold, color: BONE });
+    pg.drawText(clean(s.title), { x: 32, y: pageH - 40, size: 24, font: fontBold, color: BONE });
     if (s.note) {
-      pg.drawText(s.note, { x: 32, y: pageH - 66, size: 13, font, color: rgb(0.72, 0.72, 0.72) });
+      pg.drawText(clean(s.note), { x: 32, y: pageH - 66, size: 13, font, color: rgb(0.72, 0.72, 0.72) });
     }
   }
 

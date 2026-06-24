@@ -105,9 +105,14 @@ export default async function ProductPage({ params }: PageProps) {
         </nav>
 
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-          <ProductGallery images={product.images} title={product.title} />
+          <ProductGallery
+            images={product.images}
+            title={product.title}
+            videoUrl={product.videoUrl}
+            videoPoster={product.videoPoster}
+          />
 
-          <div>
+          <div className="lg:sticky lg:top-24 lg:self-start">
             <Link
               href={`/brand/${product.brandSlug}`}
               className="text-xs font-semibold uppercase tracking-label text-gold hover:text-gold-600"

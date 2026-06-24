@@ -2,6 +2,7 @@ import { Carousel } from "@/components/ui/Carousel";
 import { ProductCard } from "@/components/ProductCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Reveal } from "@/components/ui/Reveal";
+import { Countdown } from "@/components/ui/Countdown";
 import { getBrandBySlug } from "@/lib/mock/brands";
 import type { Product } from "@/lib/types";
 
@@ -13,6 +14,12 @@ interface DropCarouselProps {
 export function DropCarousel({ products }: DropCarouselProps) {
   if (products.length === 0) return null;
 
+  // Soonest upcoming drop date drives the urgency countdown.
+  const nextDrop = products
+    .map((p) => p.dropDate)
+    .filter((d): d is string => Boolean(d))
+    .sort()[0];
+
   return (
     <section id="weekly-drop" className="band-light section-y">
       <div className="shell">
@@ -23,6 +30,20 @@ export function DropCarousel({ products }: DropCarouselProps) {
           viewAllHref="/category/mens-watches"
           viewAllLabel="All pre-orders"
         />
+
+        {nextDrop ? (
+          <Reveal className="mb-8 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-bone-300 bg-bone-100 px-5 py-4 shadow-glass">
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-gold" />
+              Next batch closes in
+            </span>
+            <Countdown target={nextDrop} tone="light" />
+            <span className="text-sm text-ink-500">
+              Reserve now — pay nothing extra when it ships.
+            </span>
+          </Reveal>
+        ) : null}
+
         <Reveal>
           <Carousel label="This week's pre-order drop" tone="light">
             {products.map((product) => (

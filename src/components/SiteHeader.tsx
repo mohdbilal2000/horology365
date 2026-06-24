@@ -74,15 +74,26 @@ export function SiteHeader() {
           {/* Center: desktop nav */}
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
             <BrandMegaMenu brands={activeBrands} />
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-full px-3.5 py-2 text-sm font-medium text-bone/80 transition hover:bg-bone/10 hover:text-bone"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {NAV.map((item) => {
+              const active = item.href.startsWith("/category")
+                ? pathname === item.href
+                : false;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "rounded-full px-3.5 py-2 text-sm font-medium transition",
+                    active
+                      ? "bg-white/10 text-bone"
+                      : "text-bone/80 hover:bg-bone/10 hover:text-bone",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Right: actions */}

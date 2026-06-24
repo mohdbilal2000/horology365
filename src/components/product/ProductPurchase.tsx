@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/lib/store/cart";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
+import { Countdown } from "@/components/ui/Countdown";
 import { SITE } from "@/lib/config";
-import { whatsappLink, formatINR } from "@/lib/utils";
+import { whatsappLink, formatINR, formatDropDate } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
 interface ProductPurchaseProps {
@@ -46,10 +47,22 @@ export function ProductPurchase({ product, brandName }: ProductPurchaseProps) {
       {/* Stock / pre-order status */}
       <div className="mb-5">
         {product.isPreorder ? (
-          <span className="inline-flex items-center gap-2 rounded-full bg-gold/15 px-3 py-1.5 text-sm font-semibold text-gold-700">
-            <span className="h-2 w-2 rounded-full bg-gold" />
-            Pre-order · ships in the next drop
-          </span>
+          <div className="rounded-2xl border border-gold/30 bg-gold/5 p-4">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-gold-700">
+              <span className="h-2 w-2 rounded-full bg-gold" />
+              Pre-order
+              {product.dropDate ? ` · drops ${formatDropDate(product.dropDate)}` : ""}
+            </span>
+            {product.dropDate ? (
+              <div className="mt-3">
+                <Countdown target={product.dropDate} tone="light" />
+              </div>
+            ) : null}
+            <p className="mt-3 text-xs text-ink-500">
+              Reserve now to lock today&apos;s price. We ship the moment the batch
+              lands — no extra charge.
+            </p>
+          </div>
         ) : soldOut ? (
           <span className="inline-flex items-center gap-2 rounded-full bg-ink/10 px-3 py-1.5 text-sm font-semibold text-ink-600">
             Currently sold out

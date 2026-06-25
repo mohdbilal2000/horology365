@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCartStore, cartCount } from "@/lib/store/cart";
 import { BrandMegaMenu } from "@/components/BrandMegaMenu";
 import { SearchModal } from "@/components/SearchModal";
-import { Logo } from "@/components/Logo";
 import { SITE } from "@/lib/config";
 import { whatsappLink } from "@/lib/utils";
 import { activeBrands } from "@/lib/mock/brands";
@@ -49,15 +49,13 @@ export function SiteHeader() {
     <>
       <header
         className={cn(
-          "sticky top-0 z-40 w-full border-b backdrop-blur-xl transition-all duration-300",
-          scrolled
-            ? "border-white/10 bg-ink/80 shadow-glass"
-            : "border-white/5 bg-ink/55",
+          "sticky top-0 z-40 w-full border-b border-white/10 backdrop-blur-xl transition-all duration-300",
+          scrolled ? "bg-ink/90 shadow-glass" : "bg-ink/95",
         )}
       >
-        <div className="shell flex h-16 items-center justify-between gap-4 text-bone lg:h-20">
-          {/* Left: mobile toggle + logo */}
-          <div className="flex items-center gap-3">
+        <div className="shell flex h-16 items-center justify-between gap-4 text-bone lg:h-[72px]">
+          {/* Left: mobile toggle + logo lockup */}
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
               className="btn-ghost -ml-2 p-2 lg:hidden"
@@ -67,8 +65,25 @@ export function SiteHeader() {
             >
               <MenuIcon open={mobileOpen} />
             </button>
-            <Logo className="h-9 sm:h-11" priority />
-            <span className="sr-only">Horology365</span>
+            <Link
+              href="/"
+              aria-label="Horology365 — home"
+              className="flex items-center gap-2.5"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/8 ring-1 ring-white/10 sm:h-11 sm:w-11">
+                <Image
+                  src="/brand/logo.png"
+                  alt=""
+                  width={420}
+                  height={339}
+                  priority
+                  className="h-8 w-8 object-contain sm:h-9 sm:w-9"
+                />
+              </span>
+              <span className="font-serif text-lg font-bold leading-none tracking-tight sm:text-xl">
+                Horology<span className="text-gold">365</span>
+              </span>
+            </Link>
           </div>
 
           {/* Center: desktop nav */}

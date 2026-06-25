@@ -32,7 +32,6 @@ export default function HomePage() {
   return (
     <>
       <VideoHero slides={heroSlides} />
-      <TrustStrip />
       <BrandLogoWall brands={activeBrands} />
 
       {/* One bay per active brand, dark / light bands alternating. */}
@@ -63,6 +62,7 @@ export default function HomePage() {
       <OfferBand offers={offers} />
       <DropCarousel products={preorderProducts} />
       <ReviewsSection reviews={reviews} />
+      <TrustStrip />
     </>
   );
 }

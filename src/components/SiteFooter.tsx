@@ -3,6 +3,7 @@ import { SITE } from "@/lib/config";
 import { activeBrands } from "@/lib/mock/brands";
 import { whatsappLink } from "@/lib/utils";
 import { NewsletterForm } from "@/components/NewsletterForm";
+import { Logo } from "@/components/Logo";
 
 const ONLINE_SHOPPING = [
   { label: "Men's Watches", href: "/category/mens-watches" },
@@ -48,10 +49,8 @@ export function SiteFooter() {
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
           {/* Brand blurb */}
           <div className="lg:col-span-2">
-            <Link href="/" className="font-serif text-2xl tracking-tight">
-              Horology<span className="text-gold">365</span>
-            </Link>
-            <p className="mt-3 max-w-sm text-sm text-bone/60">{SITE.description}</p>
+            <Logo className="h-14" />
+            <p className="mt-4 max-w-sm text-sm text-bone/60">{SITE.description}</p>
             <a
               href={whatsappLink(
                 SITE.whatsappNumber,

@@ -13,7 +13,7 @@ export const offers: Offer[] = [
     title: "Fastrack Reflex Vox",
     subtitle: "Bluetooth calling smartwatch",
     productSlug: "fastrack-reflex-vox",
-    badge: "30% Off",
+    badge: "50% Off",
   },
   {
     id: "of-fossil-machine",
@@ -34,7 +34,7 @@ export const offers: Offer[] = [
     title: "Casio Edifice EFR-526",
     subtitle: "Motorsport chronograph",
     productSlug: "casio-edifice-efr",
-    badge: "22% Off",
+    badge: "60% Off",
   },
   {
     id: "of-diesel-overflow",

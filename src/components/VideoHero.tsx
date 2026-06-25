@@ -107,7 +107,7 @@ export function VideoHero({ slides }: VideoHeroProps) {
                     {/* Featured watch chip */}
                     <Link
                       href={`/product/${product.slug}`}
-                      className="glass-chip group inline-flex w-fit items-center gap-4 rounded-2xl p-3 pr-6 transition hover:bg-white/15"
+                      className="glass-chip group flex w-full max-w-full items-center gap-4 rounded-2xl p-3 pr-5 transition hover:bg-white/15"
                     >
                       <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-ink-600">
                         {cover ? (

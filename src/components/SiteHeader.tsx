@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useCartStore, cartCount } from "@/lib/store/cart";
 import { BrandMegaMenu } from "@/components/BrandMegaMenu";
 import { SearchModal } from "@/components/SearchModal";
+import { Logo } from "@/components/Logo";
 import { SITE } from "@/lib/config";
 import { whatsappLink } from "@/lib/utils";
 import { activeBrands } from "@/lib/mock/brands";
@@ -66,9 +67,8 @@ export function SiteHeader() {
             >
               <MenuIcon open={mobileOpen} />
             </button>
-            <Link href="/" className="font-serif text-xl tracking-tight sm:text-2xl">
-              Horology<span className="text-gold">365</span>
-            </Link>
+            <Logo className="h-9 sm:h-11" priority />
+            <span className="sr-only">Horology365</span>
           </div>
 
           {/* Center: desktop nav */}

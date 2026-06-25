@@ -54,11 +54,30 @@ interface Seed {
 
 let videoCursor = 0;
 
+/**
+ * Current headline deals. Casio (incl. G-Shock) runs 60% off; Fastrack and
+ * Sonata run deep 50% deals. Applied at build time so every price, badge and
+ * the hero reflect the same number.
+ */
+const DEAL_OFF: Record<string, number> = {
+  casio: 0.6,
+  fastrack: 0.5,
+  sonata: 0.5,
+};
+
+function dealPrice(brandSlug: string, mrp: number, fallback: number): number {
+  const off = DEAL_OFF[brandSlug];
+  if (!off) return fallback;
+  // Round to the nearest ₹5 for a clean price tag.
+  return Math.round((mrp * (1 - off)) / 5) * 5;
+}
+
 function build(seed: Seed): Product {
   const photoB = PHOTOS[(PHOTOS.indexOf(seed.photo) + 4) % PHOTOS.length]!;
   const photoC = PHOTOS[(PHOTOS.indexOf(seed.photo) + 8) % PHOTOS.length]!;
   const clip = seed.hasVideo ? (videoCursor++ % VIDEO_COUNT) + 1 : 0;
   const videoUrl = seed.hasVideo ? `/videos/watch-${clip}.mp4` : undefined;
+  const price = dealPrice(seed.brandSlug, seed.mrp, seed.price);
   return {
     id: `pr-${seed.slug}`,
     slug: seed.slug,
@@ -66,7 +85,7 @@ function build(seed: Seed): Product {
     description: seed.description,
     brandSlug: seed.brandSlug,
     categorySlug: seed.category,
-    price: seed.price,
+    price,
     mrp: seed.mrp,
     images: [
       { url: img(seed.photo, 1200), alt: `${seed.title} — front view` },

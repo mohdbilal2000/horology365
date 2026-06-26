@@ -52,8 +52,8 @@ export function Carousel({
     "absolute top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border shadow-product-hover transition disabled:opacity-0 md:flex";
   const arrowTone =
     tone === "dark"
-      ? "border-bone/20 bg-ink-700 text-bone hover:bg-gold hover:text-white"
-      : "border-bone-300 bg-bone-100 text-ink hover:bg-gold hover:text-white";
+      ? "border-bone/20 bg-ink-700 text-bone hover:bg-gold hover:text-ink"
+      : "border-bone-300 bg-bone-100 text-ink hover:bg-gold hover:text-ink";
 
   return (
     <div className={cn("relative", className)}>

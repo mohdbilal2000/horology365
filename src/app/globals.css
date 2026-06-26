@@ -58,11 +58,11 @@
     @apply mx-auto w-full max-w-shell px-5 sm:px-8 lg:px-12;
   }
 
-  /* Electric-blue primary CTA. */
+  /* Champagne-gold primary CTA (dark text reads best on gold). */
   .btn-gold {
     @apply inline-flex items-center justify-center gap-2 rounded-full bg-gold px-7 py-3
-      text-sm font-semibold tracking-wide text-white shadow-gold
-      transition duration-300 ease-showroom hover:bg-gold-700 hover:shadow-product-hover
+      text-sm font-semibold tracking-wide text-ink shadow-gold
+      transition duration-300 ease-showroom hover:bg-gold-300 hover:shadow-product-hover
       active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
@@ -223,8 +223,8 @@
     z-index: -1;
     pointer-events: none;
     background:
-      radial-gradient(42% 52% at 12% 18%, rgba(59, 130, 246, 0.28), transparent 70%),
-      radial-gradient(38% 48% at 88% 82%, rgba(37, 99, 235, 0.2), transparent 72%);
+      radial-gradient(42% 52% at 12% 18%, rgba(201, 162, 74, 0.22), transparent 70%),
+      radial-gradient(38% 48% at 88% 82%, rgba(221, 190, 104, 0.16), transparent 72%);
     filter: blur(26px);
     animation: aurora-drift 18s ease-in-out infinite alternate;
   }
@@ -264,10 +264,10 @@
     padding: 1px;
     background: linear-gradient(
       130deg,
-      rgba(96, 165, 250, 0.8),
-      rgba(255, 255, 255, 0.1) 40%,
-      rgba(255, 255, 255, 0.1) 60%,
-      rgba(37, 99, 235, 0.8)
+      rgba(221, 190, 104, 0.85),
+      rgba(255, 255, 255, 0.08) 40%,
+      rgba(255, 255, 255, 0.08) 60%,
+      rgba(201, 162, 74, 0.85)
     );
     background-size: 200% 200%;
     animation: border-flow 6s ease infinite;

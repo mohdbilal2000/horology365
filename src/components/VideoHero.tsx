@@ -104,7 +104,7 @@ export function VideoHero({ slides }: VideoHeroProps) {
                     {/* gradient: blend into the info side + legibility */}
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/55 via-transparent to-transparent lg:bg-gradient-to-l lg:from-transparent lg:via-transparent lg:to-ink/45" />
                     {off > 0 ? (
-                      <span className="absolute left-4 top-4 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-white shadow-gold">
+                      <span className="absolute left-4 top-4 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-ink shadow-gold">
                         {off}% OFF
                       </span>
                     ) : null}
@@ -209,7 +209,7 @@ export function VideoHero({ slides }: VideoHeroProps) {
                   type="button"
                   aria-label="Previous slide"
                   onClick={() => go(-1)}
-                  className="glass-chip flex h-11 w-11 items-center justify-center rounded-full text-bone transition hover:bg-gold hover:text-white"
+                  className="glass-chip flex h-11 w-11 items-center justify-center rounded-full text-bone transition hover:bg-gold hover:text-ink"
                 >
                   <span aria-hidden="true">‹</span>
                 </button>
@@ -217,7 +217,7 @@ export function VideoHero({ slides }: VideoHeroProps) {
                   type="button"
                   aria-label="Next slide"
                   onClick={() => go(1)}
-                  className="glass-chip flex h-11 w-11 items-center justify-center rounded-full text-bone transition hover:bg-gold hover:text-white"
+                  className="glass-chip flex h-11 w-11 items-center justify-center rounded-full text-bone transition hover:bg-gold hover:text-ink"
                 >
                   <span aria-hidden="true">›</span>
                 </button>

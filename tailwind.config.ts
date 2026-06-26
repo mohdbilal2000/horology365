@@ -1,10 +1,9 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Horology365 — "The Showroom", white & blue edition.
- * One accent across the whole site: electric blue (token still named `gold`
- * for backwards-compat with existing class names — its value is now blue).
- * Minimal, translucent, Apple/Google-style glass surfaces.
+ * Horology365 — "The Showroom", gold & black edition.
+ * Palette blends with the brand logo: champagne gold accent, warm near-black
+ * dark bands, soft cream light bands. (Accent token kept under the `gold` key.)
  * Display: Sora. Body/UI: Manrope.
  */
 const config: Config = {
@@ -12,41 +11,39 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Accent (blue). Kept under the `gold` key so all existing
-        // text-gold/bg-gold/ring-gold/btn-gold usages recolor at once.
+        // Champagne gold accent (matches the logo).
         gold: {
-          DEFAULT: "#2563EB",
-          50: "#EFF6FF",
-          100: "#DBEAFE",
-          200: "#BFDBFE",
-          300: "#93C5FD",
-          400: "#60A5FA",
-          500: "#3B82F6",
-          600: "#2563EB",
-          700: "#1D4ED8",
-          800: "#1E40AF",
-          900: "#1E3A8A",
+          DEFAULT: "#C9A24A",
+          50: "#FBF6E9",
+          100: "#F4E8C5",
+          200: "#E9D295",
+          300: "#DDBE68",
+          400: "#CFA94B",
+          500: "#C9A24A",
+          600: "#A6822F",
+          700: "#826423",
+          800: "#5D4819",
+          900: "#3B2E10",
         },
-        // Deep blue-tinted darks for the dark bands.
+        // Warm near-black darks (match the logo's black).
         ink: {
-          DEFAULT: "#0A1326",
-          900: "#0A1326",
-          800: "#0F1C36",
-          700: "#16263F",
-          600: "#22344F",
-          500: "#33496A",
+          DEFAULT: "#0D0B08",
+          900: "#0D0B08",
+          800: "#17140E",
+          700: "#221E15",
+          600: "#2F2A1E",
+          500: "#46402F",
         },
-        // Cool near-white for the light bands.
+        // Soft warm cream for the light bands.
         bone: {
-          DEFAULT: "#F4F7FB",
+          DEFAULT: "#F7F3EA",
           100: "#FFFFFF",
-          200: "#F4F7FB",
-          300: "#E6ECF4",
-          400: "#D3DDEA",
+          200: "#F7F3EA",
+          300: "#EBE3D2",
+          400: "#DBD0B8",
         },
       },
       fontFamily: {
-        // `serif` token now points at the Sora display face.
         serif: ["var(--font-serif)", "ui-sans-serif", "system-ui", "sans-serif"],
         sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
@@ -54,10 +51,10 @@ const config: Config = {
         label: "0.22em",
       },
       boxShadow: {
-        product: "0 18px 50px -28px rgba(10, 19, 38, 0.45)",
-        "product-hover": "0 30px 70px -30px rgba(10, 19, 38, 0.5)",
-        gold: "0 12px 34px -12px rgba(37, 99, 235, 0.5)",
-        glass: "0 8px 32px -12px rgba(10, 19, 38, 0.18)",
+        product: "0 18px 50px -28px rgba(13, 11, 8, 0.5)",
+        "product-hover": "0 30px 70px -30px rgba(13, 11, 8, 0.55)",
+        gold: "0 12px 34px -12px rgba(201, 162, 74, 0.5)",
+        glass: "0 8px 32px -12px rgba(13, 11, 8, 0.2)",
       },
       maxWidth: {
         shell: "1440px",

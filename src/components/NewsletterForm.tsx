@@ -46,7 +46,7 @@ export function NewsletterForm() {
         />
         <button
           type="submit"
-          className="shrink-0 rounded-full bg-gold px-5 py-2 text-xs font-semibold text-white transition hover:bg-gold-700"
+          className="shrink-0 rounded-full bg-gold px-5 py-2 text-xs font-semibold text-ink transition hover:bg-gold-700"
         >
           Notify me
         </button>

@@ -141,7 +141,7 @@ export function ProductBuilder() {
               className={cn(
                 "flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold transition",
                 i === step
-                  ? "bg-gold text-white"
+                  ? "bg-gold text-ink"
                   : i < step
                     ? "text-gold"
                     : "text-ink-400",
@@ -372,7 +372,7 @@ export function ProductBuilder() {
                 unoptimized
               />
               {off > 0 ? (
-                <span className="absolute left-3 top-3 rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold text-white">
+                <span className="absolute left-3 top-3 rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold text-ink">
                   {off}% OFF
                 </span>
               ) : null}
@@ -484,7 +484,7 @@ function VariantEditor({
             onClick={() => onChange({ availability: a })}
             className={cn(
               "rounded-full px-4 py-1.5 font-semibold transition",
-              v.availability === a ? "bg-gold text-white" : "text-ink-500",
+              v.availability === a ? "bg-gold text-ink" : "text-ink-500",
             )}
           >
             {a === "in_stock" ? "In stock" : "Pre-order"}

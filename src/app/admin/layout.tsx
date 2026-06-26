@@ -15,7 +15,7 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-bone-200">
       {/* Demo banner — Phase 2 adds the Supabase Auth gate. */}
-      <div className="bg-gold px-4 py-1.5 text-center text-xs font-semibold text-white">
+      <div className="bg-gold px-4 py-1.5 text-center text-xs font-semibold text-ink">
         Demo admin · data is saved in your browser · Supabase Auth + live sync
         arrive in Phase 2
       </div>

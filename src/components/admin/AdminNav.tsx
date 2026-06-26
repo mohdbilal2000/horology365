@@ -26,7 +26,7 @@ export function AdminNav() {
             className={cn(
               "rounded-full px-4 py-2 text-sm font-semibold transition",
               active
-                ? "bg-gold text-white shadow-gold"
+                ? "bg-gold text-ink shadow-gold"
                 : "text-ink-600 hover:bg-bone-300",
             )}
           >

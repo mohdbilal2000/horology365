@@ -185,7 +185,7 @@ function ModelRow({
                 <button
                   type="button"
                   onClick={() => onStartDelivery(model.id, v.id)}
-                  className="rounded-full bg-gold px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-gold-700"
+                  className="rounded-full bg-gold px-3.5 py-1.5 text-xs font-semibold text-ink transition hover:bg-gold-700"
                 >
                   Start delivery
                 </button>
@@ -247,7 +247,7 @@ function VariantStatus({ variant: v }: { variant: Variant }) {
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
         v.availability === "in_delivery"
-          ? "bg-blue-50 text-blue-700"
+          ? "bg-gold/10 text-gold-700"
           : out
             ? "bg-red-50 text-red-600"
             : low

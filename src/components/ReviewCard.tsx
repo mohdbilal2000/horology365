@@ -23,7 +23,7 @@ export function ReviewCard({ review }: { review: Review }) {
         {review.body}
       </blockquote>
       <figcaption className="mt-5 flex items-center gap-3 border-t border-bone-300 pt-4">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gold text-xs font-bold text-white">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gold text-xs font-bold text-ink">
           {initials}
         </span>
         <span className="leading-tight">

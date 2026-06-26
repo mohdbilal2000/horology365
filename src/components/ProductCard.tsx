@@ -72,11 +72,11 @@ export function ProductCard({
           {/* Badges (top-left) */}
           <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
             {product.isPreorder ? (
-              <span className="rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-gold">
+              <span className="rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ink shadow-gold">
                 Pre-order
               </span>
             ) : off > 0 ? (
-              <span className="rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold text-white shadow-gold">
+              <span className="rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold text-ink shadow-gold">
                 {off}% OFF
               </span>
             ) : null}
@@ -100,8 +100,8 @@ export function ProductCard({
               className="h-[18px] w-[18px]"
               width={18}
               height={18}
-              fill={wishlisted ? "#2563EB" : "none"}
-              stroke={wishlisted ? "#2563EB" : "currentColor"}
+              fill={wishlisted ? "#C9A24A" : "none"}
+              stroke={wishlisted ? "#C9A24A" : "currentColor"}
               strokeWidth={2}
               aria-hidden="true"
             >
@@ -154,7 +154,7 @@ export function ProductCard({
           disabled={soldOut}
           className={cn(
             "mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-c-20 py-2.5 text-xs font-semibold tracking-wide transition",
-            "hover:border-gold hover:bg-gold hover:text-white disabled:cursor-not-allowed disabled:opacity-40",
+            "hover:border-gold hover:bg-gold hover:text-ink disabled:cursor-not-allowed disabled:opacity-40",
           )}
         >
           {!soldOut ? (

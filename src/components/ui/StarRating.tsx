@@ -36,7 +36,7 @@ export function StarRating({
             >
               <defs>
                 <linearGradient id={`half-${i}`}>
-                  <stop offset="50%" stopColor="#C8A55B" />
+                  <stop offset="50%" stopColor="#C9A24A" />
                   <stop offset="50%" stopColor="currentColor" stopOpacity="0.2" />
                 </linearGradient>
               </defs>
@@ -44,7 +44,7 @@ export function StarRating({
                 d="M10 1.5l2.6 5.3 5.9.86-4.25 4.14 1 5.86L10 15.9l-5.25 2.76 1-5.86L1.5 7.66l5.9-.86L10 1.5z"
                 fill={
                   fill === "full"
-                    ? "#C8A55B"
+                    ? "#C9A24A"
                     : fill === "half"
                       ? `url(#half-${i})`
                       : "currentColor"

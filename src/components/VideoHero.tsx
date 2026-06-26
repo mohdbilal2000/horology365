@@ -66,6 +66,10 @@ export function VideoHero({ slides }: VideoHeroProps) {
           onFocusCapture={() => setPaused(true)}
           onBlurCapture={() => setPaused(false)}
         >
+          {/* Every slide shares one grid cell, so the hero keeps a constant
+              height across slides — no layout jitter (page never grows/shrinks)
+              when it auto-advances. Only opacity cross-fades. */}
+          <div className="grid">
           {slides.map(({ banner, product, brandName }, i) => {
             const cover = product.images[0];
             const off =
@@ -76,10 +80,10 @@ export function VideoHero({ slides }: VideoHeroProps) {
               <article
                 key={banner.id}
                 className={cn(
-                  "transition-all duration-700 ease-showroom",
+                  "col-start-1 row-start-1 transition-opacity duration-700 ease-showroom",
                   i === active
-                    ? "relative opacity-100"
-                    : "pointer-events-none absolute inset-0 translate-y-3 opacity-0",
+                    ? "z-[1] opacity-100"
+                    : "pointer-events-none opacity-0",
                 )}
                 aria-hidden={i !== active}
               >
@@ -185,6 +189,7 @@ export function VideoHero({ slides }: VideoHeroProps) {
               </article>
             );
           })}
+          </div>
 
           {/* Controls */}
           {slides.length > 1 ? (

@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { CartDrawer } from "@/components/CartDrawer";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { Analytics } from "@/components/Analytics";
+import { ScrollTapGuard } from "@/components/ScrollTapGuard";
 import { SITE } from "@/lib/config";
 
 const sans = Manrope({
@@ -81,6 +82,7 @@ export default function RootLayout({
         <CartDrawer />
         <WhatsAppFloat />
         <Analytics />
+        <ScrollTapGuard />
       </body>
     </html>
   );

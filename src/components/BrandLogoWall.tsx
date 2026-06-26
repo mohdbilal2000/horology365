@@ -19,18 +19,18 @@ export function BrandLogoWall({ brands }: BrandLogoWallProps) {
           viewAllHref="#weekly-drop"
           viewAllLabel="Shop the drop"
         />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-7">
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 lg:grid-cols-7">
           {brands.map((brand, i) => (
-            <Reveal key={brand.id} delay={(i % 7) * 40}>
+            <Reveal key={brand.id} delay={(i % 7) * 35}>
               <Link
                 href={`/brand/${brand.slug}`}
-                className="shine group flex h-24 items-center justify-center rounded-xl border border-bone-300 bg-bone-100 p-5 text-center text-ink-700 transition duration-300 ease-showroom hover:-translate-y-1.5 hover:border-gold hover:text-gold-600 hover:shadow-product sm:h-28"
+                className="shine group flex h-16 items-center justify-center rounded-xl border border-bone-300 bg-bone-100 px-3 text-center text-ink-700 transition duration-300 ease-showroom hover:-translate-y-1 hover:border-gold hover:text-gold-600 hover:shadow-product sm:h-20"
                 aria-label={`Shop ${brand.name}`}
               >
                 <BrandLogo
                   brand={brand}
                   wordmarkSize="sm"
-                  className="max-h-12 opacity-80 grayscale transition duration-300 group-hover:opacity-100 group-hover:grayscale-0"
+                  className="max-h-8 opacity-80 grayscale transition duration-300 group-hover:opacity-100 group-hover:grayscale-0 sm:max-h-9"
                 />
               </Link>
             </Reveal>

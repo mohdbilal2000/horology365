@@ -18,7 +18,7 @@ interface VideoHeroProps {
   slides: HeroSlide[];
 }
 
-const SLIDE_MS = 7500;
+const SLIDE_MS = 4800;
 
 export function VideoHero({ slides }: VideoHeroProps) {
   const [active, setActive] = useState(0);

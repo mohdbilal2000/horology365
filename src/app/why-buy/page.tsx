@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 export const metadata: Metadata = {
   title: "Why Buy From Us",
   description:
-    "Authentic watches, honest pricing, easy returns and real WhatsApp support. Here's why thousands trust Horology365.",
+    "Authentic watches, honest pricing and real WhatsApp support. Here's why thousands trust Horology365.",
 };
 
 const REASONS = [
@@ -16,14 +16,6 @@ const REASONS = [
   {
     title: "Honest Pricing",
     body: "We show the real MRP and the real discount. No inflated strike-through prices to make a deal look bigger than it is.",
-  },
-  {
-    title: "Pay On Delivery",
-    body: "Cash on Delivery is live now, so you only pay once your watch is in your hands. UPI checkout is coming soon.",
-  },
-  {
-    title: "7-Day Easy Returns",
-    body: "Changed your mind or got the wrong fit? Return within 7 days, no drama. We make it right.",
   },
   {
     title: "Real WhatsApp Support",
@@ -40,7 +32,7 @@ export default function WhyBuyPage() {
     <div className="band-light">
       <PageHeader
         label="Why Horology365"
-        title="Six reasons people stop scrolling and start trusting."
+        title="Reasons people stop scrolling and start trusting."
         intro="Buying a watch online shouldn't feel like a gamble. Here's how we make it safe, simple and worth it."
       />
 

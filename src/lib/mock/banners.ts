@@ -1,17 +1,14 @@
 import type { Banner } from "@/lib/types";
 
 /**
- * Hero slides. Each slide showcases a real watch from the catalog (resolved
- * by `productSlug`) over an ambient, muted free-stock video.
- *
- * Video sources are CC0 / hotlink-safe (Pixabay + MDN cc0 + samplelib); every
- * slide also has an Unsplash poster, so the hero is always crisp even if a
- * video is slow or blocked. Swap for brand-shot footage in Supabase Storage
- * for production.
+ * Hero slides — Casio-led (the brand we deal in most), then the rest.
+ * Each slide showcases a real catalog watch over a muted watch video. Videos
+ * are non-branded close-ups self-hosted in /public (no competitor branding);
+ * swap in real Casio footage at /public/videos/watch-*.mp4 anytime.
  */
 export const banners: Banner[] = [
   {
-    id: "bn-drop",
+    id: "bn-gshock",
     eyebrow: "This Week's Drop",
     headline: "The Drop Is Live",
     subhead:
@@ -24,6 +21,19 @@ export const banners: Banner[] = [
     sortOrder: 1,
   },
   {
+    id: "bn-casio-vintage",
+    eyebrow: "Casio · 60% Off",
+    headline: "The Retro Icon",
+    subhead:
+      "The Casio Vintage that never went out of style — steel, digital, indestructible.",
+    ctaLabel: "Shop Casio",
+    ctaHref: "/brand/casio",
+    videoUrl: "/videos/watch-8.mp4",
+    posterUrl: "/posters/watch-8.jpg",
+    productSlug: "casio-vintage-a168",
+    sortOrder: 2,
+  },
+  {
     id: "bn-glam",
     eyebrow: "Editor's Pick",
     headline: "Jet-Set Glamour",
@@ -34,7 +44,20 @@ export const banners: Banner[] = [
     videoUrl: "/videos/watch-6.mp4",
     posterUrl: "/posters/watch-6.jpg",
     productSlug: "mk-lexington-gold",
-    sortOrder: 2,
+    sortOrder: 3,
+  },
+  {
+    id: "bn-casio-edifice",
+    eyebrow: "Casio · 60% Off",
+    headline: "Built For Speed",
+    subhead:
+      "The Casio Edifice chronograph — motorsport looks at a fraction of the price.",
+    ctaLabel: "Shop Casio",
+    ctaHref: "/brand/casio",
+    videoUrl: "/videos/watch-2.mp4",
+    posterUrl: "/posters/watch-2.jpg",
+    productSlug: "casio-edifice-efr",
+    sortOrder: 4,
   },
   {
     id: "bn-slim",
@@ -44,10 +67,10 @@ export const banners: Banner[] = [
       "The ultra-slim Titan Edge — real discounts on real watches, no inflated MRP games.",
     ctaLabel: "View Offers",
     ctaHref: "#offers",
-    videoUrl: "/videos/watch-2.mp4",
-    posterUrl: "/posters/watch-2.jpg",
+    videoUrl: "/videos/watch-3.mp4",
+    posterUrl: "/posters/watch-3.jpg",
     productSlug: "titan-edge-ceramic",
-    sortOrder: 3,
+    sortOrder: 5,
   },
 ];
 

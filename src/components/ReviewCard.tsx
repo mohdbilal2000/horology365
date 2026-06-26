@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { StarRating } from "@/components/ui/StarRating";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Reveal } from "@/components/ui/Reveal";
@@ -43,12 +44,24 @@ export function ReviewCard({ review }: { review: Review }) {
   );
 }
 
-export function ReviewsSection({ reviews }: { reviews: Review[] }) {
+export function ReviewsSection({
+  reviews,
+  limit,
+  viewAllHref,
+}: {
+  reviews: Review[];
+  /** Show only this many cards (e.g. 3 on the homepage). */
+  limit?: number;
+  /** When set and there are more than `limit`, render a "View all" link. */
+  viewAllHref?: string;
+}) {
   if (reviews.length === 0) return null;
   const avg =
     Math.round(
       (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10,
     ) / 10;
+  const shown = limit ? reviews.slice(0, limit) : reviews;
+  const hasMore = Boolean(viewAllHref) && reviews.length > shown.length;
 
   return (
     <section className="band-light section-y">
@@ -70,12 +83,23 @@ export function ReviewsSection({ reviews }: { reviews: Review[] }) {
         </Reveal>
 
         <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {reviews.map((review, i) => (
+          {shown.map((review, i) => (
             <Reveal key={review.id} delay={(i % 3) * 70} as="div">
               <ReviewCard review={review} />
             </Reveal>
           ))}
         </div>
+
+        {hasMore ? (
+          <div className="mt-10 text-center">
+            <Link
+              href={viewAllHref!}
+              className="btn-outline border-ink/20 text-ink"
+            >
+              View all {reviews.length} reviews
+            </Link>
+          </div>
+        ) : null}
       </div>
     </section>
   );

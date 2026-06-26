@@ -61,7 +61,7 @@ export default function HomePage() {
       <CategoryBlock categories={categories} />
       <OfferBand offers={offers} />
       <DropCarousel products={preorderProducts} />
-      <ReviewsSection reviews={reviews} />
+      <ReviewsSection reviews={reviews} limit={3} viewAllHref="/reviews" />
       <TrustStrip />
     </>
   );

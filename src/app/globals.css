@@ -26,6 +26,12 @@
     font-feature-settings: "ss01", "cv01", "tnum" 0;
   }
 
+  /* Snappier taps (no 300ms delay); pairs with ScrollTapGuard. */
+  a,
+  button {
+    touch-action: manipulation;
+  }
+
   /* Headings inherit the display face with tight, optical tracking. */
   h1, h2, h3, h4 {
     @apply font-serif;

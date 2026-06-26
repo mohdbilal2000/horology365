@@ -2,9 +2,9 @@ import type { Banner } from "@/lib/types";
 
 /**
  * Hero slides — Casio-led (the brand we deal in most), then the rest.
- * Each slide showcases a real catalog watch over a muted watch video. Videos
- * are non-branded close-ups self-hosted in /public (no competitor branding);
- * swap in real Casio footage at /public/videos/watch-*.mp4 anytime.
+ * The Casio slides play real Casio G-Shock footage (casio-*.mp4); as a reseller
+ * we showcase the actual product. Remaining slides use generic watch clips.
+ * All videos are self-hosted in /public/videos with posters in /public/posters.
  */
 export const banners: Banner[] = [
   {
@@ -15,8 +15,8 @@ export const banners: Banner[] = [
       "Pre-order the next batch before it lands. Lock today's price, skip the wait.",
     ctaLabel: "Shop the Drop",
     ctaHref: "#weekly-drop",
-    videoUrl: "/videos/watch-1.mp4",
-    posterUrl: "/posters/watch-1.jpg",
+    videoUrl: "/videos/casio-3.mp4",
+    posterUrl: "/posters/casio-3.jpg",
     productSlug: "casio-g-shock-ga2100",
     sortOrder: 1,
   },
@@ -28,8 +28,8 @@ export const banners: Banner[] = [
       "The Casio Vintage that never went out of style — steel, digital, indestructible.",
     ctaLabel: "Shop Casio",
     ctaHref: "/brand/casio",
-    videoUrl: "/videos/watch-8.mp4",
-    posterUrl: "/posters/watch-8.jpg",
+    videoUrl: "/videos/casio-1.mp4",
+    posterUrl: "/posters/casio-1.jpg",
     productSlug: "casio-vintage-a168",
     sortOrder: 2,
   },
@@ -54,8 +54,8 @@ export const banners: Banner[] = [
       "The Casio Edifice chronograph — motorsport looks at a fraction of the price.",
     ctaLabel: "Shop Casio",
     ctaHref: "/brand/casio",
-    videoUrl: "/videos/watch-2.mp4",
-    posterUrl: "/posters/watch-2.jpg",
+    videoUrl: "/videos/casio-2.mp4",
+    posterUrl: "/posters/casio-2.jpg",
     productSlug: "casio-edifice-efr",
     sortOrder: 4,
   },

@@ -168,7 +168,10 @@ export interface AdminModel {
   description: string;
   price: number;
   mrp: number;
+  /** Primary/cover image (first of the gallery). Kept for back-compat. */
   imageUrl: string;
+  /** Full image gallery — paste official product photo links here. */
+  images?: string[];
   variants: Variant[];
   createdAt: string;
 }

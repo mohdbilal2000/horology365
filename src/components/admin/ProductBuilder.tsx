@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useCatalogStore } from "@/lib/store/catalog";
 import { activeBrands, getBrandBySlug } from "@/lib/mock/brands";
+import { getModelsForBrand } from "@/lib/mock/modelCatalog";
 import { categories } from "@/lib/mock/categories";
-import { BrandLogo } from "@/components/BrandLogo";
 import { discountPercent, formatINR } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { AdminModel, CategorySlug, Variant } from "@/lib/types";
@@ -15,6 +15,10 @@ let uidN = 0;
 const uid = (p: string) => `${p}-${Date.now().toString(36)}-${uidN++}`;
 
 const STEPS = ["Brand", "Model", "Variants", "Review"] as const;
+const CUSTOM = "__custom__";
+const NEW_BRAND = "__new__";
+const FALLBACK_IMG =
+  "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=900&q=70";
 
 function blankVariant(): Variant {
   return {
@@ -35,35 +39,76 @@ export function ProductBuilder() {
   const addModel = useCatalogStore((s) => s.addModel);
 
   const [step, setStep] = useState(0);
+
+  // Brand
   const [brandSlug, setBrandSlug] = useState("");
+  const [addingBrand, setAddingBrand] = useState(false);
   const [newBrand, setNewBrand] = useState("");
+
+  // Model
+  const [modelChoice, setModelChoice] = useState(""); // known model name or CUSTOM
   const [title, setTitle] = useState("");
   const [categorySlug, setCategorySlug] = useState<CategorySlug>("mens-watches");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [mrp, setMrp] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [images, setImages] = useState<string[]>([""]);
+
+  // Variants
   const [variants, setVariants] = useState<Variant[]>([blankVariant()]);
   const [error, setError] = useState<string | null>(null);
 
-  const effectiveBrand = brandSlug || (newBrand.trim() ? "new" : "");
-  const brandName =
-    brandSlug ? getBrandBySlug(brandSlug)?.name ?? brandSlug : newBrand.trim();
+  const knownModels = brandSlug ? getModelsForBrand(brandSlug) : [];
+  const usingNewBrand = addingBrand && newBrand.trim().length > 0;
+  const effectiveBrand = brandSlug || (usingNewBrand ? "new" : "");
+  const brandName = brandSlug
+    ? getBrandBySlug(brandSlug)?.name ?? brandSlug
+    : newBrand.trim();
+
   const priceN = Number(price) || 0;
   const mrpN = Number(mrp) || 0;
   const off = discountPercent(mrpN, priceN);
 
-  const previewImage =
-    imageUrl.trim() ||
-    "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=900&q=70";
+  const cleanImages = images.map((s) => s.trim()).filter(Boolean);
+  const previewImage = cleanImages[0] || FALLBACK_IMG;
+
+  function pickBrand(value: string) {
+    if (value === NEW_BRAND) {
+      setAddingBrand(true);
+      setBrandSlug("");
+    } else {
+      setAddingBrand(false);
+      setNewBrand("");
+      setBrandSlug(value);
+    }
+    // Reset the dependent model selection whenever the brand changes.
+    setModelChoice("");
+  }
+
+  function pickModel(value: string) {
+    setModelChoice(value);
+    if (value === CUSTOM || value === "") {
+      setTitle("");
+      return;
+    }
+    const m = knownModels.find((k) => k.name === value);
+    if (!m) return;
+    // Pre-fill from the known model — admin can still edit everything.
+    setTitle(m.name);
+    setCategorySlug(m.category);
+    setPrice(String(m.price));
+    setMrp(String(m.mrp));
+  }
 
   function updateVariant(id: string, patch: Partial<Variant>) {
     setVariants((vs) => vs.map((v) => (v.id === id ? { ...v, ...patch } : v)));
   }
 
   function validateStep(s: number): string | null {
-    if (s === 0 && !effectiveBrand) return "Pick a brand or add a new one.";
+    if (s === 0 && !effectiveBrand) return "Choose a brand or add a new one.";
     if (s === 1) {
+      if (knownModels.length > 0 && !modelChoice)
+        return "Pick a model, or choose “Other” to type your own.";
       if (title.trim().length < 2) return "Enter a model name.";
       if (priceN <= 0) return "Enter a selling price.";
       if (mrpN < priceN) return "MRP can't be lower than the price.";
@@ -99,7 +144,9 @@ export function ProductBuilder() {
         return;
       }
     }
-    const slug = brandSlug || newBrand.trim().toLowerCase().replace(/\s+/g, "-");
+    const slug =
+      brandSlug || newBrand.trim().toLowerCase().replace(/\s+/g, "-");
+    const gallery = cleanImages.length ? cleanImages : [FALLBACK_IMG];
     const model: AdminModel = {
       id: uid("m"),
       brandSlug: slug,
@@ -108,7 +155,8 @@ export function ProductBuilder() {
       description: description.trim(),
       price: priceN,
       mrp: mrpN,
-      imageUrl: previewImage,
+      imageUrl: gallery[0]!,
+      images: gallery,
       variants: variants.map((v, i) => ({
         ...v,
         name: v.name.trim(),
@@ -128,7 +176,8 @@ export function ProductBuilder() {
         Add a product
       </h1>
       <p className="mt-1 text-ink-500">
-        Brand, model, then the variants you actually stock — see it build live.
+        Pick the brand, pick the model, then the variants you actually stock —
+        watch it build live.
       </p>
 
       {/* Stepper */}
@@ -172,54 +221,94 @@ export function ProductBuilder() {
         {/* ── Form ── */}
         <div className="rounded-3xl border border-bone-300 bg-bone-100 p-6 shadow-glass sm:p-8">
           {step === 0 ? (
-            <Field label="Brand">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {activeBrands.map((b) => (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() => {
-                      setBrandSlug(b.slug);
-                      setNewBrand("");
-                    }}
-                    className={cn(
-                      "flex h-16 items-center justify-center rounded-xl border bg-bone-100 p-3 transition",
-                      brandSlug === b.slug
-                        ? "border-gold ring-2 ring-gold/30"
-                        : "border-bone-300 hover:border-gold",
-                    )}
-                  >
-                    <BrandLogo brand={b} wordmarkSize="sm" className="max-h-8 text-ink" />
-                  </button>
-                ))}
-              </div>
-              <div className="mt-4">
-                <label className="mb-1.5 block text-sm font-medium text-ink-600">
-                  …or add a new brand
-                </label>
-                <input
-                  value={newBrand}
-                  onChange={(e) => {
-                    setNewBrand(e.target.value);
-                    if (e.target.value) setBrandSlug("");
-                  }}
-                  placeholder="New brand name"
-                  className={inputCls}
-                />
-              </div>
-            </Field>
+            <div className="space-y-5">
+              <Field label="Company / brand">
+                <select
+                  value={addingBrand ? NEW_BRAND : brandSlug}
+                  onChange={(e) => pickBrand(e.target.value)}
+                  className={cn(inputCls, "appearance-none pr-10")}
+                >
+                  <option value="" disabled>
+                    Select a brand…
+                  </option>
+                  {activeBrands.map((b) => (
+                    <option key={b.id} value={b.slug}>
+                      {b.name}
+                    </option>
+                  ))}
+                  <option value={NEW_BRAND}>+ Add a new brand…</option>
+                </select>
+              </Field>
+
+              {addingBrand ? (
+                <Field label="New brand name">
+                  <input
+                    autoFocus
+                    value={newBrand}
+                    onChange={(e) => setNewBrand(e.target.value)}
+                    placeholder="e.g. Citizen"
+                    className={inputCls}
+                  />
+                </Field>
+              ) : null}
+
+              {brandSlug && knownModels.length > 0 ? (
+                <p className="rounded-xl bg-bone-200 px-4 py-3 text-sm text-ink-600">
+                  Nice — <strong>{brandName}</strong> has{" "}
+                  {knownModels.length} ready-made model
+                  {knownModels.length === 1 ? "" : "s"} to choose from next.
+                </p>
+              ) : null}
+            </div>
           ) : null}
 
           {step === 1 ? (
             <div className="space-y-5">
-              <Field label="Model name">
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. G-Shock GA-2100"
-                  className={inputCls}
-                />
-              </Field>
+              {/* Cascading brand → model context */}
+              <div className="flex items-center gap-2 text-sm">
+                <span className="rounded-full bg-gold/15 px-3 py-1 font-semibold text-gold-700">
+                  {brandName || "Brand"}
+                </span>
+                <span className="text-ink-400" aria-hidden="true">
+                  →
+                </span>
+                <span className="text-ink-500">
+                  {title || "choose a model"}
+                </span>
+              </div>
+
+              {knownModels.length > 0 ? (
+                <Field label={`${brandName} models`}>
+                  <select
+                    value={modelChoice}
+                    onChange={(e) => pickModel(e.target.value)}
+                    className={cn(inputCls, "appearance-none pr-10")}
+                  >
+                    <option value="" disabled>
+                      Select a model…
+                    </option>
+                    {knownModels.map((m) => (
+                      <option key={m.name} value={m.name}>
+                        {m.name}
+                      </option>
+                    ))}
+                    <option value={CUSTOM}>+ Other (type your own)…</option>
+                  </select>
+                </Field>
+              ) : null}
+
+              {/* Editable model name (prefilled from the dropdown, or free text) */}
+              {knownModels.length === 0 || modelChoice ? (
+                <Field label="Model name">
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="e.g. G-Shock GA-2100"
+                    className={inputCls}
+                  />
+                </Field>
+              ) : null}
+
               <Field label="Category">
                 <div className="flex gap-2">
                   {categories.map((c) => (
@@ -239,6 +328,7 @@ export function ProductBuilder() {
                   ))}
                 </div>
               </Field>
+
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Selling price (₹)">
                   <input
@@ -259,20 +349,59 @@ export function ProductBuilder() {
                   />
                 </Field>
               </div>
-              <Field label="Image URL">
-                <input
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://…/watch.jpg"
-                  className={inputCls}
-                />
+
+              {/* Multi-image gallery */}
+              <Field label="Product images">
+                <p className="mb-2 text-xs text-ink-500">
+                  Paste image links — the brand’s official product page works
+                  great. First link is the cover.
+                </p>
+                <div className="space-y-2">
+                  {images.map((url, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="w-14 shrink-0 text-xs font-semibold text-ink-500">
+                        {i === 0 ? "Cover" : `Img ${i + 1}`}
+                      </span>
+                      <input
+                        value={url}
+                        onChange={(e) =>
+                          setImages((arr) =>
+                            arr.map((u, j) => (j === i ? e.target.value : u)),
+                          )
+                        }
+                        placeholder="https://…/watch.jpg"
+                        className={inputCls}
+                      />
+                      {images.length > 1 ? (
+                        <button
+                          type="button"
+                          aria-label={`Remove image ${i + 1}`}
+                          onClick={() =>
+                            setImages((arr) => arr.filter((_, j) => j !== i))
+                          }
+                          className="shrink-0 rounded-lg p-2 text-ink-400 transition hover:bg-red-50 hover:text-red-600"
+                        >
+                          ✕
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setImages((arr) => [...arr, ""])}
+                  className="mt-2 text-sm font-semibold text-gold transition hover:text-gold-700"
+                >
+                  + Add another image
+                </button>
               </Field>
-              <Field label="Description">
+
+              <Field label="About this product">
                 <textarea
-                  rows={3}
+                  rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="A short, punchy description…"
+                  placeholder="Write a short, punchy description — key features, what makes it worth buying…"
                   className={cn(inputCls, "resize-y")}
                 />
               </Field>
@@ -306,9 +435,14 @@ export function ProductBuilder() {
           {step === 3 ? (
             <div className="space-y-4">
               <p className="text-sm text-ink-600">
-                Looks good? Publishing adds <strong>{title || "this model"}</strong>{" "}
+                Looks good? Publishing adds{" "}
+                <strong>
+                  {brandName} {title || "this model"}
+                </strong>{" "}
                 with <strong>{variants.length}</strong> variant
-                {variants.length === 1 ? "" : "s"} to your catalogue.
+                {variants.length === 1 ? "" : "s"} and{" "}
+                <strong>{cleanImages.length || 1}</strong> image
+                {cleanImages.length === 1 ? "" : "s"} to your catalogue.
               </p>
               <ul className="divide-y divide-bone-300 rounded-2xl border border-bone-300">
                 {variants.map((v) => (
@@ -330,7 +464,10 @@ export function ProductBuilder() {
           ) : null}
 
           {error ? (
-            <p role="alert" className="mt-5 rounded-xl border border-red-300 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+            <p
+              role="alert"
+              className="mt-5 rounded-xl border border-red-300 bg-red-50 px-4 py-2.5 text-sm text-red-700"
+            >
               {error}
             </p>
           ) : null}
@@ -394,6 +531,27 @@ export function ProductBuilder() {
                   </span>
                 ) : null}
               </div>
+
+              {cleanImages.length > 1 ? (
+                <div className="mt-3 flex gap-1.5">
+                  {cleanImages.slice(0, 5).map((url, i) => (
+                    <span
+                      key={i}
+                      className="relative h-9 w-9 overflow-hidden rounded-lg ring-1 ring-bone-300"
+                    >
+                      <Image
+                        src={url}
+                        alt=""
+                        fill
+                        sizes="36px"
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
               {variants.some((v) => v.name) ? (
                 <div className="mt-3 flex items-center gap-1.5">
                   {variants.map((v) => (
@@ -420,10 +578,18 @@ export function ProductBuilder() {
 const inputCls =
   "w-full rounded-xl border border-bone-300 bg-bone-100 px-4 py-2.5 text-ink outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/30 placeholder:text-ink-400";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-semibold text-ink-700">{label}</label>
+      <label className="mb-1.5 block text-sm font-semibold text-ink-700">
+        {label}
+      </label>
       {children}
     </div>
   );

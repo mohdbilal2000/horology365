@@ -20,6 +20,45 @@ const NEW_BRAND = "__new__";
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=900&q=70";
 
+/**
+ * Read a picked file and downscale it in the browser to keep the stored
+ * data-URL small (localStorage is the Phase-1 backing store). Falls back to the
+ * raw data URL if the canvas step fails for any reason.
+ */
+async function fileToCompressedDataUrl(
+  file: File,
+  max = 1000,
+  quality = 0.82,
+): Promise<string> {
+  const raw = await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(file);
+  });
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const im = new window.Image();
+      im.onload = () => resolve(im);
+      im.onerror = reject;
+      im.src = raw;
+    });
+    const scale = Math.min(1, max / Math.max(img.width, img.height));
+    if (scale === 1 && raw.length < 400_000) return raw;
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return raw;
+    ctx.drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", quality);
+  } catch {
+    return raw;
+  }
+}
+
 function blankVariant(): Variant {
   return {
     id: uid("v"),
@@ -57,6 +96,7 @@ export function ProductBuilder() {
   // Variants
   const [variants, setVariants] = useState<Variant[]>([blankVariant()]);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const knownModels = brandSlug ? getModelsForBrand(brandSlug) : [];
   const usingNewBrand = addingBrand && newBrand.trim().length > 0;
@@ -102,6 +142,27 @@ export function ProductBuilder() {
 
   function updateVariant(id: string, patch: Partial<Variant>) {
     setVariants((vs) => vs.map((v) => (v.id === id ? { ...v, ...patch } : v)));
+  }
+
+  async function onPickFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const added: string[] = [];
+    for (const f of Array.from(files)) {
+      if (!f.type.startsWith("image/")) continue;
+      try {
+        added.push(await fileToCompressedDataUrl(f));
+      } catch {
+        /* skip files we can't read */
+      }
+    }
+    // Drop any blank URL rows, then append the uploaded images.
+    setImages((arr) => {
+      const kept = arr.filter((u) => u.trim());
+      const merged = [...kept, ...added];
+      return merged.length ? merged : [""];
+    });
+    setUploading(false);
   }
 
   function validateStep(s: number): string | null {
@@ -350,50 +411,87 @@ export function ProductBuilder() {
                 </Field>
               </div>
 
-              {/* Multi-image gallery */}
+              {/* Multi-image gallery — paste links or upload from device */}
               <Field label="Product images">
                 <p className="mb-2 text-xs text-ink-500">
-                  Paste image links — the brand’s official product page works
-                  great. First link is the cover.
+                  Paste image links (the brand’s official product page works
+                  great) or upload straight from your phone or computer. First
+                  image is the cover.
                 </p>
                 <div className="space-y-2">
-                  {images.map((url, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="w-14 shrink-0 text-xs font-semibold text-ink-500">
-                        {i === 0 ? "Cover" : `Img ${i + 1}`}
-                      </span>
-                      <input
-                        value={url}
-                        onChange={(e) =>
-                          setImages((arr) =>
-                            arr.map((u, j) => (j === i ? e.target.value : u)),
-                          )
-                        }
-                        placeholder="https://…/watch.jpg"
-                        className={inputCls}
-                      />
-                      {images.length > 1 ? (
-                        <button
-                          type="button"
-                          aria-label={`Remove image ${i + 1}`}
-                          onClick={() =>
-                            setImages((arr) => arr.filter((_, j) => j !== i))
-                          }
-                          className="shrink-0 rounded-lg p-2 text-ink-400 transition hover:bg-red-50 hover:text-red-600"
-                        >
-                          ✕
-                        </button>
-                      ) : null}
-                    </div>
-                  ))}
+                  {images.map((url, i) => {
+                    const uploaded = url.startsWith("data:");
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="w-14 shrink-0 text-xs font-semibold text-ink-500">
+                          {i === 0 ? "Cover" : `Img ${i + 1}`}
+                        </span>
+                        {uploaded ? (
+                          <span className="flex flex-1 items-center gap-2 rounded-xl border border-bone-300 bg-bone-200 px-3 py-2">
+                            <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg ring-1 ring-bone-300">
+                              <Image
+                                src={url}
+                                alt=""
+                                fill
+                                sizes="36px"
+                                className="object-cover"
+                                unoptimized
+                              />
+                            </span>
+                            <span className="text-sm text-ink-600">
+                              Uploaded from device
+                            </span>
+                          </span>
+                        ) : (
+                          <input
+                            value={url}
+                            onChange={(e) =>
+                              setImages((arr) =>
+                                arr.map((u, j) => (j === i ? e.target.value : u)),
+                              )
+                            }
+                            placeholder="https://…/watch.jpg"
+                            className={inputCls}
+                          />
+                        )}
+                        {images.length > 1 ? (
+                          <button
+                            type="button"
+                            aria-label={`Remove image ${i + 1}`}
+                            onClick={() =>
+                              setImages((arr) => arr.filter((_, j) => j !== i))
+                            }
+                            className="shrink-0 rounded-lg p-2 text-ink-400 transition hover:bg-red-50 hover:text-red-600"
+                          >
+                            ✕
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setImages((arr) => [...arr, ""])}
-                  className="mt-2 text-sm font-semibold text-gold transition hover:text-gold-700"
-                >
-                  + Add another image
-                </button>
+                <div className="mt-3 flex flex-wrap items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setImages((arr) => [...arr, ""])}
+                    className="text-sm font-semibold text-gold transition hover:text-gold-700"
+                  >
+                    + Add image URL
+                  </button>
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-bone-300 px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-gold hover:text-gold">
+                    {uploading ? "Uploading…" : "Upload from device"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        void onPickFiles(e.target.files);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
               </Field>
 
               <Field label="About this product">

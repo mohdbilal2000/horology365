@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -11,6 +11,14 @@ const LINKS = [
 
 export function AdminNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function logout() {
+    await fetch("/api/admin-login", { method: "DELETE" }).catch(() => {});
+    router.replace("/admin-login");
+    router.refresh();
+  }
+
   return (
     <nav className="hidden items-center gap-1 sm:flex" aria-label="Admin">
       {LINKS.map((link) => {
@@ -34,6 +42,13 @@ export function AdminNav() {
           </Link>
         );
       })}
+      <button
+        type="button"
+        onClick={logout}
+        className="rounded-full px-4 py-2 text-sm font-semibold text-ink-500 transition hover:bg-bone-300 hover:text-ink"
+      >
+        Log out
+      </button>
     </nav>
   );
 }

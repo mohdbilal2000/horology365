@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/PageHeader";
 import { ContactForm } from "@/components/ContactForm";
-import { SITE } from "@/lib/config";
+import { SITE, CONTACT } from "@/lib/config";
 import { whatsappLink } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -28,7 +28,7 @@ export default function ContactPage() {
         <div className="space-y-6">
           <ContactCard
             title="WhatsApp"
-            value={`+${SITE.whatsappNumber}`}
+            value={CONTACT.phoneDisplay}
             href={waHref}
             cta="Chat now"
           />
@@ -38,6 +38,23 @@ export default function ContactPage() {
             href="mailto:support@horology365.com"
             cta="Send email"
           />
+          <div className="rounded-2xl border border-bone-300 bg-bone-100 p-6">
+            <h2 className="font-serif text-xl">Visit us</h2>
+            <address className="mt-2 not-italic text-sm leading-relaxed text-ink-600">
+              {CONTACT.addressLines.map((line) => (
+                <span key={line} className="block">
+                  {line}
+                </span>
+              ))}
+              <a
+                href={`tel:+${SITE.whatsappNumber}`}
+                className="mt-1 inline-block font-medium text-gold-700 transition hover:text-gold"
+              >
+                {CONTACT.phoneDisplay}
+              </a>
+            </address>
+          </div>
+
           <div className="rounded-2xl border border-bone-300 bg-bone-100 p-6">
             <h2 className="font-serif text-xl">Support hours</h2>
             <p className="mt-2 text-sm text-ink-600">

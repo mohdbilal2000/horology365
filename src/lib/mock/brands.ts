@@ -37,7 +37,7 @@ export const brands: Brand[] = [
     logoUrl: "/logos/armani-exchange.svg",
     coverUrl: cover("1547996160-81dfa63595aa"),
     isActive: true,
-    sortOrder: 3,
+    sortOrder: 5,
   },
   {
     id: "br-titan",
@@ -57,7 +57,7 @@ export const brands: Brand[] = [
     logoUrl: "",
     coverUrl: cover("1508057198894-247b23fe5ade"),
     isActive: true,
-    sortOrder: 5,
+    sortOrder: 6,
   },
   {
     id: "br-sonata",
@@ -67,7 +67,7 @@ export const brands: Brand[] = [
     logoUrl: "",
     coverUrl: cover("1523170335258-f5ed11844a49"),
     isActive: true,
-    sortOrder: 6,
+    sortOrder: 3,
   },
   {
     id: "br-fossil",

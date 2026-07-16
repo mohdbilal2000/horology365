@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SITE } from "@/lib/config";
+import { SITE, CONTACT } from "@/lib/config";
 import { activeBrands } from "@/lib/mock/brands";
 import { whatsappLink } from "@/lib/utils";
 import { NewsletterForm } from "@/components/NewsletterForm";
@@ -60,8 +60,22 @@ export function SiteFooter() {
               rel="noopener noreferrer"
               className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-gold transition hover:text-gold-300"
             >
-              WhatsApp us → +{SITE.whatsappNumber}
+              WhatsApp us → {CONTACT.phoneDisplay}
             </a>
+
+            <address className="mt-5 not-italic text-sm leading-relaxed text-bone/60">
+              {CONTACT.addressLines.map((line) => (
+                <span key={line} className="block">
+                  {line}
+                </span>
+              ))}
+              <a
+                href={`tel:+${SITE.whatsappNumber}`}
+                className="mt-1 inline-block text-bone/70 transition hover:text-gold"
+              >
+                {CONTACT.phoneDisplay}
+              </a>
+            </address>
           </div>
 
           <FooterColumn title="Online Shopping" links={ONLINE_SHOPPING} />

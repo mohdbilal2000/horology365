@@ -4,9 +4,19 @@ export const SITE = {
   name: "Horology365",
   tagline: "Authentic watches, dropped in batches.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "919999999999",
+  whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "919217239733",
   description:
     "Horology365 — authentic, affordable fashion watches from the brands you love. UPI-secure checkout, easy returns, and pre-order drops every week.",
+} as const;
+
+/** Store contact + address, shown in the footer and on the contact page. */
+export const CONTACT = {
+  phoneDisplay: "+91 92172 39733",
+  addressLines: [
+    "Horology365",
+    "Near Government Higher Secondary School, Half-Nagarjan",
+    "Dimapur, Nagaland 797112",
+  ],
 } as const;
 
 export type PaymentMode = "cod" | "upi" | "both";

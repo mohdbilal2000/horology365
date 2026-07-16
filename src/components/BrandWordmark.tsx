@@ -21,7 +21,7 @@ export function BrandWordmark({ name, className, size = "md" }: BrandWordmarkPro
   return (
     <span
       className={cn(
-        "inline-flex items-center text-center font-serif font-semibold uppercase leading-none tracking-[0.14em]",
+        "inline-block max-w-full text-center font-serif font-semibold uppercase leading-tight tracking-[0.12em] break-words",
         SIZES[size],
         className,
       )}

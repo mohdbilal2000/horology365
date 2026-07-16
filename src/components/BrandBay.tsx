@@ -25,8 +25,8 @@ export function BrandBay({ brand, products, tone }: BrandBayProps) {
       <div className="shell">
         <Reveal className="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-bone p-3 shadow-product ring-1 ring-bone-400/40">
-              <BrandLogo brand={brand} wordmarkSize="sm" className="text-ink" />
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-bone p-3 shadow-product ring-1 ring-bone-400/40">
+              <BrandLogo brand={brand} monogram className="text-ink" />
             </div>
             <div>
               <span className="eyebrow">Brand Bay</span>

@@ -48,8 +48,8 @@ export default async function BrandPage({ params }: PageProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/50 to-ink/20" />
         <div className="shell relative flex h-full flex-col justify-end pb-8">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-bone p-3 shadow-product">
-              <BrandLogo brand={brand} wordmarkSize="sm" className="text-ink" />
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-bone p-3 shadow-product">
+              <BrandLogo brand={brand} monogram className="text-ink" />
             </div>
             <div>
               <span className="eyebrow">Brand Collection</span>

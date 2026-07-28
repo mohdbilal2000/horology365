@@ -1,9 +1,14 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Carousel } from "@/components/ui/Carousel";
 import { ProductCard } from "@/components/ProductCard";
 import { BrandWordmark } from "@/components/BrandWordmark";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Reveal } from "@/components/ui/Reveal";
+import { useCatalogStore } from "@/lib/store/catalog";
+import { modelToProduct } from "@/lib/mock/fromAdmin";
 import { cn } from "@/lib/utils";
 import type { Brand, Product } from "@/lib/types";
 
@@ -13,8 +18,25 @@ interface BrandBayProps {
   tone: "dark" | "light";
 }
 
-/** One repeatable "bay" per active brand: logo + tagline + product carousel. */
-export function BrandBay({ brand, products, tone }: BrandBayProps) {
+/**
+ * One repeatable "bay" per active brand: logo + tagline + product carousel.
+ * Merges in matching admin-added products once mounted (they live in
+ * localStorage, so they aren't available during the server render).
+ */
+export function BrandBay({ brand, products: staticProducts, tone }: BrandBayProps) {
+  const models = useCatalogStore((s) => s.models);
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+
+  const products = useMemo(() => {
+    if (!ready) return staticProducts;
+    const extra = models
+      .filter((m) => m.brandSlug === brand.slug)
+      .map(modelToProduct)
+      .filter((p) => !staticProducts.some((existing) => existing.slug === p.slug));
+    return extra.length ? [...extra, ...staticProducts] : staticProducts;
+  }, [ready, models, staticProducts, brand.slug]);
+
   if (products.length === 0) return null;
 
   return (

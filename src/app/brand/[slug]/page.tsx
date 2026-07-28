@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ProductGrid } from "@/components/ProductGrid";
+import { AdminAwareProductGrid } from "@/components/AdminAwareProductGrid";
 import { BrandLogo } from "@/components/BrandLogo";
 import { brands, getBrandBySlug } from "@/lib/mock/brands";
 import { getProductsByBrand } from "@/lib/mock/products";
@@ -63,12 +63,12 @@ export default async function BrandPage({ params }: PageProps) {
       </header>
 
       <div className="shell py-10 sm:py-14">
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-sm text-ink-500">
-            {items.length} {items.length === 1 ? "watch" : "watches"}
-          </p>
-        </div>
-        <ProductGrid products={items} brandName={brand.name} />
+        <AdminAwareProductGrid
+          products={items}
+          brandSlug={brand.slug}
+          brandName={brand.name}
+          showCount
+        />
       </div>
     </div>
   );

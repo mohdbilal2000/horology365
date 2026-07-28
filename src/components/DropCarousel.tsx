@@ -1,17 +1,38 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import { Carousel } from "@/components/ui/Carousel";
 import { ProductCard } from "@/components/ProductCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import { Countdown } from "@/components/ui/Countdown";
 import { getBrandBySlug } from "@/lib/mock/brands";
+import { useCatalogStore } from "@/lib/store/catalog";
+import { modelToProduct } from "@/lib/mock/fromAdmin";
 import type { Product } from "@/lib/types";
 
 interface DropCarouselProps {
   products: Product[];
 }
 
-/** This Week's Drop — pre-order carousel on a dark band. */
-export function DropCarousel({ products }: DropCarouselProps) {
+/**
+ * This Week's Drop — pre-order carousel on a dark band. Merges in
+ * admin-added pre-order models once mounted (client-only localStorage data).
+ */
+export function DropCarousel({ products: staticProducts }: DropCarouselProps) {
+  const models = useCatalogStore((s) => s.models);
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
+
+  const products = useMemo(() => {
+    if (!ready) return staticProducts;
+    const extra = models
+      .map(modelToProduct)
+      .filter((p) => p.isPreorder)
+      .filter((p) => !staticProducts.some((existing) => existing.slug === p.slug));
+    return extra.length ? [...extra, ...staticProducts] : staticProducts;
+  }, [ready, models, staticProducts]);
+
   if (products.length === 0) return null;
 
   // Soonest upcoming drop date drives the urgency countdown.

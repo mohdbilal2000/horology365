@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { searchProducts } from "@/lib/mock/products";
 import { getBrandBySlug } from "@/lib/mock/brands";
+import { useCatalogStore } from "@/lib/store/catalog";
+import { modelToProduct } from "@/lib/mock/fromAdmin";
 import { formatINR } from "@/lib/utils";
 
 interface SearchModalProps {
@@ -17,8 +19,20 @@ const SUGGESTED = ["G-Shock", "Titan Raga", "Smartwatch", "Rose Gold", "Diver"];
 export function SearchModal({ open, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const models = useCatalogStore((s) => s.models);
 
-  const results = useMemo(() => searchProducts(query).slice(0, 8), [query]);
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const adminMatches = models
+      .map(modelToProduct)
+      .filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          p.brandSlug.replace(/-/g, " ").includes(q),
+      );
+    return [...adminMatches, ...searchProducts(query)].slice(0, 8);
+  }, [query, models]);
 
   useEffect(() => {
     if (!open) return;

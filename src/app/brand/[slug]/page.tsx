@@ -63,12 +63,12 @@ export default async function BrandPage({ params }: PageProps) {
       </header>
 
       <div className="shell py-10 sm:py-14">
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-sm text-ink-500">
-            {items.length} {items.length === 1 ? "watch" : "watches"}
-          </p>
-        </div>
-        <ProductGrid products={items} brandName={brand.name} />
+        <ProductGrid
+          products={items}
+          brandName={brand.name}
+          sync={{ brandSlug: brand.slug }}
+          showCount
+        />
       </div>
     </div>
   );

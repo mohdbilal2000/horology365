@@ -8,7 +8,7 @@ import {
   unitsInStock,
   preordersReserved,
 } from "@/lib/store/catalog";
-import { getBrandBySlug } from "@/lib/mock/brands";
+import { adminBrandName, adminModelSlug } from "@/lib/catalog";
 import { formatINR } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { AdminModel, Variant } from "@/lib/types";
@@ -49,7 +49,8 @@ export function InventoryBoard() {
             Inventory
           </h1>
           <p className="mt-1 text-ink-500">
-            Live stock and pre-order pipeline across every brand.
+            Live stock and pre-order pipeline across every brand. Everything you
+            add here shows on the storefront right away.
           </p>
         </div>
         <div className="flex gap-2">
@@ -123,7 +124,7 @@ function ModelRow({
   onStartDelivery: (modelId: string, variantId: string) => void;
   onRemove: (id: string) => void;
 }) {
-  const brand = getBrandBySlug(model.brandSlug);
+  const brandName = adminBrandName(model);
   return (
     <div className="overflow-hidden rounded-3xl border border-bone-300 bg-bone-100 shadow-glass">
       <div className="flex items-center gap-4 border-b border-bone-300 p-4 sm:p-5">
@@ -141,11 +142,23 @@ function ModelRow({
         </span>
         <div className="min-w-0 flex-1">
           <span className="text-[11px] font-semibold uppercase tracking-label text-ink-500">
-            {brand?.name ?? model.brandSlug}
+            {brandName}
           </span>
           <p className="truncate font-serif text-lg font-bold tracking-tight">
             {model.title}
           </p>
+          {model.isSample ? (
+            <span className="mt-0.5 inline-block rounded-full bg-bone-300 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-label text-ink-500">
+              Sample · not on the storefront
+            </span>
+          ) : (
+            <Link
+              href={`/product/${adminModelSlug(model)}`}
+              className="mt-0.5 inline-block text-xs font-semibold text-gold transition hover:text-gold-700"
+            >
+              Live on the storefront ↗
+            </Link>
+          )}
         </div>
         <span className="hidden text-sm font-semibold sm:block">
           {formatINR(model.price)}

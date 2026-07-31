@@ -1,3 +1,4 @@
+import { productMatchesQuery } from "@/lib/utils";
 import type { CategorySlug, Product } from "@/lib/types";
 
 /**
@@ -780,12 +781,5 @@ export function getRelatedProducts(product: Product, limit = 4): Product[] {
 }
 
 export function searchProducts(query: string): Product[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return [];
-  return products.filter(
-    (p) =>
-      p.title.toLowerCase().includes(q) ||
-      p.brandSlug.replace(/-/g, " ").includes(q) ||
-      p.tags.some((t) => t.includes(q)),
-  );
+  return products.filter((p) => productMatchesQuery(p, query));
 }

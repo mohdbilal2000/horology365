@@ -1,9 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { Carousel } from "@/components/ui/Carousel";
 import { ProductCard } from "@/components/ProductCard";
 import { BrandWordmark } from "@/components/BrandWordmark";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Reveal } from "@/components/ui/Reveal";
+import { mergeProducts } from "@/lib/catalog";
+import { useAdminProducts } from "@/lib/store/catalog";
 import { cn } from "@/lib/utils";
 import type { Brand, Product } from "@/lib/types";
 
@@ -14,7 +18,11 @@ interface BrandBayProps {
 }
 
 /** One repeatable "bay" per active brand: logo + tagline + product carousel. */
-export function BrandBay({ brand, products, tone }: BrandBayProps) {
+export function BrandBay({ brand, products: seeded, tone }: BrandBayProps) {
+  // Anything the admin added for this brand leads the carousel.
+  const added = useAdminProducts({ brandSlug: brand.slug });
+  const products = mergeProducts(seeded, added);
+
   if (products.length === 0) return null;
 
   return (

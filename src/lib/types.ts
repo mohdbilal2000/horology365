@@ -39,6 +39,11 @@ export interface Product {
   title: string;
   description: string;
   brandSlug: string;
+  /**
+   * Display name override for the brand. Set for admin-added products whose
+   * brand isn't in the seeded brand list yet; otherwise resolved from `brands`.
+   */
+  brandName?: string;
   categorySlug: CategorySlug;
   /** Selling price in INR (paise-free, whole rupees). */
   price: number;
@@ -57,6 +62,8 @@ export interface Product {
   dropDate?: string;
   isFeatured: boolean;
   tags: string[];
+  /** Colourways the product ships in (admin-added products carry these). */
+  variants?: Variant[];
 }
 
 export interface Banner {
@@ -163,6 +170,14 @@ export interface Variant {
 export interface AdminModel {
   id: string;
   brandSlug: string;
+  /**
+   * Storefront URL slug — unique across the seeded catalog and the admin
+   * catalog. Generated when the model is published; older rows fall back to a
+   * slug derived from the brand + title.
+   */
+  slug?: string;
+  /** Brand display name — needed when the brand isn't in the seeded list. */
+  brandName?: string;
   title: string;
   categorySlug: CategorySlug;
   description: string;
@@ -174,4 +189,9 @@ export interface AdminModel {
   images?: string[];
   variants: Variant[];
   createdAt: string;
+  /**
+   * Demo rows seeded into an empty admin catalog. They duplicate watches that
+   * already exist in the storefront catalog, so they are never published to it.
+   */
+  isSample?: boolean;
 }

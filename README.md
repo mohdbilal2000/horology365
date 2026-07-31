@@ -84,6 +84,39 @@ src/
     mock/                   # typed mock-data layer (brands, products, banners, …)
 ```
 
+### Admin → storefront sync
+
+`/admin` (password-gated, `ADMIN_PASSWORD`) is a working product builder, and
+everything published there appears on the storefront immediately:
+
+| Surface | What shows up |
+| --- | --- |
+| `/product/<slug>` | Full product page — gallery, price, colourways, add to cart |
+| Homepage | **Just Added** carousel, plus the brand's own bay |
+| `/brand/<slug>` · `/category/<slug>` | Merged into the grid, live count |
+| Search modal | Matched by title, brand and tags |
+| **This Week's Drop** | Models whose variants are all on pre-order |
+
+How it works: the storefront is server-rendered from `@/lib/mock`, and admin
+products — which live in `localStorage` until Phase 2 — are merged in on the
+client once the store rehydrates (`useAdminProducts` in
+`src/lib/store/catalog.ts`, projected onto `Product` by
+`adminModelToProduct` in `src/lib/catalog.ts`). Product pages not in
+`generateStaticParams` render on demand and resolve the slug against the admin
+catalog.
+
+Phase-1 limits, by design — all of them disappear when the catalog moves to
+Supabase in Phase 2:
+
+- The admin catalog is **per browser**, so admin products aren't visible to
+  other visitors, aren't in `sitemap.xml`, and aren't indexable.
+- Uploaded photos are stored as data URLs; the builder refuses an upload that
+  would exceed the browser's storage quota (paste image links for large sets).
+- Placing an order doesn't decrement admin stock — that needs the atomic
+  server-side RPC that comes with the real backend.
+- The two seeded rows in the admin inventory are marked **Sample** and are
+  deliberately *not* published — they duplicate watches already in the catalog.
+
 ### The mock-data layer
 
 Everything reads from `@/lib/mock` (brands, categories, products, banners, offers,

@@ -53,10 +53,11 @@ export default async function CategoryPage({ params }: PageProps) {
       </header>
 
       <div className="shell py-10 sm:py-14">
-        <p className="mb-6 text-sm text-ink-500">
-          {items.length} {items.length === 1 ? "watch" : "watches"}
-        </p>
-        <ProductGrid products={items} />
+        <ProductGrid
+          products={items}
+          sync={{ categorySlug: category.slug }}
+          showCount
+        />
       </div>
     </div>
   );

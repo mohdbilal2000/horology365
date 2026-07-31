@@ -7,7 +7,7 @@ import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { Countdown } from "@/components/ui/Countdown";
 import { SITE } from "@/lib/config";
 import { whatsappLink, formatINR, formatDropDate } from "@/lib/utils";
-import type { Product } from "@/lib/types";
+import type { Product, Variant } from "@/lib/types";
 
 interface ProductPurchaseProps {
   product: Product;
@@ -80,6 +80,10 @@ export function ProductPurchase({ product, brandName }: ProductPurchaseProps) {
         )}
       </div>
 
+      {product.variants?.length ? (
+        <Colourways variants={product.variants} />
+      ) : null}
+
       {!soldOut ? (
         <div className="flex items-center gap-4">
           <span className="text-sm font-medium text-ink-600">Quantity</span>
@@ -118,6 +122,47 @@ export function ProductPurchase({ product, brandName }: ProductPurchaseProps) {
         </svg>
         Order on WhatsApp
       </a>
+    </div>
+  );
+}
+
+/**
+ * The colourways stocked for this model, straight from the admin inventory.
+ * Display-only for now — Phase 2 makes the variant the thing you add to cart.
+ */
+function Colourways({ variants }: { variants: Variant[] }) {
+  return (
+    <div className="mb-6">
+      <span className="text-sm font-medium text-ink-600">
+        Colourways ({variants.length})
+      </span>
+      <ul className="mt-2.5 flex flex-wrap gap-2">
+        {variants.map((v) => {
+          const out = v.availability !== "preorder" && v.stockQty <= 0;
+          return (
+            <li
+              key={v.id}
+              className="inline-flex items-center gap-2 rounded-full border border-bone-300 py-1.5 pl-1.5 pr-3.5 text-sm"
+            >
+              <span
+                className="h-6 w-6 shrink-0 rounded-full ring-1 ring-bone-400"
+                style={{ backgroundColor: v.colorHex }}
+                aria-hidden="true"
+              />
+              <span className={out ? "text-ink-400 line-through" : undefined}>
+                {v.name}
+              </span>
+              <span className="text-xs text-ink-500">
+                {v.availability === "preorder"
+                  ? "· pre-order"
+                  : out
+                    ? "· sold out"
+                    : `· ${v.stockQty} left`}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

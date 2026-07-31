@@ -1,9 +1,12 @@
+"use client";
+
 import { Carousel } from "@/components/ui/Carousel";
 import { ProductCard } from "@/components/ProductCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { Reveal } from "@/components/ui/Reveal";
 import { Countdown } from "@/components/ui/Countdown";
-import { getBrandBySlug } from "@/lib/mock/brands";
+import { displayBrandName, mergeProducts } from "@/lib/catalog";
+import { useAdminProducts } from "@/lib/store/catalog";
 import type { Product } from "@/lib/types";
 
 interface DropCarouselProps {
@@ -11,7 +14,11 @@ interface DropCarouselProps {
 }
 
 /** This Week's Drop — pre-order carousel on a dark band. */
-export function DropCarousel({ products }: DropCarouselProps) {
+export function DropCarousel({ products: seeded }: DropCarouselProps) {
+  // Admin models whose variants are all on pre-order join the drop.
+  const added = useAdminProducts({ preorder: true });
+  const products = mergeProducts(seeded, added);
+
   if (products.length === 0) return null;
 
   // Soonest upcoming drop date drives the urgency countdown.
@@ -50,7 +57,7 @@ export function DropCarousel({ products }: DropCarouselProps) {
               <ProductCard
                 key={product.id}
                 product={product}
-                brandName={getBrandBySlug(product.brandSlug)?.name ?? ""}
+                brandName={displayBrandName(product)}
                 fixedWidth
               />
             ))}

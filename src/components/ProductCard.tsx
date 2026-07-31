@@ -6,7 +6,12 @@ import { useCartStore } from "@/lib/store/cart";
 import { useWishlistStore } from "@/lib/store/wishlist";
 import { PriceTag } from "@/components/PriceTag";
 import { StarRating } from "@/components/ui/StarRating";
-import { cn, discountPercent, formatDropDate } from "@/lib/utils";
+import {
+  cn,
+  discountPercent,
+  formatDropDate,
+  isOptimizableImage,
+} from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
 interface ProductCardProps {
@@ -66,6 +71,7 @@ export function ProductCard({
               fill
               sizes="(max-width: 640px) 50vw, 280px"
               className="object-cover transition-transform duration-500 ease-showroom group-hover:scale-105"
+              unoptimized={!isOptimizableImage(cover.url)}
             />
           ) : null}
 
@@ -130,11 +136,17 @@ export function ProductCard({
         >
           {product.title}
         </Link>
-        <StarRating
-          rating={product.rating}
-          reviewCount={product.reviewCount}
-          className="mt-2"
-        />
+        {product.reviewCount > 0 ? (
+          <StarRating
+            rating={product.rating}
+            reviewCount={product.reviewCount}
+            className="mt-2"
+          />
+        ) : (
+          <span className="mt-2 text-xs font-semibold uppercase tracking-label text-gold">
+            New in
+          </span>
+        )}
         <PriceTag
           price={product.price}
           mrp={product.mrp}

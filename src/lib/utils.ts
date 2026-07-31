@@ -31,6 +31,39 @@ export function formatDropDate(iso: string): string {
   }).format(date);
 }
 
+/**
+ * Hosts the Next.js image optimizer is allowed to fetch (see `next.config.ts`).
+ * Admins paste product photo links from anywhere and upload data URLs, so any
+ * other source has to bypass the optimizer or `next/image` responds 400.
+ */
+const OPTIMIZABLE_HOSTS = [/(^|\.)unsplash\.com$/, /\.supabase\.co$/];
+
+export function isOptimizableImage(url: string): boolean {
+  if (!url) return false;
+  if (url.startsWith("/")) return true; // same-origin asset
+  if (!/^https?:\/\//i.test(url)) return false; // data:, blob:, anything odd
+  try {
+    const { hostname } = new URL(url);
+    return OPTIMIZABLE_HOSTS.some((re) => re.test(hostname));
+  } catch {
+    return false;
+  }
+}
+
+/** Search predicate shared by the seeded catalog and admin-added products. */
+export function productMatchesQuery(
+  product: { title: string; brandSlug: string; tags: string[] },
+  query: string,
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return false;
+  return (
+    product.title.toLowerCase().includes(q) ||
+    product.brandSlug.replace(/-/g, " ").includes(q) ||
+    product.tags.some((t) => t.includes(q))
+  );
+}
+
 /** Build a wa.me deep link with a prefilled message. */
 export function whatsappLink(phone: string, message: string): string {
   const digits = phone.replace(/\D/g, "");

@@ -3,10 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useCatalogStore } from "@/lib/store/catalog";
+import {
+  adminSlugsInUse,
+  catalogBytesFree,
+  useCatalogStore,
+} from "@/lib/store/catalog";
+import { productSlugRoot, slugify, uniqueSlug } from "@/lib/catalog";
 import { activeBrands, getBrandBySlug } from "@/lib/mock/brands";
 import { getModelsForBrand } from "@/lib/mock/modelCatalog";
 import { categories } from "@/lib/mock/categories";
+import { products as catalogProducts } from "@/lib/mock/products";
 import { discountPercent, formatINR } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { AdminModel, CategorySlug, Variant } from "@/lib/types";
@@ -151,7 +157,7 @@ export function ProductBuilder() {
     for (const f of Array.from(files)) {
       if (!f.type.startsWith("image/")) continue;
       try {
-        added.push(await fileToCompressedDataUrl(f));
+        added.push(await fileToCompressedDataUrl(f, 900, 0.75));
       } catch {
         /* skip files we can't read */
       }
@@ -205,12 +211,23 @@ export function ProductBuilder() {
         return;
       }
     }
-    const slug =
-      brandSlug || newBrand.trim().toLowerCase().replace(/\s+/g, "-");
+    const brand = brandSlug || slugify(newBrand);
     const gallery = cleanImages.length ? cleanImages : [FALLBACK_IMG];
+
+    // The storefront URL. Keep it unique across the seeded catalog *and*
+    // everything already published from the admin, so /product/<slug> resolves
+    // to exactly one watch.
+    const taken = new Set([
+      ...catalogProducts.map((p) => p.slug),
+      ...adminSlugsInUse(useCatalogStore.getState().models),
+    ]);
+    const storeSlug = uniqueSlug(productSlugRoot(brandName, title), taken);
+
     const model: AdminModel = {
       id: uid("m"),
-      brandSlug: slug,
+      brandSlug: brand,
+      brandName,
+      slug: storeSlug,
       title: title.trim(),
       categorySlug,
       description: description.trim(),
@@ -227,8 +244,19 @@ export function ProductBuilder() {
       })),
       createdAt: new Date().toISOString(),
     };
+
+    // Uploaded photos are stored as data URLs; refuse before the browser's
+    // storage quota silently drops the write.
+    if (JSON.stringify(model).length > catalogBytesFree()) {
+      setError(
+        "These images are too large to store in this browser demo. Remove a few uploads (or paste image links instead) and try again.",
+      );
+      setStep(1);
+      return;
+    }
+
     addModel(model);
-    router.push("/admin");
+    router.push(`/product/${storeSlug}`);
   }
 
   return (
@@ -541,6 +569,11 @@ export function ProductBuilder() {
                 {variants.length === 1 ? "" : "s"} and{" "}
                 <strong>{cleanImages.length || 1}</strong> image
                 {cleanImages.length === 1 ? "" : "s"} to your catalogue.
+              </p>
+              <p className="rounded-xl bg-gold/10 px-4 py-3 text-sm text-ink-700">
+                It goes live on the storefront immediately — you&apos;ll land on
+                its product page, and it shows up in its brand and category
+                collections and in search.
               </p>
               <ul className="divide-y divide-bone-300 rounded-2xl border border-bone-300">
                 {variants.map((v) => (

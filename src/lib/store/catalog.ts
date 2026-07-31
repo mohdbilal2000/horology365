@@ -1,8 +1,15 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { AdminModel, Variant } from "@/lib/types";
+import {
+  adminModelSlug,
+  adminModelToProduct,
+  inScope,
+  type CatalogScope,
+} from "@/lib/catalog";
+import type { AdminModel, Product, Variant } from "@/lib/types";
 
 /**
  * Phase 1 admin catalog — a client-side prototype of the Brand → Model →
@@ -57,7 +64,9 @@ const sampleVariants = (base: number): Variant[] => [
 const SAMPLES: AdminModel[] = [
   {
     id: "m-sample-gshock",
+    isSample: true,
     brandSlug: "casio",
+    slug: "casio-g-shock-ga2100-sample",
     title: "G-Shock GA-2100",
     categorySlug: "mens-watches",
     description:
@@ -71,7 +80,9 @@ const SAMPLES: AdminModel[] = [
   },
   {
     id: "m-sample-lexington",
+    isSample: true,
     brandSlug: "michael-kors",
+    slug: "mk-lexington-chronograph-sample",
     title: "Lexington Chronograph",
     categorySlug: "womens-watches",
     description:
@@ -84,6 +95,36 @@ const SAMPLES: AdminModel[] = [
     createdAt: "2026-06-03T00:00:00.000Z",
   },
 ];
+
+export const STORAGE_KEY = "horology365-admin-catalog";
+
+/**
+ * localStorage is the Phase-1 backing store, and uploaded photos are kept as
+ * data URLs — so a write can hit the ~5MB quota. Fail loudly in the console
+ * rather than throwing out of a React event handler and blanking the page;
+ * the product builder checks the budget up-front (see `catalogBytesFree`).
+ */
+const safeStorage = createJSONStorage(() => ({
+  getItem: (key: string) => localStorage.getItem(key),
+  setItem: (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      console.warn(
+        "[horology365] Admin catalog is too large to save in this browser. " +
+          "Remove a product or use image links instead of uploads.",
+      );
+    }
+  },
+  removeItem: (key: string) => localStorage.removeItem(key),
+}));
+
+/** Rough budget check before writing a new model (localStorage caps near 5MB). */
+export function catalogBytesFree(): number {
+  const BUDGET = 4_200_000;
+  if (typeof localStorage === "undefined") return BUDGET;
+  return Math.max(0, BUDGET - (localStorage.getItem(STORAGE_KEY)?.length ?? 0));
+}
 
 export const useCatalogStore = create<CatalogState>()(
   persist(
@@ -131,11 +172,60 @@ export const useCatalogStore = create<CatalogState>()(
       resetToSamples: () => set({ models: SAMPLES }),
     }),
     {
-      name: "horology365-admin-catalog",
-      storage: createJSONStorage(() => localStorage),
+      name: STORAGE_KEY,
+      storage: safeStorage,
     },
   ),
 );
+
+// ── Storefront bridge ──
+// The storefront is server-rendered from the seeded catalog, so admin products
+// are merged in on the client after the persisted store rehydrates. Every hook
+// below returns nothing until then, which keeps the first client render
+// identical to the server HTML (no hydration mismatch).
+
+export function useHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  return hydrated;
+}
+
+/** Admin models that are actually for sale (demo samples never are). */
+export function usePublishedModels(): AdminModel[] {
+  const hydrated = useHydrated();
+  const models = useCatalogStore((s) => s.models);
+  return useMemo(
+    () => (hydrated ? models.filter((m) => !m.isSample) : []),
+    [hydrated, models],
+  );
+}
+
+/** Admin-added products for a storefront surface, newest first. */
+export function useAdminProducts(scope: CatalogScope = {}): Product[] {
+  const models = usePublishedModels();
+  const { brandSlug, categorySlug, preorder } = scope;
+  return useMemo(
+    () =>
+      models
+        .map(adminModelToProduct)
+        .filter((p) => inScope(p, { brandSlug, categorySlug, preorder })),
+    [models, brandSlug, categorySlug, preorder],
+  );
+}
+
+/** Look up a single admin product by its storefront slug. */
+export function useAdminProduct(slug: string): Product | undefined {
+  const models = usePublishedModels();
+  return useMemo(() => {
+    const model = models.find((m) => adminModelSlug(m) === slug);
+    return model ? adminModelToProduct(model) : undefined;
+  }, [models, slug]);
+}
+
+/** Every slug already in use by the admin catalog (for unique slug generation). */
+export function adminSlugsInUse(models: AdminModel[]): string[] {
+  return models.map(adminModelSlug);
+}
 
 // ── Derived helpers (pure) ──
 export function unitsInStock(model: AdminModel): number {

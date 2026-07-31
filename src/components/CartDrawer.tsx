@@ -10,7 +10,7 @@ import {
   cartCount,
 } from "@/lib/store/cart";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
-import { formatINR } from "@/lib/utils";
+import { formatINR, isOptimizableImage } from "@/lib/utils";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -131,6 +131,7 @@ export function CartDrawer() {
                         fill
                         sizes="96px"
                         className="object-cover"
+                        unoptimized={!isOptimizableImage(item.imageUrl)}
                       />
                     ) : null}
                   </Link>

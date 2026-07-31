@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { searchProducts } from "@/lib/mock/products";
-import { getBrandBySlug } from "@/lib/mock/brands";
-import { formatINR } from "@/lib/utils";
+import { displayBrandName, mergeProducts } from "@/lib/catalog";
+import { useAdminProducts } from "@/lib/store/catalog";
+import { formatINR, isOptimizableImage, productMatchesQuery } from "@/lib/utils";
 
 interface SearchModalProps {
   open: boolean;
@@ -18,7 +19,16 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const results = useMemo(() => searchProducts(query).slice(0, 8), [query]);
+  // Admin-added products are searchable the moment they're published.
+  const added = useAdminProducts();
+  const results = useMemo(
+    () =>
+      mergeProducts(
+        searchProducts(query),
+        added.filter((p) => productMatchesQuery(p, query)),
+      ).slice(0, 8),
+    [query, added],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -105,7 +115,6 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
             <ul>
               {results.map((product) => {
                 const cover = product.images[0];
-                const brand = getBrandBySlug(product.brandSlug);
                 return (
                   <li key={product.id}>
                     <Link
@@ -121,12 +130,13 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
                             fill
                             sizes="56px"
                             className="object-cover"
+                            unoptimized={!isOptimizableImage(cover.url)}
                           />
                         ) : null}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[11px] font-semibold uppercase tracking-label text-ink-500">
-                          {brand?.name}
+                          {displayBrandName(product)}
                         </span>
                         <span className="block truncate font-medium">
                           {product.title}

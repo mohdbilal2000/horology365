@@ -2,12 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  useCartStore,
-  cartSubtotal,
-  cartSavings,
-  cartShipping,
-} from "@/lib/store/cart";
+import { useCartStore } from "@/lib/store/cart";
+import { cartSubtotal, cartSavings, cartShipping } from "@/lib/cart";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { formatINR, isOptimizableImage } from "@/lib/utils";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/config";

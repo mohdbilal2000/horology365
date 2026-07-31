@@ -4,12 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import QRCode from "qrcode";
-import {
-  useCartStore,
-  cartSubtotal,
-  cartShipping,
-  cartSavings,
-} from "@/lib/store/cart";
+import { useCartStore } from "@/lib/store/cart";
+import { cartSubtotal, cartShipping, cartSavings } from "@/lib/cart";
 import { validateCheckout, type FieldErrors } from "@/lib/validation";
 import { formatINR } from "@/lib/utils";
 import { COD_ENABLED, UPI_ENABLED, UPI, buildUpiUri } from "@/lib/config";

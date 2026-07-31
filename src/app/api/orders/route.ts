@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { validateCheckout, validateCartItems } from "@/lib/validation";
-import { cartSubtotal, cartShipping } from "@/lib/store/cart";
+import { cartSubtotal, cartShipping } from "@/lib/cart";
 import { generateOrderId } from "@/lib/utils";
 import { COD_ENABLED, UPI_ENABLED } from "@/lib/config";
 import type { CartItem, CheckoutDetails, Order } from "@/lib/types";

@@ -93,7 +93,7 @@ everything published there appears on the storefront immediately:
 | --- | --- |
 | `/product/<slug>` | Full product page — gallery, price, colourways, add to cart |
 | Homepage | **Just Added** carousel, plus the brand's own bay |
-| `/brand/<slug>` · `/category/<slug>` | Merged into the grid, live count |
+| `/brand/<slug>` · `/category/<slug>` | Merged into the grid, live count — including a collection page for a brand the admin invented |
 | Search modal | Matched by title, brand and tags |
 | **This Week's Drop** | Models whose variants are all on pre-order |
 

@@ -3,12 +3,9 @@
 import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  useCartStore,
-  cartSubtotal,
-  cartSavings,
-  cartCount,
-} from "@/lib/store/cart";
+import { usePathname } from "next/navigation";
+import { useCartStore } from "@/lib/store/cart";
+import { cartSubtotal, cartSavings, cartCount } from "@/lib/cart";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { formatINR, isOptimizableImage } from "@/lib/utils";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/config";
@@ -20,6 +17,11 @@ export function CartDrawer() {
   const closeCart = useCartStore((s) => s.closeCart);
   const setQuantity = useCartStore((s) => s.setQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
+
+  // Never let the drawer (and its click-blocking overlay) outlive a
+  // navigation — including programmatic ones like "Buy now" → /checkout.
+  const pathname = usePathname();
+  useEffect(() => closeCart(), [pathname, closeCart]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

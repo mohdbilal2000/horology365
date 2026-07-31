@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { notFound } from "next/navigation";
 import { ProductGrid } from "@/components/ProductGrid";
 import { BrandLogo } from "@/components/BrandLogo";
+import { AdminBrandView } from "@/components/brand/AdminBrandView";
 import { brands, getBrandBySlug } from "@/lib/mock/brands";
 import { getProductsByBrand } from "@/lib/mock/products";
 
@@ -19,7 +19,8 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const brand = getBrandBySlug(slug);
-  if (!brand) return { title: "Brand not found" };
+  // Brands added from /admin resolve in the browser — nothing to index here.
+  if (!brand) return { title: "Brand", robots: { index: false, follow: true } };
   return {
     title: `${brand.name} Watches`,
     description: `Shop authentic ${brand.name} watches — ${brand.tagline}`,
@@ -29,7 +30,8 @@ export async function generateMetadata({
 export default async function BrandPage({ params }: PageProps) {
   const { slug } = await params;
   const brand = getBrandBySlug(slug);
-  if (!brand) notFound();
+  // Not seeded — it may be a brand the admin added along with its first product.
+  if (!brand) return <AdminBrandView slug={slug} />;
 
   const items = getProductsByBrand(brand.slug);
 

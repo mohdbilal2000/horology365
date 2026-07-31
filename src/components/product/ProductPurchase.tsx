@@ -18,6 +18,7 @@ export function ProductPurchase({ product, brandName }: ProductPurchaseProps) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
+  const closeCart = useCartStore((s) => s.closeCart);
   const [qty, setQty] = useState(1);
 
   const soldOut = !product.isPreorder && product.stock <= 0;
@@ -32,6 +33,9 @@ export function ProductPurchase({ product, brandName }: ProductPurchaseProps) {
   function buyNow() {
     if (soldOut) return;
     addItem(product, brandName, qty);
+    // addItem pops the drawer open; going straight to checkout means we don't
+    // want it — its overlay would sit on top of the checkout form.
+    closeCart();
     router.push("/checkout");
   }
 

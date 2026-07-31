@@ -56,7 +56,16 @@ export function InventoryBoard() {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={resetToSamples}
+            onClick={() => {
+              // This throws away every product the admin has published.
+              if (
+                window.confirm(
+                  `Reset the catalogue to the two demo samples? This deletes ${models.length} product${models.length === 1 ? "" : "s"} and removes them from the storefront.`,
+                )
+              ) {
+                resetToSamples();
+              }
+            }}
             className="rounded-full border border-bone-300 px-4 py-2 text-sm font-medium transition hover:border-gold hover:text-gold"
           >
             Reset samples

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { searchProducts } from "@/lib/mock/products";
 import { getBrandBySlug } from "@/lib/mock/brands";
+import { useAdminProducts } from "@/lib/useAdminProducts";
 import { formatINR } from "@/lib/utils";
 
 interface SearchModalProps {
@@ -17,8 +18,18 @@ const SUGGESTED = ["G-Shock", "Titan Raga", "Smartwatch", "Rose Gold", "Diver"];
 export function SearchModal({ open, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const adminProducts = useAdminProducts();
 
-  const results = useMemo(() => searchProducts(query).slice(0, 8), [query]);
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const adminMatches = adminProducts.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.brandSlug.replace(/-/g, " ").includes(q),
+    );
+    return [...adminMatches, ...searchProducts(query)].slice(0, 8);
+  }, [query, adminProducts]);
 
   useEffect(() => {
     if (!open) return;

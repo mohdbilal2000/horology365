@@ -1,7 +1,7 @@
 import { VideoHero, type HeroSlide } from "@/components/VideoHero";
 import { TrustStrip } from "@/components/TrustStrip";
 import { BrandLogoWall } from "@/components/BrandLogoWall";
-import { BrandBay } from "@/components/BrandBay";
+import { BrandBayLive } from "@/components/BrandBayLive";
 import { CategoryBlock } from "@/components/CategoryBlock";
 import { OfferBand } from "@/components/OfferBand";
 import { DropCarousel } from "@/components/DropCarousel";
@@ -36,10 +36,10 @@ export default function HomePage() {
 
       {/* One bay per active brand, dark / light bands alternating. */}
       {activeBrands.map((brand, i) => (
-        <BrandBay
+        <BrandBayLive
           key={brand.id}
           brand={brand}
-          products={getProductsByBrand(brand.slug)}
+          initialProducts={getProductsByBrand(brand.slug)}
           tone={i % 2 === 0 ? "dark" : "light"}
         />
       ))}

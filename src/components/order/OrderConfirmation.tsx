@@ -36,10 +36,20 @@ export function OrderConfirmation({ order }: OrderConfirmationProps) {
               Payment method: <strong>Cash on Delivery</strong>. Keep{" "}
               {formatINR(order.total)} ready at delivery.
             </p>
+          ) : order.details.paymentMethod === "card" ? (
+            <p className="mt-4 text-sm text-ink-500">
+              Paid by <strong>card</strong> — {formatINR(order.total)}.
+            </p>
           ) : (
             <div className="mt-4 text-sm text-ink-500">
               <p>
-                Paid via <strong>UPI</strong> — {formatINR(order.total)}.
+                Paid via{" "}
+                <strong>
+                  {order.details.paymentMethod === "bank_transfer"
+                    ? "Bank Transfer"
+                    : "UPI"}
+                </strong>{" "}
+                — {formatINR(order.total)}.
               </p>
               {order.details.upiReference ? (
                 <p className="mt-1">

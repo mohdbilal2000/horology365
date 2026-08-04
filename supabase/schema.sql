@@ -63,7 +63,7 @@ create table if not exists public.orders (
   id                   text primary key,             -- app-generated via generateOrderId()
   items                jsonb not null,                -- CartItem[]
   details              jsonb not null,                -- CheckoutDetails
-  payment_method       text not null check (payment_method in ('cod', 'upi', 'card')),
+  payment_method       text not null check (payment_method in ('cod', 'upi', 'bank_transfer', 'card')),
   upi_reference        text,
   subtotal             integer not null,
   shipping             integer not null,

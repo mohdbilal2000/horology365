@@ -12,7 +12,15 @@ import {
 } from "@/lib/store/cart";
 import { validateCheckout, type FieldErrors } from "@/lib/validation";
 import { formatINR } from "@/lib/utils";
-import { COD_ENABLED, UPI_ENABLED, CARD_ENABLED, UPI, buildUpiUri } from "@/lib/config";
+import {
+  COD_ENABLED,
+  UPI_ENABLED,
+  BANK_ENABLED,
+  CARD_ENABLED,
+  UPI,
+  BANK,
+  buildUpiUri,
+} from "@/lib/config";
 import { cn } from "@/lib/utils";
 import type { CheckoutDetails, Order, PaymentMethod } from "@/lib/types";
 
@@ -57,7 +65,17 @@ export default function CheckoutPage() {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
-  const [copied, setCopied] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  function copyToClipboard(text: string, field: string) {
+    navigator.clipboard
+      ?.writeText(text)
+      .then(() => {
+        setCopiedField(field);
+        window.setTimeout(() => setCopiedField(null), 1500);
+      })
+      .catch(() => undefined);
+  }
 
   const subtotal = cartSubtotal(items);
   const shipping = cartShipping(subtotal);
@@ -326,6 +344,16 @@ export default function CheckoutPage() {
                 title="UPI"
                 subtitle="Pay instantly via any UPI app — GPay, PhonePe, Paytm."
               />
+              {BANK_ENABLED ? (
+                <PaymentOption
+                  method="bank_transfer"
+                  selected={form.paymentMethod === "bank_transfer"}
+                  onSelect={() => update("paymentMethod", "bank_transfer")}
+                  disabled={false}
+                  title="Bank Transfer"
+                  subtitle="NEFT / IMPS directly to our bank account."
+                />
+              ) : null}
               <PaymentOption
                 method="cod"
                 selected={form.paymentMethod === "cod"}
@@ -386,18 +414,10 @@ export default function CheckoutPage() {
                           </code>
                           <button
                             type="button"
-                            onClick={() => {
-                              navigator.clipboard
-                                ?.writeText(UPI.vpa)
-                                .then(() => {
-                                  setCopied(true);
-                                  window.setTimeout(() => setCopied(false), 1500);
-                                })
-                                .catch(() => undefined);
-                            }}
+                            onClick={() => copyToClipboard(UPI.vpa, "vpa")}
                             className="rounded-lg border border-bone-300 px-3 py-1.5 text-xs font-medium transition hover:border-gold hover:text-gold-600"
                           >
-                            {copied ? "Copied!" : "Copy"}
+                            {copiedField === "vpa" ? "Copied!" : "Copy"}
                           </button>
                         </div>
                       </div>
@@ -421,6 +441,65 @@ export default function CheckoutPage() {
                       error={errors.upiReference}
                       placeholder="e.g. 4567 8910 1234"
                       inputMode="numeric"
+                      required
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Bank transfer panel — account details + reference */}
+              {form.paymentMethod === "bank_transfer" ? (
+                <div className="mt-2 rounded-2xl border border-gold/30 bg-gold/5 p-5">
+                  <p className="text-sm font-semibold text-ink">
+                    Transfer {formatINR(total)} to complete your order
+                  </p>
+                  <dl className="mt-4 space-y-3 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-ink-500">Account name</dt>
+                      <dd className="font-medium">{BANK.accountName}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-ink-500">Account number</dt>
+                      <dd className="flex items-center gap-2">
+                        <code className="rounded-lg bg-bone-200 px-3 py-1.5 font-semibold">
+                          {BANK.accountNumber}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(BANK.accountNumber, "account")}
+                          className="rounded-lg border border-bone-300 px-3 py-1.5 text-xs font-medium transition hover:border-gold hover:text-gold-600"
+                        >
+                          {copiedField === "account" ? "Copied!" : "Copy"}
+                        </button>
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-ink-500">IFSC</dt>
+                      <dd className="flex items-center gap-2">
+                        <code className="rounded-lg bg-bone-200 px-3 py-1.5 font-semibold">
+                          {BANK.ifsc}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(BANK.ifsc, "ifsc")}
+                          className="rounded-lg border border-bone-300 px-3 py-1.5 text-xs font-medium transition hover:border-gold hover:text-gold-600"
+                        >
+                          {copiedField === "ifsc" ? "Copied!" : "Copy"}
+                        </button>
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="mt-4 text-xs text-ink-500">
+                    After transferring, enter the reference number below so we can
+                    verify and ship your order.
+                  </p>
+                  <div className="mt-4">
+                    <Field
+                      label="Bank transfer reference number"
+                      value={form.upiReference ?? ""}
+                      onChange={(v) => update("upiReference", v)}
+                      error={errors.upiReference}
+                      placeholder="From your bank's transfer confirmation"
                       required
                     />
                   </div>
@@ -481,7 +560,7 @@ export default function CheckoutPage() {
             >
               {submitting
                 ? "Placing order…"
-                : form.paymentMethod === "upi"
+                : form.paymentMethod === "upi" || form.paymentMethod === "bank_transfer"
                   ? "I've paid — place order"
                   : form.paymentMethod === "card"
                     ? "Pay by card"

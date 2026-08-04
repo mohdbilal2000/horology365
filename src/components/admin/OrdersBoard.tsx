@@ -121,11 +121,11 @@ export function OrdersBoard() {
 
               <div className="flex flex-wrap items-center gap-4 p-4 text-sm sm:px-5">
                 <span className="uppercase tracking-label text-ink-500">
-                  {order.details.paymentMethod}
+                  {order.details.paymentMethod.replace("_", " ")}
                 </span>
                 {order.details.upiReference ? (
                   <span className="rounded-lg bg-bone-200 px-2.5 py-1 font-mono text-xs text-ink-700">
-                    UTR: {order.details.upiReference}
+                    Ref: {order.details.upiReference}
                   </span>
                 ) : null}
                 <div className="ml-auto flex flex-wrap gap-1.5">

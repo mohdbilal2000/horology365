@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { validateCheckout, validateCartItems } from "@/lib/validation";
 import { cartSubtotal, cartShipping } from "@/lib/cartMath";
 import { generateOrderId } from "@/lib/utils";
-import { COD_ENABLED, UPI_ENABLED, CARD_ENABLED } from "@/lib/config";
+import { COD_ENABLED, UPI_ENABLED, BANK_ENABLED, CARD_ENABLED } from "@/lib/config";
 import { createOrder } from "@/lib/data/orders";
 import { isSupabaseAdminConfigured } from "@/lib/supabase/server";
 import type { CartItem, CheckoutDetails, Order } from "@/lib/types";
@@ -51,6 +51,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (method === "upi" && !UPI_ENABLED) {
     return NextResponse.json(
       { error: "UPI payments are coming soon. Please choose Cash on Delivery." },
+      { status: 409 },
+    );
+  }
+  if (method === "bank_transfer" && !BANK_ENABLED) {
+    return NextResponse.json(
+      { error: "Bank transfer is currently unavailable." },
       { status: 409 },
     );
   }

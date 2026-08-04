@@ -61,6 +61,22 @@ export function buildUpiUri(amount: number, note: string): string {
   return `upi://pay?${params.toString()}`;
 }
 
+/**
+ * Direct bank transfer (NEFT/IMPS) — a second free, gateway-less payment
+ * method: the customer transfers from their own bank app and enters the
+ * reference number, same manual-verification pattern as UPI. This is where
+ * card payments ultimately settle too, but only once configured inside the
+ * Razorpay (or other gateway) dashboard directly — that's a signup-time
+ * setting on their end, not something read from these env vars.
+ */
+export const BANK_ENABLED = process.env.NEXT_PUBLIC_BANK_TRANSFER_ENABLED !== "false";
+
+export const BANK = {
+  accountName: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME || "KIVIKALI Y SHOHE",
+  accountNumber: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER || "3490101002557",
+  ifsc: process.env.NEXT_PUBLIC_BANK_IFSC || "CNRB0003490",
+} as const;
+
 export const FREE_SHIPPING_THRESHOLD = 1499;
 export const FLAT_SHIPPING = 79;
 

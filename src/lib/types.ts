@@ -106,7 +106,7 @@ export interface CartItem {
   isPreorder: boolean;
 }
 
-export type PaymentMethod = "cod" | "upi" | "card";
+export type PaymentMethod = "cod" | "upi" | "bank_transfer" | "card";
 
 export interface CheckoutDetails {
   name: string;
@@ -118,7 +118,9 @@ export interface CheckoutDetails {
   state: string;
   pincode: string;
   paymentMethod: PaymentMethod;
-  /** UPI transaction reference / UTR entered after paying (UPI orders). */
+  /** Payment reference entered after paying — UPI transaction ID / UTR for
+   *  UPI orders, or the transfer reference for bank_transfer orders. Used to
+   *  manually reconcile the payment against a bank statement in /admin/orders. */
   upiReference?: string;
 }
 

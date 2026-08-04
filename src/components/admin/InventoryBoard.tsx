@@ -3,36 +3,107 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  useCatalogStore,
-  unitsInStock,
-  preordersReserved,
-} from "@/lib/store/catalog";
 import { getBrandBySlug } from "@/lib/mock/brands";
 import { formatINR } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { AdminModel, Variant } from "@/lib/types";
 
-export function InventoryBoard() {
-  const models = useCatalogStore((s) => s.models);
-  const adjustStock = useCatalogStore((s) => s.adjustStock);
-  const startDelivery = useCatalogStore((s) => s.startDelivery);
-  const removeModel = useCatalogStore((s) => s.removeModel);
-  const resetToSamples = useCatalogStore((s) => s.resetToSamples);
+function unitsInStock(model: AdminModel): number {
+  return model.variants.reduce(
+    (sum, v) => sum + (v.availability !== "preorder" ? v.stockQty : 0),
+    0,
+  );
+}
+function preordersReserved(model: AdminModel): number {
+  return model.variants.reduce((sum, v) => sum + v.preorderReserved, 0);
+}
 
-  // Avoid hydration mismatch (store rehydrates from localStorage on client).
-  const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
-  if (!ready) {
+export function InventoryBoard() {
+  const [models, setModels] = useState<AdminModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/products");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to load products.");
+      setModels(data.models ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load products.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  async function adjustStock(modelId: string, variantId: string, delta: number) {
+    setModels((ms) =>
+      ms.map((m) =>
+        m.id !== modelId
+          ? m
+          : {
+              ...m,
+              variants: m.variants.map((v) =>
+                v.id !== variantId ? v : { ...v, stockQty: Math.max(0, v.stockQty + delta) },
+              ),
+            },
+      ),
+    );
+    await fetch(`/api/admin/products/${modelId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ variantId, delta }),
+    });
+  }
+
+  async function startDelivery(modelId: string, variantId: string) {
+    setModels((ms) =>
+      ms.map((m) =>
+        m.id !== modelId
+          ? m
+          : {
+              ...m,
+              variants: m.variants.map((v) =>
+                v.id !== variantId
+                  ? v
+                  : { ...v, availability: "in_delivery", stockQty: v.preorderReserved },
+              ),
+            },
+      ),
+    );
+    await fetch(`/api/admin/products/${modelId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ variantId, action: "startDelivery" }),
+    });
+  }
+
+  async function removeModel(id: string) {
+    setModels((ms) => ms.filter((m) => m.id !== id));
+    await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+  }
+
+  if (loading) {
     return <div className="h-64 animate-pulse rounded-3xl bg-bone-300/60" />;
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-3xl border border-red-300 bg-red-50 p-6 text-sm text-red-700">
+        {error}
+      </div>
+    );
   }
 
   const totalUnits = models.reduce((s, m) => s + unitsInStock(m), 0);
   const totalReserved = models.reduce((s, m) => s + preordersReserved(m), 0);
-  const stockValue = models.reduce(
-    (s, m) => s + unitsInStock(m) * m.price,
-    0,
-  );
+  const stockValue = models.reduce((s, m) => s + unitsInStock(m) * m.price, 0);
 
   const stats = [
     { label: "Models", value: String(models.length) },
@@ -52,18 +123,9 @@ export function InventoryBoard() {
             Live stock and pre-order pipeline across every brand.
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={resetToSamples}
-            className="rounded-full border border-bone-300 px-4 py-2 text-sm font-medium transition hover:border-gold hover:text-gold"
-          >
-            Reset samples
-          </button>
-          <Link href="/admin/products/new" className="btn-gold">
-            + Add product
-          </Link>
-        </div>
+        <Link href="/admin/products/new" className="btn-gold">
+          + Add product
+        </Link>
       </div>
 
       {/* Stats */}

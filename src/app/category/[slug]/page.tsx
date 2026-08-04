@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ProductGridLive } from "@/components/ProductGridLive";
-import { categories, getCategoryBySlug } from "@/lib/mock/categories";
-import { getProductsByCategory } from "@/lib/mock/products";
+import { ProductGrid } from "@/components/ProductGrid";
+import { categories as seedCategories } from "@/lib/mock/categories";
+import { getCategoryBySlug } from "@/lib/data/categories";
+import { getProductsByCategory } from "@/lib/data/products";
 import type { CategorySlug } from "@/lib/types";
 
 interface PageProps {
@@ -11,14 +12,14 @@ interface PageProps {
 }
 
 export function generateStaticParams() {
-  return categories.map((c) => ({ slug: c.slug }));
+  return seedCategories.map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const category = getCategoryBySlug(slug);
+  const category = await getCategoryBySlug(slug);
   if (!category) return { title: "Category not found" };
   return {
     title: category.name,
@@ -28,10 +29,10 @@ export async function generateMetadata({
 
 export default async function CategoryPage({ params }: PageProps) {
   const { slug } = await params;
-  const category = getCategoryBySlug(slug);
+  const category = await getCategoryBySlug(slug);
   if (!category) notFound();
 
-  const items = getProductsByCategory(category.slug as CategorySlug);
+  const items = await getProductsByCategory(category.slug as CategorySlug);
 
   return (
     <div className="band-light">
@@ -53,10 +54,10 @@ export default async function CategoryPage({ params }: PageProps) {
       </header>
 
       <div className="shell py-10 sm:py-14">
-        <ProductGridLive
-          initialProducts={items}
-          filter={{ type: "category", value: category.slug as CategorySlug }}
-        />
+        <p className="mb-6 text-sm text-ink-500">
+          {items.length} {items.length === 1 ? "watch" : "watches"}
+        </p>
+        <ProductGrid products={items} />
       </div>
     </div>
   );

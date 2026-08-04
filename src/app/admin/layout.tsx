@@ -14,10 +14,9 @@ export default function AdminLayout({
 }) {
   return (
     <div className="min-h-screen bg-bone-200">
-      {/* Demo banner — password-gated; Phase 2 adds full Supabase Auth. */}
+      {/* Shared-password gate; real per-user Supabase Auth is a future upgrade. */}
       <div className="bg-gold px-4 py-1.5 text-center text-xs font-semibold text-ink">
-        Demo admin · password-protected · data saved in your browser ·
-        multi-user Supabase Auth + live sync arrive in Phase 2
+        Admin · password-protected · catalog &amp; orders are stored in Supabase
       </div>
 
       <header className="sticky top-0 z-30 border-b border-bone-300 bg-bone-100/80 backdrop-blur-xl">

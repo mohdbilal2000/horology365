@@ -12,9 +12,26 @@ import {
 } from "@/lib/store/cart";
 import { validateCheckout, type FieldErrors } from "@/lib/validation";
 import { formatINR } from "@/lib/utils";
-import { COD_ENABLED, UPI_ENABLED, UPI, buildUpiUri } from "@/lib/config";
+import { COD_ENABLED, UPI_ENABLED, CARD_ENABLED, UPI, buildUpiUri } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import type { CheckoutDetails, Order, PaymentMethod } from "@/lib/types";
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, unknown>) => { open: () => void };
+  }
+}
+
+function loadRazorpayScript(): Promise<boolean> {
+  if (window.Razorpay) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
 
 const INITIAL: CheckoutDetails = {
   name: "",
@@ -92,6 +109,11 @@ export default function CheckoutPage() {
 
     setSubmitting(true);
     try {
+      if (form.paymentMethod === "card") {
+        await submitCardPayment();
+        return;
+      }
+
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -109,8 +131,8 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Phase 1: hand the confirmation page its order via sessionStorage.
-      // Phase 2 reads the persisted order from Supabase by id instead.
+      // Safety net for pre-Supabase-setup: /order/[id] falls back to this if
+      // the server-side order lookup finds nothing yet.
       sessionStorage.setItem(
         `order:${data.order.id}`,
         JSON.stringify(data.order),
@@ -122,6 +144,67 @@ export default function CheckoutPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function submitCardPayment() {
+    const res = await fetch("/api/razorpay/order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ details: form, items }),
+    });
+    const data = (await res.json()) as {
+      orderId?: string;
+      razorpayOrderId?: string;
+      amount?: number;
+      keyId?: string;
+      error?: string;
+      errors?: FieldErrors;
+    };
+
+    if (!res.ok || !data.orderId || !data.razorpayOrderId) {
+      if (data.errors) setErrors(data.errors);
+      setServerError(data.error ?? "Could not start the card payment.");
+      setSubmitting(false);
+      return;
+    }
+
+    const scriptLoaded = await loadRazorpayScript();
+    if (!scriptLoaded || !window.Razorpay) {
+      setServerError("Could not load the payment window. Check your connection.");
+      setSubmitting(false);
+      return;
+    }
+
+    const rzp = new window.Razorpay({
+      key: data.keyId,
+      amount: data.amount,
+      currency: "INR",
+      name: "Horology365",
+      order_id: data.razorpayOrderId,
+      prefill: { name: form.name, contact: form.phone, email: form.email },
+      handler: async (response: {
+        razorpay_order_id: string;
+        razorpay_payment_id: string;
+        razorpay_signature: string;
+      }) => {
+        const verifyRes = await fetch("/api/razorpay/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(response),
+        });
+        if (!verifyRes.ok) {
+          setServerError("Payment verification failed. Contact us with your payment id.");
+          setSubmitting(false);
+          return;
+        }
+        clear();
+        router.push(`/order/${data.orderId}`);
+      },
+      modal: {
+        ondismiss: () => setSubmitting(false),
+      },
+    });
+    rzp.open();
   }
 
   if (items.length === 0) {
@@ -255,6 +338,16 @@ export default function CheckoutPage() {
                     : "Coming soon — pay on delivery is being enabled."
                 }
               />
+              {CARD_ENABLED ? (
+                <PaymentOption
+                  method="card"
+                  selected={form.paymentMethod === "card"}
+                  onSelect={() => update("paymentMethod", "card")}
+                  disabled={false}
+                  title="Credit / Debit Card"
+                  subtitle="Pay securely by card via Razorpay."
+                />
+              ) : null}
               {errors.paymentMethod ? (
                 <p className="text-sm text-red-600">{errors.paymentMethod}</p>
               ) : null}
@@ -390,7 +483,9 @@ export default function CheckoutPage() {
                 ? "Placing order…"
                 : form.paymentMethod === "upi"
                   ? "I've paid — place order"
-                  : "Place order (COD)"}
+                  : form.paymentMethod === "card"
+                    ? "Pay by card"
+                    : "Place order (COD)"}
             </button>
             <p className="mt-3 text-center text-xs text-ink-500">
               By placing your order you agree to our{" "}

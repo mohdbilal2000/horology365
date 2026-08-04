@@ -32,10 +32,21 @@ export const PAYMENT_MODE: PaymentMode =
 export const COD_ENABLED = PAYMENT_MODE === "cod" || PAYMENT_MODE === "both";
 export const UPI_ENABLED = PAYMENT_MODE === "upi" || PAYMENT_MODE === "both";
 
-/** UPI collect details used to render the pay-to VPA + QR at checkout. */
+/**
+ * Card payments stay completely hidden until a Razorpay key is configured —
+ * there's no free way to process real credit/debit cards (unlike UPI, which
+ * carries no merchant fee in India), so this only turns on once the business
+ * owner deliberately signs up and adds real keys.
+ */
+export const CARD_ENABLED = Boolean(process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
+
+/**
+ * UPI collect details used to render the pay-to VPA + QR at checkout — the
+ * business's real UPI ID, overridable via env vars without a code change.
+ */
 export const UPI = {
-  vpa: process.env.NEXT_PUBLIC_UPI_VPA || "horology365@upi",
-  payeeName: process.env.NEXT_PUBLIC_UPI_PAYEE_NAME || "Horology365",
+  vpa: process.env.NEXT_PUBLIC_UPI_VPA || "8131882560@nyes",
+  payeeName: process.env.NEXT_PUBLIC_UPI_PAYEE_NAME || "KIVIKALI Y SHOHE",
 } as const;
 
 /** Build a standard UPI deep-link / QR payload (NPCI URI scheme). */

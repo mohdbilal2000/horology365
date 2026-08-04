@@ -106,7 +106,7 @@ export interface CartItem {
   isPreorder: boolean;
 }
 
-export type PaymentMethod = "cod" | "upi";
+export type PaymentMethod = "cod" | "upi" | "card";
 
 export interface CheckoutDetails {
   name: string;

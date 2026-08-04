@@ -1,33 +1,45 @@
 import { VideoHero, type HeroSlide } from "@/components/VideoHero";
 import { TrustStrip } from "@/components/TrustStrip";
 import { BrandLogoWall } from "@/components/BrandLogoWall";
-import { BrandBayLive } from "@/components/BrandBayLive";
+import { BrandBay } from "@/components/BrandBay";
 import { CategoryBlock } from "@/components/CategoryBlock";
 import { OfferBand } from "@/components/OfferBand";
 import { DropCarousel } from "@/components/DropCarousel";
 import { ReviewsSection } from "@/components/ReviewCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ProductGrid } from "@/components/ProductGrid";
+import { activeBanners, offers, reviews } from "@/lib/mock";
+import { getAllCategories } from "@/lib/data/categories";
+import { getActiveBrands, getBrandBySlug } from "@/lib/data/brands";
 import {
-  activeBanners,
-  activeBrands,
-  categories,
-  getBrandBySlug,
   getProductBySlug,
   getProductsByBrand,
-  preorderProducts,
-  bestSellers,
-  offers,
-  reviews,
-} from "@/lib/mock";
+  getPreorderProducts,
+  getBestSellers,
+} from "@/lib/data/products";
 
-export default function HomePage() {
-  const heroSlides: HeroSlide[] = activeBanners.flatMap((banner) => {
-    const product = getProductBySlug(banner.productSlug);
-    if (!product) return [];
-    const brandName = getBrandBySlug(product.brandSlug)?.name ?? "";
-    return [{ banner, product, brandName }];
-  });
+export default async function HomePage() {
+  const [categories, activeBrands, preorderProducts, bestSellers] = await Promise.all([
+    getAllCategories(),
+    getActiveBrands(),
+    getPreorderProducts(),
+    getBestSellers(),
+  ]);
+
+  const heroSlides: HeroSlide[] = [];
+  for (const banner of activeBanners) {
+    const product = await getProductBySlug(banner.productSlug);
+    if (!product) continue;
+    const brand = await getBrandBySlug(product.brandSlug);
+    heroSlides.push({ banner, product, brandName: brand?.name ?? "" });
+  }
+
+  const brandBays = await Promise.all(
+    activeBrands.map(async (brand) => ({
+      brand,
+      products: await getProductsByBrand(brand.slug),
+    })),
+  );
 
   return (
     <>
@@ -35,11 +47,11 @@ export default function HomePage() {
       <BrandLogoWall brands={activeBrands} />
 
       {/* One bay per active brand, dark / light bands alternating. */}
-      {activeBrands.map((brand, i) => (
-        <BrandBayLive
+      {brandBays.map(({ brand, products }, i) => (
+        <BrandBay
           key={brand.id}
           brand={brand}
-          initialProducts={getProductsByBrand(brand.slug)}
+          products={products}
           tone={i % 2 === 0 ? "dark" : "light"}
         />
       ))}

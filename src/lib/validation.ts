@@ -5,7 +5,7 @@ export type FieldErrors = Partial<Record<keyof CheckoutDetails, string>>;
 const PHONE_RE = /^[6-9]\d{9}$/;
 const PINCODE_RE = /^\d{6}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PAYMENT_METHODS: PaymentMethod[] = ["cod", "upi"];
+const PAYMENT_METHODS: PaymentMethod[] = ["cod", "upi", "card"];
 
 /** Validate checkout details. Shared by the client form and the API route. */
 export function validateCheckout(input: Partial<CheckoutDetails>): {

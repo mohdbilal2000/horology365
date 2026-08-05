@@ -6,6 +6,7 @@ import {
   rowToAdminModel,
   type ProductRowForAdmin,
 } from "@/lib/data/adminProducts";
+import { revalidateCatalog } from "@/lib/revalidateCatalog";
 import type { AdminModel } from "@/lib/types";
 
 const PRODUCT_COLUMNS =
@@ -77,5 +78,6 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  revalidateCatalog();
   return NextResponse.json({ model: rowToAdminModel(data as ProductRowForAdmin) }, { status: 201 });
 }

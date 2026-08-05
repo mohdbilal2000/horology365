@@ -11,6 +11,11 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+// Re-fetch from Supabase at most once per this many seconds, so admin
+// catalog changes show up without a redeploy — see the admin write routes
+// for the complementary on-demand revalidation.
+export const revalidate = 60;
+
 export function generateStaticParams() {
   return seedBrands.map((b) => ({ slug: b.slug }));
 }

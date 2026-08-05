@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/server";
 import { computeDerivedFields } from "@/lib/data/adminProducts";
+import { revalidateCatalog } from "@/lib/revalidateCatalog";
 import type { Variant } from "@/lib/types";
 
 interface RouteParams {
@@ -61,6 +62,7 @@ export async function PATCH(request: Request, { params }: RouteParams): Promise<
   if (writeError) {
     return NextResponse.json({ error: writeError.message }, { status: 500 });
   }
+  revalidateCatalog();
   return NextResponse.json({ ok: true });
 }
 
@@ -73,5 +75,6 @@ export async function DELETE(_request: Request, { params }: RouteParams): Promis
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  revalidateCatalog();
   return NextResponse.json({ ok: true });
 }

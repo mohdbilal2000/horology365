@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "**.supabase.co" },
+      // Admins paste product-image links from any brand's site.
+      { protocol: "https", hostname: "**" },
     ],
     formats: ["image/avif", "image/webp"],
   },

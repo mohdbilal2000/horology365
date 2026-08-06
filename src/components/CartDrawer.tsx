@@ -131,6 +131,7 @@ export function CartDrawer() {
                         fill
                         sizes="96px"
                         className="object-cover"
+                        unoptimized={item.imageUrl.startsWith("data:")}
                       />
                     ) : null}
                   </Link>

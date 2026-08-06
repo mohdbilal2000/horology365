@@ -139,6 +139,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
                             fill
                             sizes="56px"
                             className="object-cover"
+                            unoptimized={cover.url.startsWith("data:")}
                           />
                         ) : null}
                       </span>

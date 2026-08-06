@@ -59,6 +59,7 @@ export default function CartPage() {
                       fill
                       sizes="128px"
                       className="object-cover"
+                      unoptimized={item.imageUrl.startsWith("data:")}
                     />
                   ) : null}
                 </Link>

@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { searchProducts } from "@/lib/mock/products";
 import { getBrandBySlug } from "@/lib/mock/brands";
-import { formatINR } from "@/lib/utils";
+import { useAdminProducts } from "@/lib/liveCatalog";
+import { formatINR, humanizeSlug } from "@/lib/utils";
 
 interface SearchModalProps {
   open: boolean;
@@ -17,8 +18,25 @@ const SUGGESTED = ["G-Shock", "Titan Raga", "Smartwatch", "Rose Gold", "Diver"];
 export function SearchModal({ open, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const adminProducts = useAdminProducts();
 
-  const results = useMemo(() => searchProducts(query).slice(0, 8), [query]);
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const adminHits = q
+      ? adminProducts.filter((p) =>
+          [
+            p.title,
+            p.brandSlug,
+            getBrandBySlug(p.brandSlug)?.name ?? "",
+            ...p.tags,
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(q),
+        )
+      : [];
+    return [...adminHits, ...searchProducts(query)].slice(0, 8);
+  }, [query, adminProducts]);
 
   useEffect(() => {
     if (!open) return;
@@ -121,12 +139,13 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
                             fill
                             sizes="56px"
                             className="object-cover"
+                            unoptimized={cover.url.startsWith("data:")}
                           />
                         ) : null}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[11px] font-semibold uppercase tracking-label text-ink-500">
-                          {brand?.name}
+                          {brand?.name ?? humanizeSlug(product.brandSlug)}
                         </span>
                         <span className="block truncate font-medium">
                           {product.title}

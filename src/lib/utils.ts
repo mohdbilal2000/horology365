@@ -31,6 +31,15 @@ export function formatDropDate(iso: string): string {
   }).format(date);
 }
 
+/** Fallback display name for a brand slug with no catalog entry. */
+export function humanizeSlug(slug: string): string {
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 /** Build a wa.me deep link with a prefilled message. */
 export function whatsappLink(phone: string, message: string): string {
   const digits = phone.replace(/\D/g, "");

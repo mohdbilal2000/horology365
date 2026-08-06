@@ -74,7 +74,14 @@ export function ProductGallery({
                 )}
               >
                 {thumb ? (
-                  <Image src={thumb} alt="" fill sizes="80px" className="object-cover" />
+                  <Image
+                    src={thumb}
+                    alt=""
+                    fill
+                    sizes="80px"
+                    className="object-cover"
+                    unoptimized={thumb.startsWith("data:")}
+                  />
                 ) : null}
                 {slide.kind === "video" ? (
                   <span className="absolute inset-0 flex items-center justify-center bg-ink/35">
@@ -124,6 +131,7 @@ export function ProductGallery({
               zoom ? "scale-[1.8]" : "scale-100",
             )}
             style={zoom ? { transformOrigin: `${origin.x}% ${origin.y}%` } : undefined}
+            unoptimized={current.image.url.startsWith("data:")}
           />
         </div>
       )}

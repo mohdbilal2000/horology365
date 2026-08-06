@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ProductGrid } from "@/components/ProductGrid";
+import { LiveProductGrid } from "@/components/LiveProductGrid";
 import { categories, getCategoryBySlug } from "@/lib/mock/categories";
 import { getProductsByCategory } from "@/lib/mock/products";
 import type { CategorySlug } from "@/lib/types";
@@ -53,10 +53,11 @@ export default async function CategoryPage({ params }: PageProps) {
       </header>
 
       <div className="shell py-10 sm:py-14">
-        <p className="mb-6 text-sm text-ink-500">
-          {items.length} {items.length === 1 ? "watch" : "watches"}
-        </p>
-        <ProductGrid products={items} />
+        <LiveProductGrid
+          products={items}
+          filter={{ categorySlug: category.slug }}
+          showCount
+        />
       </div>
     </div>
   );

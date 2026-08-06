@@ -6,6 +6,7 @@ import { CategoryBlock } from "@/components/CategoryBlock";
 import { OfferBand } from "@/components/OfferBand";
 import { DropCarousel } from "@/components/DropCarousel";
 import { ReviewsSection } from "@/components/ReviewCard";
+import { JustInSection } from "@/components/JustInSection";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ProductGrid } from "@/components/ProductGrid";
 import {
@@ -33,6 +34,9 @@ export default function HomePage() {
     <>
       <VideoHero slides={heroSlides} />
       <BrandLogoWall brands={activeBrands} />
+
+      {/* Products just published from the admin (hidden until any exist). */}
+      <JustInSection />
 
       {/* One bay per active brand, dark / light bands alternating. */}
       {activeBrands.map((brand, i) => (

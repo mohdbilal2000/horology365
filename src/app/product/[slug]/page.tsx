@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { ProductGallery } from "@/components/product/ProductGallery";
+import { AdminProductView } from "@/components/product/AdminProductView";
 import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { ProductGrid } from "@/components/ProductGrid";
 import { PriceTag } from "@/components/PriceTag";
@@ -28,7 +28,8 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const product = getProductBySlug(slug);
-  if (!product) return { title: "Product not found" };
+  // Unknown slugs may still resolve client-side from the admin catalog.
+  if (!product) return { title: "Watch details" };
   const brand = getBrandBySlug(product.brandSlug);
   const cover = product.images[0];
 
@@ -46,7 +47,9 @@ export async function generateMetadata({
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
   const product = getProductBySlug(slug);
-  if (!product) notFound();
+  // Not in the built-in catalog — try the admin-published catalog on the
+  // client (it lives in the browser in Phase 1, so the server can't see it).
+  if (!product) return <AdminProductView slug={slug} />;
 
   const brand = getBrandBySlug(product.brandSlug);
   const brandName = brand?.name ?? "";

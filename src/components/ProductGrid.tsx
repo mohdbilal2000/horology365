@@ -1,6 +1,7 @@
 import { ProductCard } from "@/components/ProductCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { getBrandBySlug } from "@/lib/mock/brands";
+import { humanizeSlug } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
 interface ProductGridProps {
@@ -24,7 +25,11 @@ export function ProductGrid({ products, brandName }: ProductGridProps) {
         <Reveal key={product.id} delay={(i % 4) * 50} as="div">
           <ProductCard
             product={product}
-            brandName={brandName ?? getBrandBySlug(product.brandSlug)?.name ?? ""}
+            brandName={
+              brandName ??
+              getBrandBySlug(product.brandSlug)?.name ??
+              humanizeSlug(product.brandSlug)
+            }
           />
         </Reveal>
       ))}

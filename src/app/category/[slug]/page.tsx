@@ -2,23 +2,29 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ProductGrid } from "@/components/ProductGrid";
-import { categories, getCategoryBySlug } from "@/lib/mock/categories";
-import { getProductsByCategory } from "@/lib/mock/products";
+import { categories as seedCategories } from "@/lib/mock/categories";
+import { getCategoryBySlug } from "@/lib/data/categories";
+import { getProductsByCategory } from "@/lib/data/products";
 import type { CategorySlug } from "@/lib/types";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+// Re-fetch from Supabase at most once per this many seconds, so admin
+// catalog changes show up without a redeploy — see the admin write routes
+// for the complementary on-demand revalidation.
+export const revalidate = 60;
+
 export function generateStaticParams() {
-  return categories.map((c) => ({ slug: c.slug }));
+  return seedCategories.map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const category = getCategoryBySlug(slug);
+  const category = await getCategoryBySlug(slug);
   if (!category) return { title: "Category not found" };
   return {
     title: category.name,
@@ -28,10 +34,10 @@ export async function generateMetadata({
 
 export default async function CategoryPage({ params }: PageProps) {
   const { slug } = await params;
-  const category = getCategoryBySlug(slug);
+  const category = await getCategoryBySlug(slug);
   if (!category) notFound();
 
-  const items = getProductsByCategory(category.slug as CategorySlug);
+  const items = await getProductsByCategory(category.slug as CategorySlug);
 
   return (
     <div className="band-light">

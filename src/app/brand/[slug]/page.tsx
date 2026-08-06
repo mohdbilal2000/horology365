@@ -3,22 +3,28 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ProductGrid } from "@/components/ProductGrid";
 import { BrandLogo } from "@/components/BrandLogo";
-import { brands, getBrandBySlug } from "@/lib/mock/brands";
-import { getProductsByBrand } from "@/lib/mock/products";
+import { brands as seedBrands } from "@/lib/mock/brands";
+import { getBrandBySlug } from "@/lib/data/brands";
+import { getProductsByBrand } from "@/lib/data/products";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+// Re-fetch from Supabase at most once per this many seconds, so admin
+// catalog changes show up without a redeploy — see the admin write routes
+// for the complementary on-demand revalidation.
+export const revalidate = 60;
+
 export function generateStaticParams() {
-  return brands.map((b) => ({ slug: b.slug }));
+  return seedBrands.map((b) => ({ slug: b.slug }));
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const brand = getBrandBySlug(slug);
+  const brand = await getBrandBySlug(slug);
   if (!brand) return { title: "Brand not found" };
   return {
     title: `${brand.name} Watches`,
@@ -28,10 +34,10 @@ export async function generateMetadata({
 
 export default async function BrandPage({ params }: PageProps) {
   const { slug } = await params;
-  const brand = getBrandBySlug(slug);
+  const brand = await getBrandBySlug(slug);
   if (!brand) notFound();
 
-  const items = getProductsByBrand(brand.slug);
+  const items = await getProductsByBrand(brand.slug);
 
   return (
     <div className="band-light">

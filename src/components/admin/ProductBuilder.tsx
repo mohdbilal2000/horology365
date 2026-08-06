@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useCatalogStore } from "@/lib/store/catalog";
 import { activeBrands, getBrandBySlug } from "@/lib/mock/brands";
 import { getModelsForBrand } from "@/lib/mock/modelCatalog";
 import { categories } from "@/lib/mock/categories";
@@ -75,7 +74,7 @@ function blankVariant(): Variant {
 
 export function ProductBuilder() {
   const router = useRouter();
-  const addModel = useCatalogStore((s) => s.addModel);
+  const [publishing, setPublishing] = useState(false);
 
   const [step, setStep] = useState(0);
 
@@ -196,7 +195,7 @@ export function ProductBuilder() {
     setStep((s) => Math.max(0, s - 1));
   }
 
-  function publish() {
+  async function publish() {
     for (let s = 0; s < 3; s++) {
       const e = validateStep(s);
       if (e) {
@@ -208,8 +207,7 @@ export function ProductBuilder() {
     const slug =
       brandSlug || newBrand.trim().toLowerCase().replace(/\s+/g, "-");
     const gallery = cleanImages.length ? cleanImages : [FALLBACK_IMG];
-    const model: AdminModel = {
-      id: uid("m"),
+    const model: Omit<AdminModel, "id" | "createdAt"> = {
       brandSlug: slug,
       title: title.trim(),
       categorySlug,
@@ -225,10 +223,23 @@ export function ProductBuilder() {
           v.sku.trim() ||
           `H365-${title.trim().slice(0, 3).toUpperCase()}-${String(i + 1).padStart(2, "0")}`,
       })),
-      createdAt: new Date().toISOString(),
     };
-    addModel(model);
-    router.push("/admin");
+
+    setPublishing(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(model),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to publish product.");
+      router.push("/admin");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to publish product.");
+      setPublishing(false);
+    }
   }
 
   return (
@@ -584,8 +595,13 @@ export function ProductBuilder() {
                 Continue
               </button>
             ) : (
-              <button type="button" onClick={publish} className="btn-gold">
-                Publish product
+              <button
+                type="button"
+                onClick={publish}
+                disabled={publishing}
+                className="btn-gold disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {publishing ? "Publishing…" : "Publish product"}
               </button>
             )}
           </div>

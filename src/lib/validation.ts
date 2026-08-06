@@ -5,7 +5,7 @@ export type FieldErrors = Partial<Record<keyof CheckoutDetails, string>>;
 const PHONE_RE = /^[6-9]\d{9}$/;
 const PINCODE_RE = /^\d{6}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PAYMENT_METHODS: PaymentMethod[] = ["cod", "upi"];
+const PAYMENT_METHODS: PaymentMethod[] = ["cod", "upi", "bank_transfer", "card"];
 
 /** Validate checkout details. Shared by the client form and the API route. */
 export function validateCheckout(input: Partial<CheckoutDetails>): {
@@ -39,12 +39,15 @@ export function validateCheckout(input: Partial<CheckoutDetails>): {
     errors.paymentMethod = "Choose a payment method.";
   }
 
-  // UPI orders must carry a transaction reference (UTR) entered after paying.
-  if (input.paymentMethod === "upi") {
+  // UPI and bank-transfer orders must carry a reference entered after paying,
+  // since both are manually reconciled against a bank statement.
+  if (input.paymentMethod === "upi" || input.paymentMethod === "bank_transfer") {
     const ref = (input.upiReference ?? "").trim();
     if (ref.length < 8) {
       errors.upiReference =
-        "Enter the UPI reference / UTR from your payment app.";
+        input.paymentMethod === "upi"
+          ? "Enter the UPI reference / UTR from your payment app."
+          : "Enter the transfer reference number from your bank.";
     }
   }
 

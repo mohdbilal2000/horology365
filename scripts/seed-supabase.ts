@@ -8,9 +8,7 @@
  */
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
-import { categories } from "../src/lib/mock/categories";
-import { brands } from "../src/lib/mock/brands";
-import { products } from "../src/lib/mock/products";
+import { categoryRows, brandRows, productRows } from "../src/lib/seedCatalog";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -26,57 +24,26 @@ if (!url || !serviceRoleKey) {
 const supabase = createClient(url, serviceRoleKey);
 
 async function seed() {
+  const categories = categoryRows();
+  const brands = brandRows();
+  const products = productRows();
+
   console.log(`Seeding ${categories.length} categories…`);
-  const { error: catError } = await supabase.from("categories").upsert(
-    categories.map((c) => ({
-      slug: c.slug,
-      name: c.name,
-      description: c.description,
-      image_url: c.imageUrl,
-    })),
-    { onConflict: "slug" },
-  );
+  const { error: catError } = await supabase
+    .from("categories")
+    .upsert(categories, { onConflict: "slug" });
   if (catError) throw catError;
 
   console.log(`Seeding ${brands.length} brands…`);
-  const { error: brandError } = await supabase.from("brands").upsert(
-    brands.map((b) => ({
-      slug: b.slug,
-      name: b.name,
-      tagline: b.tagline,
-      logo_url: b.logoUrl,
-      cover_url: b.coverUrl,
-      is_active: b.isActive,
-      sort_order: b.sortOrder,
-    })),
-    { onConflict: "slug" },
-  );
+  const { error: brandError } = await supabase
+    .from("brands")
+    .upsert(brands, { onConflict: "slug" });
   if (brandError) throw brandError;
 
   console.log(`Seeding ${products.length} products…`);
-  const { error: productError } = await supabase.from("products").upsert(
-    products.map((p) => ({
-      slug: p.slug,
-      title: p.title,
-      description: p.description,
-      brand_slug: p.brandSlug,
-      category_slug: p.categorySlug,
-      price: p.price,
-      mrp: p.mrp,
-      images: p.images,
-      video_url: p.videoUrl ?? null,
-      video_poster: p.videoPoster ?? null,
-      rating: p.rating,
-      review_count: p.reviewCount,
-      stock: p.stock,
-      is_preorder: p.isPreorder,
-      drop_date: p.dropDate ?? null,
-      is_featured: p.isFeatured,
-      tags: p.tags,
-      variants: [],
-    })),
-    { onConflict: "slug" },
-  );
+  const { error: productError } = await supabase
+    .from("products")
+    .upsert(products, { onConflict: "slug" });
   if (productError) throw productError;
 
   console.log("Done. The storefront now reads from Supabase.");

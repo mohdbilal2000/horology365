@@ -7,6 +7,7 @@ import {
   useCartStore,
   cartSubtotal,
   cartSavings,
+  cartShipping,
   cartCount,
 } from "@/lib/store/cart";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
@@ -37,6 +38,8 @@ export function CartDrawer() {
 
   const subtotal = cartSubtotal(items);
   const savings = cartSavings(items);
+  const shipping = cartShipping(subtotal);
+  const total = subtotal + shipping;
   const count = cartCount(items);
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const progress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
@@ -179,13 +182,20 @@ export function CartDrawer() {
                   You’re saving {formatINR(savings)}
                 </p>
               ) : null}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-ink-600">Subtotal</span>
-                <span className="text-lg font-semibold">{formatINR(subtotal)}</span>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-ink-600">Subtotal</span>
+                <span className="font-medium">{formatINR(subtotal)}</span>
               </div>
-              <p className="mt-1 text-xs text-ink-500">
-                Shipping &amp; taxes calculated at checkout.
-              </p>
+              <div className="mt-1 flex items-center justify-between text-sm">
+                <span className="text-ink-600">Shipping</span>
+                <span className="font-medium">
+                  {shipping === 0 ? "Free" : formatINR(shipping)}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center justify-between border-t border-bone-300 pt-2">
+                <span className="text-sm font-semibold">Total</span>
+                <span className="text-lg font-semibold">{formatINR(total)}</span>
+              </div>
               <div className="mt-4 grid gap-2">
                 <Link href="/checkout" onClick={closeCart} className="btn-gold w-full">
                   Checkout

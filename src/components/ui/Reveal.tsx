@@ -39,7 +39,15 @@ export function Reveal({
       { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
     );
     observer.observe(node);
-    return () => observer.disconnect();
+    // Fail-safe: some browsers/in-app webviews (e.g. WhatsApp's) fire
+    // IntersectionObserver unreliably for content that's technically already
+    // on-screen at mount, leaving it permanently at opacity-0 — a "missing"
+    // section with no error. Force it visible shortly after mount either way.
+    const fallback = window.setTimeout(() => setVisible(true), 1200);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(fallback);
+    };
   }, []);
 
   return (

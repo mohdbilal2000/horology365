@@ -372,8 +372,8 @@ export default function CheckoutPage() {
                   selected={form.paymentMethod === "card"}
                   onSelect={() => update("paymentMethod", "card")}
                   disabled={false}
-                  title="Credit / Debit Card"
-                  subtitle="Pay securely by card via Razorpay."
+                  title="Card / Net Banking"
+                  subtitle="Cards, net banking, wallets & UPI via Razorpay's secure checkout."
                 />
               ) : null}
               {errors.paymentMethod ? (

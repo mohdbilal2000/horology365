@@ -5,11 +5,14 @@ import type { Order } from "@/lib/types";
 
 interface OrderConfirmationProps {
   order: Order;
+  /** Hide the invoice link when the order only exists in sessionStorage
+   *  (pre-Supabase-setup) — the invoice route reads from the database. */
+  downloadable?: boolean;
 }
 
 /** Pure presentational order-confirmation body — shared by the server-side
  *  lookup path and the pre-Supabase-setup sessionStorage fallback. */
-export function OrderConfirmation({ order }: OrderConfirmationProps) {
+export function OrderConfirmation({ order, downloadable = true }: OrderConfirmationProps) {
   const waHref = whatsappLink(
     SITE.whatsappNumber,
     `Hi Horology365 👋 I just placed order ${order.id}. Please confirm the details.`,
@@ -120,7 +123,24 @@ export function OrderConfirmation({ order }: OrderConfirmationProps) {
           </address>
         </div>
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        {downloadable ? (
+          <div className="mt-6 flex items-center justify-between rounded-2xl border border-bone-300 bg-bone-100 p-5">
+            <div>
+              <p className="text-sm font-semibold text-ink">Invoice</p>
+              <p className="text-xs text-ink-500">Download a PDF copy for your records.</p>
+            </div>
+            <a
+              href={`/api/orders/${order.id}/invoice`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-outline border-ink/20 px-5 py-2 text-sm"
+            >
+              Download
+            </a>
+          </div>
+        ) : null}
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <a
             href={waHref}
             target="_blank"

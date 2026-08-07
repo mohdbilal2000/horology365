@@ -58,5 +58,7 @@ export function OrderSessionFallback({ id }: OrderSessionFallbackProps) {
     );
   }
 
-  return <OrderConfirmation order={order} />;
+  // The invoice route reads from Supabase — unavailable pre-setup, when this
+  // fallback path is the one being used at all.
+  return <OrderConfirmation order={order} downloadable={false} />;
 }

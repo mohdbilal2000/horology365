@@ -16,7 +16,7 @@ const NAV = [
   { label: "Men", href: "/category/mens-watches" },
   { label: "Women", href: "/category/womens-watches" },
   { label: "Drop", href: "/#weekly-drop" },
-  { label: "Offers", href: "/#offers" },
+  { label: "Offers", href: "/offers" },
 ] as const;
 
 export function SiteHeader() {

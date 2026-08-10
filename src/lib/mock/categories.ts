@@ -8,7 +8,7 @@ export const categories: Category[] = [
     description:
       "Chronographs, divers and dress watches built for the everyday and the occasion.",
     imageUrl:
-      "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=1200&q=70",
+      "https://images.unsplash.com/photo-1508057198894-247b23fe5ade?auto=format&fit=crop&w=1200&q=70",
   },
   {
     id: "cat-womens",
@@ -16,8 +16,9 @@ export const categories: Category[] = [
     name: "Women's Watches",
     description:
       "Slim silhouettes, jewellery dials and bracelets that finish every look.",
+    // Watch-only imagery — the category tiles must never show clothing.
     imageUrl:
-      "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=1200&q=70",
+      "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=1200&q=70",
   },
 ];
 

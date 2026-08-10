@@ -3,6 +3,10 @@ import type { AdminModel, Variant } from "@/lib/types";
 /** Pure AdminModel <-> `products` row mapping + derived-field computation,
  *  used by the admin product API routes (src/app/api/admin/products/**). */
 
+/** Columns the admin routes select when returning an AdminModel. */
+export const PRODUCT_COLUMNS =
+  "id, slug, title, description, brand_slug, category_slug, price, mrp, images, variants, created_at";
+
 export interface ProductInsertRow {
   slug: string;
   title: string;
@@ -80,6 +84,15 @@ export function adminModelToInsertRow(model: Omit<AdminModel, "id" | "createdAt"
     drop_date: dropDate,
     variants: model.variants,
   };
+}
+
+/** Builds the update payload for an edit. The slug is deliberately left alone
+ *  so a product's public URL survives a title change. */
+export function adminModelToUpdateRow(
+  model: Omit<AdminModel, "id" | "createdAt">,
+): Omit<ProductInsertRow, "slug"> {
+  const { slug: _slug, ...rest } = adminModelToInsertRow(model);
+  return rest;
 }
 
 export function rowToAdminModel(row: ProductRowForAdmin): AdminModel {

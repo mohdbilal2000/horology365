@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/server";
 import {
   adminModelToInsertRow,
   rowToAdminModel,
+  PRODUCT_COLUMNS,
   type ProductRowForAdmin,
 } from "@/lib/data/adminProducts";
+import { ensureBrandExists } from "@/lib/data/adminBrands";
 import { revalidateCatalog } from "@/lib/revalidateCatalog";
 import type { AdminModel } from "@/lib/types";
-
-const PRODUCT_COLUMNS =
-  "id, slug, title, description, brand_slug, category_slug, price, mrp, images, variants, created_at";
 
 function unavailable() {
   return NextResponse.json(
@@ -36,19 +34,6 @@ export async function GET(): Promise<NextResponse> {
   }
   const models = (data as ProductRowForAdmin[]).map(rowToAdminModel);
   return NextResponse.json({ models });
-}
-
-/** Inserts a brand row if this slug hasn't been seen before, so the admin's
- *  "+ Add a new brand" flow doesn't hit the products.brand_slug FK. */
-async function ensureBrandExists(supabase: SupabaseClient, brandSlug: string): Promise<void> {
-  const { data } = await supabase.from("brands").select("slug").eq("slug", brandSlug).maybeSingle();
-  if (data) return;
-
-  const name = brandSlug
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-  await supabase.from("brands").insert({ slug: brandSlug, name, is_active: true, sort_order: 999 });
 }
 
 export async function POST(request: Request): Promise<NextResponse> {

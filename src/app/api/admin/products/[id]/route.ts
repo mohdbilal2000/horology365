@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/server";
-import { computeDerivedFields } from "@/lib/data/adminProducts";
+import {
+  adminModelToUpdateRow,
+  computeDerivedFields,
+  rowToAdminModel,
+  PRODUCT_COLUMNS,
+  type ProductRowForAdmin,
+} from "@/lib/data/adminProducts";
+import { ensureBrandExists } from "@/lib/data/adminBrands";
 import { revalidateCatalog } from "@/lib/revalidateCatalog";
-import type { Variant } from "@/lib/types";
+import type { AdminModel, Variant } from "@/lib/types";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -10,6 +17,63 @@ interface RouteParams {
 
 function unavailable() {
   return NextResponse.json({ error: "The product database isn't configured yet." }, { status: 503 });
+}
+
+/** Loads a single product for the admin edit screen. */
+export async function GET(_request: Request, { params }: RouteParams): Promise<NextResponse> {
+  if (!isSupabaseAdminConfigured()) return unavailable();
+  const supabase = getSupabaseAdmin()!;
+  const { id } = await params;
+
+  const { data, error } = await supabase
+    .from("products")
+    .select(PRODUCT_COLUMNS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  if (!data) {
+    return NextResponse.json({ error: "Product not found." }, { status: 404 });
+  }
+  return NextResponse.json({ model: rowToAdminModel(data as ProductRowForAdmin) });
+}
+
+/** Full edit — replaces every editable field of an existing product. The slug
+ *  is left untouched so the public product URL keeps working. */
+export async function PUT(request: Request, { params }: RouteParams): Promise<NextResponse> {
+  if (!isSupabaseAdminConfigured()) return unavailable();
+  const supabase = getSupabaseAdmin()!;
+  const { id } = await params;
+
+  let body: Omit<AdminModel, "id" | "createdAt">;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
+  if (!body?.title || !body?.brandSlug || !Array.isArray(body?.variants)) {
+    return NextResponse.json({ error: "Missing required product fields." }, { status: 422 });
+  }
+
+  await ensureBrandExists(supabase, body.brandSlug);
+
+  const { data, error } = await supabase
+    .from("products")
+    .update({ ...adminModelToUpdateRow(body), updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select(PRODUCT_COLUMNS)
+    .maybeSingle();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  if (!data) {
+    return NextResponse.json({ error: "Product not found." }, { status: 404 });
+  }
+  revalidateCatalog();
+  return NextResponse.json({ model: rowToAdminModel(data as ProductRowForAdmin) });
 }
 
 export async function PATCH(request: Request, { params }: RouteParams): Promise<NextResponse> {

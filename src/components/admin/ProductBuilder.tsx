@@ -19,16 +19,19 @@ const NEW_BRAND = "__new__";
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=900&q=70";
 
+/** Longest edge of a stored photo, in px. */
+const MAX_EDGE = 1200;
+
 /**
- * Read a picked file and downscale it in the browser to keep the stored
- * data-URL small (localStorage is the Phase-1 backing store). Falls back to the
- * raw data URL if the canvas step fails for any reason.
+ * Read a picked file and letterbox it onto a square canvas on white.
+ *
+ * Product frames across the site are square (or 4:3), and a non-square photo
+ * dropped into one gets visually cropped by `object-cover` — which is exactly
+ * the "photo crops itself after upload" the client hit. Padding to a square
+ * here means the whole photo survives every frame it lands in, uncropped. The
+ * canvas step also downscales, keeping the stored data URL small.
  */
-async function fileToCompressedDataUrl(
-  file: File,
-  max = 1000,
-  quality = 0.82,
-): Promise<string> {
+async function fileToSquareDataUrl(file: File, quality = 0.85): Promise<string> {
   const raw = await new Promise<string>((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(String(r.result));
@@ -42,16 +45,21 @@ async function fileToCompressedDataUrl(
       im.onerror = reject;
       im.src = raw;
     });
-    const scale = Math.min(1, max / Math.max(img.width, img.height));
-    if (scale === 1 && raw.length < 400_000) return raw;
+    const longest = Math.max(img.width, img.height);
+    const scale = Math.min(1, MAX_EDGE / longest);
+    const size = Math.round(longest * scale);
     const w = Math.round(img.width * scale);
     const h = Math.round(img.height * scale);
+
     const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
+    canvas.width = size;
+    canvas.height = size;
     const ctx = canvas.getContext("2d");
     if (!ctx) return raw;
-    ctx.drawImage(img, 0, 0, w, h);
+    // White backdrop so the padding reads as studio background, not a hole.
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, size, size);
+    ctx.drawImage(img, Math.round((size - w) / 2), Math.round((size - h) / 2), w, h);
     return canvas.toDataURL("image/jpeg", quality);
   } catch {
     return raw;
@@ -72,28 +80,47 @@ function blankVariant(): Variant {
   };
 }
 
-export function ProductBuilder() {
+interface ProductBuilderProps {
+  /** Present when editing an existing product; absent when adding a new one. */
+  initial?: AdminModel;
+}
+
+export function ProductBuilder({ initial }: ProductBuilderProps) {
   const router = useRouter();
-  const [publishing, setPublishing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const isEdit = Boolean(initial);
+  const knownBrand = initial ? getBrandBySlug(initial.brandSlug) : undefined;
 
   const [step, setStep] = useState(0);
 
   // Brand
-  const [brandSlug, setBrandSlug] = useState("");
-  const [addingBrand, setAddingBrand] = useState(false);
-  const [newBrand, setNewBrand] = useState("");
+  const [brandSlug, setBrandSlug] = useState(knownBrand ? knownBrand.slug : "");
+  const [addingBrand, setAddingBrand] = useState(Boolean(initial && !knownBrand));
+  const [newBrand, setNewBrand] = useState(
+    initial && !knownBrand ? initial.brandSlug.replace(/-/g, " ") : "",
+  );
 
   // Model
-  const [modelChoice, setModelChoice] = useState(""); // known model name or CUSTOM
-  const [title, setTitle] = useState("");
-  const [categorySlug, setCategorySlug] = useState<CategorySlug>("mens-watches");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [mrp, setMrp] = useState("");
-  const [images, setImages] = useState<string[]>([""]);
+  const [modelChoice, setModelChoice] = useState(initial ? CUSTOM : ""); // known model name or CUSTOM
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [categorySlug, setCategorySlug] = useState<CategorySlug>(
+    initial?.categorySlug ?? "mens-watches",
+  );
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [price, setPrice] = useState(initial ? String(initial.price) : "");
+  const [mrp, setMrp] = useState(initial ? String(initial.mrp) : "");
+  const [images, setImages] = useState<string[]>(() => {
+    if (!initial) return [];
+    if (initial.images?.length) return initial.images;
+    return initial.imageUrl ? [initial.imageUrl] : [];
+  });
+  const [linkDraft, setLinkDraft] = useState("");
 
   // Variants
-  const [variants, setVariants] = useState<Variant[]>([blankVariant()]);
+  const [variants, setVariants] = useState<Variant[]>(
+    initial?.variants.length ? initial.variants : [blankVariant()],
+  );
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -150,24 +177,39 @@ export function ProductBuilder() {
     for (const f of Array.from(files)) {
       if (!f.type.startsWith("image/")) continue;
       try {
-        added.push(await fileToCompressedDataUrl(f));
+        added.push(await fileToSquareDataUrl(f));
       } catch {
         /* skip files we can't read */
       }
     }
-    // Drop any blank URL rows, then append the uploaded images.
-    setImages((arr) => {
-      const kept = arr.filter((u) => u.trim());
-      const merged = [...kept, ...added];
-      return merged.length ? merged : [""];
-    });
+    setImages((arr) => [...arr.filter((u) => u.trim()), ...added]);
     setUploading(false);
+  }
+
+  function addLink() {
+    const url = linkDraft.trim();
+    if (!url) return;
+    setImages((arr) => [...arr, url]);
+    setLinkDraft("");
+  }
+
+  function removeImage(index: number) {
+    setImages((arr) => arr.filter((_, i) => i !== index));
+  }
+
+  /** Promote a photo to position 0 — the cover shown on cards and listings. */
+  function makeCover(index: number) {
+    setImages((arr) => {
+      const picked = arr[index];
+      if (picked === undefined) return arr;
+      return [picked, ...arr.filter((_, i) => i !== index)];
+    });
   }
 
   function validateStep(s: number): string | null {
     if (s === 0 && !effectiveBrand) return "Choose a brand or add a new one.";
     if (s === 1) {
-      if (knownModels.length > 0 && !modelChoice)
+      if (!isEdit && knownModels.length > 0 && !modelChoice)
         return "Pick a model, or choose “Other” to type your own.";
       if (title.trim().length < 2) return "Enter a model name.";
       if (priceN <= 0) return "Enter a selling price.";
@@ -179,6 +221,20 @@ export function ProductBuilder() {
         return "Every variant needs a name.";
     }
     return null;
+  }
+
+  /** Jump straight to a step (edit mode) — everything before it must be valid. */
+  function goToStep(target: number) {
+    for (let s = 0; s < target; s++) {
+      const e = validateStep(s);
+      if (e) {
+        setError(e);
+        setStep(s);
+        return;
+      }
+    }
+    setError(null);
+    setStep(target);
   }
 
   function next() {
@@ -195,7 +251,7 @@ export function ProductBuilder() {
     setStep((s) => Math.max(0, s - 1));
   }
 
-  async function publish() {
+  async function save() {
     for (let s = 0; s < 3; s++) {
       const e = validateStep(s);
       if (e) {
@@ -225,31 +281,47 @@ export function ProductBuilder() {
       })),
     };
 
-    setPublishing(true);
+    setSaving(true);
     setError(null);
+    const failure = isEdit
+      ? "Failed to save changes."
+      : "Failed to publish product.";
     try {
-      const res = await fetch("/api/admin/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(model),
-      });
+      const res = await fetch(
+        initial ? `/api/admin/products/${initial.id}` : "/api/admin/products",
+        {
+          method: initial ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(model),
+        },
+      );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to publish product.");
+      if (!res.ok) throw new Error(data.error ?? failure);
       router.push("/admin");
+      router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to publish product.");
-      setPublishing(false);
+      setError(e instanceof Error ? e.message : failure);
+      setSaving(false);
     }
   }
+
+  const saveLabel = isEdit
+    ? saving
+      ? "Saving…"
+      : "Save changes"
+    : saving
+      ? "Publishing…"
+      : "Publish product";
 
   return (
     <div>
       <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
-        Add a product
+        {isEdit ? "Edit product" : "Add a product"}
       </h1>
       <p className="mt-1 text-ink-500">
-        Pick the brand, pick the model, then the variants you actually stock —
-        watch it build live.
+        {isEdit
+          ? "Change anything — photos, price, variants — then save. The live preview updates as you type."
+          : "Pick the brand, pick the model, then the variants you actually stock — watch it build live."}
       </p>
 
       {/* Stepper */}
@@ -258,7 +330,10 @@ export function ProductBuilder() {
           <li key={label} className="flex flex-1 items-center gap-2">
             <button
               type="button"
-              onClick={() => i < step && setStep(i)}
+              onClick={() => {
+                if (i < step) setStep(i);
+                else if (isEdit) goToStep(i);
+              }}
               className={cn(
                 "flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold transition",
                 i === step
@@ -289,9 +364,9 @@ export function ProductBuilder() {
         ))}
       </ol>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_340px]">
+      <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* ── Form ── */}
-        <div className="rounded-3xl border border-bone-300 bg-bone-100 p-6 shadow-glass sm:p-8">
+        <div className="min-w-0 rounded-3xl border border-bone-300 bg-bone-100 p-6 shadow-glass sm:p-8">
           {step === 0 ? (
             <div className="space-y-5">
               <Field label="Company / brand">
@@ -422,75 +497,64 @@ export function ProductBuilder() {
                 </Field>
               </div>
 
-              {/* Multi-image gallery — paste links or upload from device */}
-              <Field label="Product images">
-                <p className="mb-2 text-xs text-ink-500">
-                  Paste image links (the brand’s official product page works
-                  great) or upload straight from your phone or computer. First
-                  image is the cover.
+              {/* Photo gallery — upload from device or paste links */}
+              <Field label="Product photos">
+                <p className="mb-3 text-xs text-ink-500">
+                  Photos are kept whole — nothing is cropped. The first one is
+                  the cover; tap ★ on any photo to make it the cover.
                 </p>
-                <div className="space-y-2">
-                  {images.map((url, i) => {
-                    const uploaded = url.startsWith("data:");
-                    return (
-                      <div key={i} className="flex items-center gap-2">
-                        <span className="w-14 shrink-0 text-xs font-semibold text-ink-500">
-                          {i === 0 ? "Cover" : `Img ${i + 1}`}
+
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                  {cleanImages.map((url, i) => (
+                    <div
+                      key={`${url.slice(0, 24)}-${i}`}
+                      className="relative aspect-square overflow-hidden rounded-xl border border-bone-300 bg-white"
+                    >
+                      <Image
+                        src={url}
+                        alt={`Product photo ${i + 1}`}
+                        fill
+                        sizes="(max-width: 640px) 33vw, 160px"
+                        className="object-contain p-1"
+                        unoptimized
+                      />
+                      {i === 0 ? (
+                        <span className="absolute left-1.5 top-1.5 rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-ink">
+                          Cover
                         </span>
-                        {uploaded ? (
-                          <span className="flex flex-1 items-center gap-2 rounded-xl border border-bone-300 bg-bone-200 px-3 py-2">
-                            <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg ring-1 ring-bone-300">
-                              <Image
-                                src={url}
-                                alt=""
-                                fill
-                                sizes="36px"
-                                className="object-cover"
-                                unoptimized
-                              />
-                            </span>
-                            <span className="text-sm text-ink-600">
-                              Uploaded from device
-                            </span>
-                          </span>
-                        ) : (
-                          <input
-                            value={url}
-                            onChange={(e) =>
-                              setImages((arr) =>
-                                arr.map((u, j) => (j === i ? e.target.value : u)),
-                              )
-                            }
-                            placeholder="https://…/watch.jpg"
-                            className={inputCls}
-                          />
-                        )}
-                        {images.length > 1 ? (
-                          <button
-                            type="button"
-                            aria-label={`Remove image ${i + 1}`}
-                            onClick={() =>
-                              setImages((arr) => arr.filter((_, j) => j !== i))
-                            }
-                            className="shrink-0 rounded-lg p-2 text-ink-400 transition hover:bg-red-50 hover:text-red-600"
-                          >
-                            ✕
-                          </button>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setImages((arr) => [...arr, ""])}
-                    className="text-sm font-semibold text-gold transition hover:text-gold-700"
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => makeCover(i)}
+                          aria-label={`Make photo ${i + 1} the cover`}
+                          title="Make cover"
+                          className="absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-ink/60 text-xs text-white transition hover:bg-gold hover:text-ink"
+                        >
+                          ★
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        aria-label={`Remove photo ${i + 1}`}
+                        title="Remove"
+                        className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-ink/60 text-xs text-white transition hover:bg-red-600"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+
+                  <label
+                    className={cn(
+                      "flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-bone-400 text-center text-xs font-semibold text-ink-500 transition hover:border-gold hover:text-gold",
+                      uploading && "opacity-60",
+                    )}
                   >
-                    + Add image URL
-                  </button>
-                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-bone-300 px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-gold hover:text-gold">
-                    {uploading ? "Uploading…" : "Upload from device"}
+                    <span className="text-xl leading-none" aria-hidden="true">
+                      +
+                    </span>
+                    {uploading ? "Uploading…" : "Add photos"}
                     <input
                       type="file"
                       accept="image/*"
@@ -502,6 +566,29 @@ export function ProductBuilder() {
                       }}
                     />
                   </label>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <input
+                    value={linkDraft}
+                    onChange={(e) => setLinkDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addLink();
+                      }
+                    }}
+                    placeholder="…or paste an image link"
+                    className={cn(inputCls, "min-w-0 flex-1")}
+                  />
+                  <button
+                    type="button"
+                    onClick={addLink}
+                    disabled={!linkDraft.trim()}
+                    className="shrink-0 rounded-xl border border-bone-300 px-4 py-2.5 text-sm font-semibold transition enabled:hover:border-gold enabled:hover:text-gold disabled:opacity-40"
+                  >
+                    Add link
+                  </button>
                 </div>
               </Field>
 
@@ -544,14 +631,15 @@ export function ProductBuilder() {
           {step === 3 ? (
             <div className="space-y-4">
               <p className="text-sm text-ink-600">
-                Looks good? Publishing adds{" "}
+                Looks good? {isEdit ? "Saving updates" : "Publishing adds"}{" "}
                 <strong>
                   {brandName} {title || "this model"}
                 </strong>{" "}
                 with <strong>{variants.length}</strong> variant
                 {variants.length === 1 ? "" : "s"} and{" "}
-                <strong>{cleanImages.length || 1}</strong> image
-                {cleanImages.length === 1 ? "" : "s"} to your catalogue.
+                <strong>{cleanImages.length || 1}</strong> photo
+                {cleanImages.length === 1 ? "" : "s"}
+                {isEdit ? "." : " to your catalogue."}
               </p>
               <ul className="divide-y divide-bone-300 rounded-2xl border border-bone-300">
                 {variants.map((v) => (
@@ -581,7 +669,7 @@ export function ProductBuilder() {
             </p>
           ) : null}
 
-          <div className="mt-7 flex items-center justify-between">
+          <div className="mt-7 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={back}
@@ -590,20 +678,34 @@ export function ProductBuilder() {
             >
               ← Back
             </button>
-            {step < STEPS.length - 1 ? (
-              <button type="button" onClick={next} className="btn-gold">
-                Continue
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={publish}
-                disabled={publishing}
-                className="btn-gold disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {publishing ? "Publishing…" : "Publish product"}
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {/* In edit mode every field is already filled, so the admin can
+                  save from any step instead of walking to the end. */}
+              {isEdit && step < STEPS.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={save}
+                  disabled={saving}
+                  className="rounded-full border border-bone-300 px-4 py-2 text-sm font-semibold transition enabled:hover:border-gold enabled:hover:text-gold disabled:opacity-50"
+                >
+                  {saveLabel}
+                </button>
+              ) : null}
+              {step < STEPS.length - 1 ? (
+                <button type="button" onClick={next} className="btn-gold">
+                  Continue
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={save}
+                  disabled={saving}
+                  className="btn-gold disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {saveLabel}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -613,13 +715,13 @@ export function ProductBuilder() {
             Live preview
           </p>
           <div className="overflow-hidden rounded-2xl border border-bone-300 bg-bone-100 shadow-product">
-            <div className="relative aspect-square bg-bone-300/50">
+            <div className="relative aspect-square bg-white">
               <Image
                 src={previewImage}
                 alt=""
                 fill
                 sizes="340px"
-                className="object-cover"
+                className="object-contain"
                 unoptimized
               />
               {off > 0 ? (
@@ -647,18 +749,18 @@ export function ProductBuilder() {
               </div>
 
               {cleanImages.length > 1 ? (
-                <div className="mt-3 flex gap-1.5">
-                  {cleanImages.slice(0, 5).map((url, i) => (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {cleanImages.slice(0, 6).map((url, i) => (
                     <span
                       key={i}
-                      className="relative h-9 w-9 overflow-hidden rounded-lg ring-1 ring-bone-300"
+                      className="relative h-9 w-9 overflow-hidden rounded-lg bg-white ring-1 ring-bone-300"
                     >
                       <Image
                         src={url}
                         alt=""
                         fill
                         sizes="36px"
-                        className="object-cover"
+                        className="object-contain"
                         unoptimized
                       />
                     </span>
@@ -667,7 +769,7 @@ export function ProductBuilder() {
               ) : null}
 
               {variants.some((v) => v.name) ? (
-                <div className="mt-3 flex items-center gap-1.5">
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
                   {variants.map((v) => (
                     <span
                       key={v.id}
@@ -683,6 +785,35 @@ export function ProductBuilder() {
               ) : null}
             </div>
           </div>
+
+          {/* Summary — keeps the column useful (and full) beside a long form. */}
+          <dl className="mt-4 divide-y divide-bone-300 rounded-2xl border border-bone-300 bg-bone-100 px-4 shadow-glass">
+            <SummaryRow label="Brand" value={brandName || "—"} />
+            <SummaryRow label="Model" value={title || "—"} />
+            <SummaryRow
+              label="Category"
+              value={categories.find((c) => c.slug === categorySlug)?.name ?? "—"}
+            />
+            <SummaryRow label="Price" value={priceN ? formatINR(priceN) : "—"} />
+            <SummaryRow label="Photos" value={String(cleanImages.length)} />
+            <SummaryRow
+              label="Variants"
+              value={String(variants.filter((v) => v.name.trim()).length)}
+            />
+            <SummaryRow
+              label="In stock"
+              value={String(
+                variants.reduce(
+                  (n, v) =>
+                    n +
+                    (v.name.trim() && v.availability === "in_stock"
+                      ? v.stockQty
+                      : 0),
+                  0,
+                ),
+              )}
+            />
+          </dl>
         </aside>
       </div>
     </div>
@@ -705,6 +836,15 @@ function Field({
         {label}
       </label>
       {children}
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2.5 text-sm">
+      <dt className="text-ink-500">{label}</dt>
+      <dd className="truncate font-semibold">{value}</dd>
     </div>
   );
 }

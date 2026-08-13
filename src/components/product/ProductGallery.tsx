@@ -43,15 +43,25 @@ export function ProductGallery({
   }
 
   return (
-    <div className="flex flex-col-reverse gap-4 sm:flex-row">
+    // On desktop the thumbnail rail is pinned to the viewer's height (absolute
+    // inside a stretched grid cell) so 4-5 photos scroll inside the rail
+    // instead of stretching the gallery taller than the image — which used to
+    // leave a blank gap under the viewer.
+    <div
+      className={cn(
+        "flex flex-col-reverse gap-4",
+        slides.length > 1 && "sm:grid sm:grid-cols-[5rem_minmax(0,1fr)]",
+      )}
+    >
       {/* Thumbnails */}
       {slides.length > 1 ? (
-        <div
-          className="no-scrollbar flex gap-3 overflow-x-auto sm:flex-col"
-          role="tablist"
-          aria-label={`${title} media`}
-        >
-          {slides.map((slide, i) => {
+        <div className="relative sm:min-h-0">
+          <div
+            className="no-scrollbar flex gap-3 overflow-x-auto sm:absolute sm:inset-0 sm:flex-col sm:overflow-y-auto"
+            role="tablist"
+            aria-label={`${title} media`}
+          >
+            {slides.map((slide, i) => {
             const thumb =
               slide.kind === "video" ? slide.poster ?? images[0]?.url : slide.image.url;
             return (
@@ -94,7 +104,8 @@ export function ProductGallery({
                 ) : null}
               </button>
             );
-          })}
+            })}
+          </div>
         </div>
       ) : null}
 
@@ -127,7 +138,7 @@ export function ProductGallery({
             priority
             sizes="(max-width: 640px) 100vw, 50vw"
             className={cn(
-              "object-cover transition-transform duration-200 ease-out",
+              "object-contain transition-transform duration-200 ease-out",
               zoom ? "scale-[1.8]" : "scale-100",
             )}
             style={zoom ? { transformOrigin: `${origin.x}% ${origin.y}%` } : undefined}

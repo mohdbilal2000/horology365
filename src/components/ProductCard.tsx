@@ -65,7 +65,7 @@ export function ProductCard({
               alt={cover.alt}
               fill
               sizes="(max-width: 640px) 50vw, 280px"
-              className="object-cover transition-transform duration-500 ease-showroom group-hover:scale-105"
+              className="object-contain transition-transform duration-500 ease-showroom group-hover:scale-105"
               unoptimized={cover.url.startsWith("data:")}
             />
           ) : null}

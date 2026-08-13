@@ -235,7 +235,7 @@ function ModelRow({
               alt=""
               fill
               sizes="56px"
-              className="object-cover"
+              className="object-contain"
               unoptimized
             />
           ) : null}

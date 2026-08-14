@@ -12,12 +12,18 @@ interface CategoryRow {
 }
 
 function rowToCategory(row: CategoryRow): Category {
+  // Category imagery has no admin editor — it only ever comes from a code
+  // deploy — so a Supabase row can only be stale, never intentionally
+  // different. Always show the current code's image rather than whatever
+  // was last synced into the database, so an image swap ships with the
+  // deploy instead of needing a manual "re-sync catalogue" click.
+  const seedImage = seedCategories.find((c) => c.slug === row.slug)?.imageUrl;
   return {
     id: row.id,
     slug: row.slug as CategorySlug,
     name: row.name,
     description: row.description,
-    imageUrl: row.image_url,
+    imageUrl: seedImage ?? row.image_url,
   };
 }
 

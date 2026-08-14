@@ -13,6 +13,12 @@ interface ImageLightboxProps {
  * Full-image viewer — shows the whole photo, uncropped, at the largest size
  * that fits the viewport. Used wherever a user wants to inspect a photo
  * closely instead of the magnify-on-hover crop that used to hide the edges.
+ *
+ * Layout note: the close button sits in its own flex row *above* the photo,
+ * not absolutely positioned over it. A square photo fills the whole viewport
+ * on a phone, so an overlaid button ends up underneath the <img> and becomes
+ * untappable — which left mobile visitors stuck in the viewer with no Escape
+ * key to fall back on.
  */
 export function ImageLightbox({ src, alt, onClose }: ImageLightboxProps) {
   useEffect(() => {
@@ -29,34 +35,39 @@ export function ImageLightbox({ src, alt, onClose }: ImageLightboxProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/90 p-4 sm:p-10"
+      className="fixed inset-0 z-[100] flex flex-col bg-ink/90"
       role="dialog"
       aria-modal="true"
       aria-label={alt || "Full-size image"}
       onClick={onClose}
     >
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Close"
-        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-bone transition hover:bg-white/20"
-      >
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-          <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
-        </svg>
-      </button>
-      <div
-        className="relative h-full w-full max-w-4xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Image
-          src={src}
-          alt={alt}
-          fill
-          sizes="100vw"
-          className="object-contain"
-          unoptimized={src.startsWith("data:")}
-        />
+      <div className="flex shrink-0 justify-end p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-bone transition hover:bg-white/20 active:bg-white/25"
+        >
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="min-h-0 flex-1 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-10 sm:pb-10">
+        <div
+          className="relative mx-auto h-full w-full max-w-4xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Image
+            src={src}
+            alt={alt}
+            fill
+            sizes="100vw"
+            className="object-contain"
+            unoptimized={src.startsWith("data:")}
+          />
+        </div>
       </div>
     </div>
   );

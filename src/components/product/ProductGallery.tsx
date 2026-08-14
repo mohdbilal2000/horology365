@@ -39,15 +39,21 @@ export function ProductGallery({
     // inside a stretched grid cell) so 4-5 photos scroll inside the rail
     // instead of stretching the gallery taller than the image — which used to
     // leave a blank gap under the viewer.
+    // `min-w-0` matters: this sits in a grid cell whose automatic minimum size
+    // is its min-content width. The thumbnail rail is 5x80px + gaps = 448px,
+    // so a product with 5+ photos used to push the whole page wider than a
+    // phone screen — the browser then shrink-to-fit the entire layout and the
+    // header stopped reaching the right edge. Clamping here lets the rail
+    // scroll horizontally, as intended, instead of stretching the page.
     <div
       className={cn(
-        "flex flex-col-reverse gap-4",
+        "flex min-w-0 flex-col-reverse gap-4",
         slides.length > 1 && "sm:grid sm:grid-cols-[5rem_minmax(0,1fr)]",
       )}
     >
       {/* Thumbnails */}
       {slides.length > 1 ? (
-        <div className="relative sm:min-h-0">
+        <div className="relative min-w-0 sm:min-h-0">
           <div
             className="no-scrollbar flex gap-3 overflow-x-auto sm:absolute sm:inset-0 sm:flex-col sm:overflow-y-auto"
             role="tablist"
@@ -132,7 +138,9 @@ export function ProductGallery({
             className="object-contain"
             unoptimized={current.image.url.startsWith("data:")}
           />
-          <span className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-ink/70 px-3 py-1.5 text-xs font-semibold text-bone opacity-0 transition group-hover:opacity-100">
+          {/* Always shown on touch screens — there is no hover there, so the
+              hint was invisible and nobody knew the photo could be opened. */}
+          <span className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-ink/70 px-3 py-1.5 text-xs font-semibold text-bone opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H3v6M15 3h6v6M9 21H3v-6M15 21h6v-6" />
             </svg>

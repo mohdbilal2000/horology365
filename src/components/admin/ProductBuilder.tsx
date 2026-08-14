@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { activeBrands, getBrandBySlug } from "@/lib/mock/brands";
 import { getModelsForBrand } from "@/lib/mock/modelCatalog";
 import { categories } from "@/lib/mock/categories";
@@ -116,6 +117,7 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
     return initial.imageUrl ? [initial.imageUrl] : [];
   });
   const [linkDraft, setLinkDraft] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Variants
   const [variants, setVariants] = useState<Variant[]>(
@@ -508,16 +510,23 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
                   {cleanImages.map((url, i) => (
                     <div
                       key={`${url.slice(0, 24)}-${i}`}
-                      className="relative aspect-square overflow-hidden rounded-xl border border-bone-300 bg-white"
+                      className="group relative aspect-square overflow-hidden rounded-xl border border-bone-300 bg-white"
                     >
-                      <Image
-                        src={url}
-                        alt={`Product photo ${i + 1}`}
-                        fill
-                        sizes="(max-width: 640px) 33vw, 160px"
-                        className="object-contain p-1"
-                        unoptimized
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setPreviewUrl(url)}
+                        aria-label={`View photo ${i + 1} full-size`}
+                        className="absolute inset-0"
+                      >
+                        <Image
+                          src={url}
+                          alt={`Product photo ${i + 1}`}
+                          fill
+                          sizes="(max-width: 640px) 33vw, 160px"
+                          className="object-contain p-1"
+                          unoptimized
+                        />
+                      </button>
                       {i === 0 ? (
                         <span className="absolute left-1.5 top-1.5 rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-ink">
                           Cover
@@ -816,6 +825,14 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
           </dl>
         </aside>
       </div>
+
+      {previewUrl ? (
+        <ImageLightbox
+          src={previewUrl}
+          alt="Full-size product photo"
+          onClose={() => setPreviewUrl(null)}
+        />
+      ) : null}
     </div>
   );
 }

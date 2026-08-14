@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import type { ProductImage } from "@/lib/types";
 
 interface ProductGalleryProps {
@@ -28,19 +29,10 @@ export function ProductGallery({
   ];
 
   const [active, setActive] = useState(0);
-  const [zoom, setZoom] = useState(false);
-  const [origin, setOrigin] = useState({ x: 50, y: 50 });
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const current = slides[active] ?? slides[0];
   if (!current) return null;
-
-  function onMove(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setOrigin({
-      x: ((e.clientX - rect.left) / rect.width) * 100,
-      y: ((e.clientY - rect.top) / rect.height) * 100,
-    });
-  }
 
   return (
     // On desktop the thumbnail rail is pinned to the viewer's height (absolute
@@ -125,11 +117,11 @@ export function ProductGallery({
           />
         </div>
       ) : (
-        <div
-          className="product-frame aspect-square flex-1 cursor-zoom-in"
-          onMouseEnter={() => setZoom(true)}
-          onMouseLeave={() => setZoom(false)}
-          onMouseMove={onMove}
+        <button
+          type="button"
+          onClick={() => setLightboxOpen(true)}
+          aria-label={`View ${current.image.alt} full-size`}
+          className="product-frame group relative aspect-square flex-1 cursor-zoom-in"
         >
           <Image
             src={current.image.url}
@@ -137,15 +129,25 @@ export function ProductGallery({
             fill
             priority
             sizes="(max-width: 640px) 100vw, 50vw"
-            className={cn(
-              "object-contain transition-transform duration-200 ease-out",
-              zoom ? "scale-[1.8]" : "scale-100",
-            )}
-            style={zoom ? { transformOrigin: `${origin.x}% ${origin.y}%` } : undefined}
+            className="object-contain"
             unoptimized={current.image.url.startsWith("data:")}
           />
-        </div>
+          <span className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-ink/70 px-3 py-1.5 text-xs font-semibold text-bone opacity-0 transition group-hover:opacity-100">
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H3v6M15 3h6v6M9 21H3v-6M15 21h6v-6" />
+            </svg>
+            View full photo
+          </span>
+        </button>
       )}
+
+      {lightboxOpen && current.kind === "image" ? (
+        <ImageLightbox
+          src={current.image.url}
+          alt={current.image.alt}
+          onClose={() => setLightboxOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

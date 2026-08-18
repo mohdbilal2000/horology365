@@ -34,19 +34,6 @@ export const banners: Banner[] = [
     sortOrder: 2,
   },
   {
-    id: "bn-glam",
-    eyebrow: "Editor's Pick",
-    headline: "Jet-Set Glamour",
-    subhead:
-      "Pavé dials and gold-tone steel from Michael Kors — effortless, everyday luxe.",
-    ctaLabel: "Shop the Look",
-    ctaHref: "/brand/michael-kors",
-    videoUrl: "/videos/watch-6.mp4",
-    posterUrl: "/posters/watch-6.jpg",
-    productSlug: "mk-lexington-gold",
-    sortOrder: 3,
-  },
-  {
     id: "bn-casio-edifice",
     eyebrow: "Casio · 60% Off",
     headline: "Built For Speed",
@@ -57,7 +44,7 @@ export const banners: Banner[] = [
     videoUrl: "/videos/casio-2.mp4",
     posterUrl: "/posters/casio-2.jpg",
     productSlug: "casio-edifice-efr",
-    sortOrder: 4,
+    sortOrder: 3,
   },
   {
     id: "bn-slim",
@@ -70,7 +57,7 @@ export const banners: Banner[] = [
     videoUrl: "/videos/watch-3.mp4",
     posterUrl: "/posters/watch-3.jpg",
     productSlug: "titan-edge-ceramic",
-    sortOrder: 5,
+    sortOrder: 4,
   },
 ];
 

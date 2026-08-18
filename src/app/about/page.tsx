@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 const STATS = [
-  { value: "14", label: "Brands in the showroom" },
+  { value: `${activeBrands.length}`, label: "Brands in the showroom" },
   { value: "100%", label: "Authentic, sealed-box" },
   { value: "7-day", label: "Easy returns" },
   { value: "365", label: "Days of new drops" },

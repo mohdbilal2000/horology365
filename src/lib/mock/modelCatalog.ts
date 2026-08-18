@@ -64,37 +64,11 @@ export const modelCatalog: Record<string, KnownModel[]> = {
     { name: "Fossil Neutra", category: "mens-watches", price: 12495, mrp: 15995 },
     { name: "Fossil Jacqueline", category: "womens-watches", price: 10995, mrp: 13995 },
   ],
-  diesel: [
-    { name: "Diesel Mega Chief", category: "mens-watches", price: 16995, mrp: 21995 },
-    { name: "Diesel Mr Daddy 2.0", category: "mens-watches", price: 22995, mrp: 27995 },
-    { name: "Diesel Chief", category: "mens-watches", price: 15995, mrp: 19995 },
-  ],
-  "michael-kors": [
-    { name: "MK Lexington", category: "womens-watches", price: 21995, mrp: 26995 },
-    { name: "MK Bradshaw", category: "womens-watches", price: 23995, mrp: 28995 },
-    { name: "MK Parker", category: "womens-watches", price: 20995, mrp: 25995 },
-    { name: "MK Runway", category: "mens-watches", price: 19995, mrp: 24995 },
-  ],
-  "armani-exchange": [
-    { name: "AX Hampton", category: "mens-watches", price: 13995, mrp: 17995 },
-    { name: "AX Banks", category: "mens-watches", price: 14995, mrp: 18995 },
-    { name: "AX Drexler", category: "mens-watches", price: 15995, mrp: 19995 },
-  ],
   timex: [
     { name: "Timex Weekender", category: "mens-watches", price: 4995, mrp: 6995 },
     { name: "Timex Marlin", category: "mens-watches", price: 9995, mrp: 12995 },
     { name: "Timex Expedition", category: "mens-watches", price: 6995, mrp: 8995 },
     { name: "Timex Q", category: "mens-watches", price: 11995, mrp: 14995 },
-  ],
-  guess: [
-    { name: "Guess Frontier", category: "mens-watches", price: 9995, mrp: 13995 },
-    { name: "Guess Letterman", category: "mens-watches", price: 10995, mrp: 14995 },
-    { name: "Guess Phoenix", category: "womens-watches", price: 9495, mrp: 12995 },
-  ],
-  lacoste: [
-    { name: "Lacoste 12.12", category: "mens-watches", price: 8995, mrp: 11995 },
-    { name: "Lacoste Continental", category: "mens-watches", price: 9995, mrp: 12995 },
-    { name: "Lacoste Challenger", category: "mens-watches", price: 8495, mrp: 10995 },
   ],
   "titan-raga": [
     { name: "Raga Viva", category: "womens-watches", price: 6995, mrp: 9495 },

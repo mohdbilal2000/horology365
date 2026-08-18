@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/config";
-import { brands } from "@/lib/mock/brands";
+import { activeBrands } from "@/lib/mock/brands";
 import { categories } from "@/lib/mock/categories";
 import { products } from "@/lib/mock/products";
 
@@ -25,7 +25,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: path === "" ? 1 : 0.6,
   }));
 
-  const brandRoutes = brands.map((brand) => ({
+  const brandRoutes = activeBrands.map((brand) => ({
     url: `${base}/brand/${brand.slug}`,
     lastModified: now,
     changeFrequency: "weekly" as const,

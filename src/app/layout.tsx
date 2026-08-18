@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     "Casio",
     "Titan",
     "Fossil",
-    "Michael Kors",
+    "Timex",
     "pre-order watches",
     "affordable watches India",
   ],

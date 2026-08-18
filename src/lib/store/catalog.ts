@@ -70,17 +70,17 @@ const SAMPLES: AdminModel[] = [
     createdAt: "2026-06-01T00:00:00.000Z",
   },
   {
-    id: "m-sample-lexington",
-    brandSlug: "michael-kors",
-    title: "Lexington Chronograph",
+    id: "m-sample-raga",
+    brandSlug: "titan-raga",
+    title: "Raga Viva Gold",
     categorySlug: "womens-watches",
     description:
-      "A glamorous gold-tone chronograph with a pavé bezel — jet-set sparkle for the wrist.",
-    price: 21995,
-    mrp: 26995,
+      "Jewellery for the wrist — a gold-tone bracelet watch with a crystal-studded dial.",
+    price: 9995,
+    mrp: 12995,
     imageUrl:
-      "https://images.unsplash.com/photo-1526045431048-f857369baa09?auto=format&fit=crop&w=1200&q=70",
-    variants: sampleVariants(8050),
+      "https://images.unsplash.com/photo-1522312346375-d1a52e2b99b3?auto=format&fit=crop&w=1200&q=70",
+    variants: sampleVariants(4425),
     createdAt: "2026-06-03T00:00:00.000Z",
   },
 ];

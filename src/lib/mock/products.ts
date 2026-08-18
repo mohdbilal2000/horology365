@@ -1,4 +1,5 @@
 import type { CategorySlug, Product } from "@/lib/types";
+import { brands } from "./brands";
 
 /**
  * Shared Unsplash watch photography pool. Every product uses the same
@@ -34,8 +35,9 @@ const img = (id: string, w = 900) =>
  * Real watch footage, self-hosted in /public/videos (Pexels CC0, compressed
  * to small web clips). Served same-origin so it always plays; each clip has a
  * matching poster frame in /public/posters as a crisp fallback.
+ * Clip 6 is Diesel-branded footage — excluded while Diesel is off the roster.
  */
-const VIDEO_COUNT = 8;
+const VIDEO_CLIPS = [1, 2, 3, 4, 5, 7, 8];
 
 interface Seed {
   slug: string;
@@ -79,7 +81,7 @@ function dealPrice(brandSlug: string, mrp: number, fallback: number): number {
 function build(seed: Seed): Product {
   const photoB = PHOTOS[(PHOTOS.indexOf(seed.photo) + 4) % PHOTOS.length]!;
   const photoC = PHOTOS[(PHOTOS.indexOf(seed.photo) + 8) % PHOTOS.length]!;
-  const clip = seed.hasVideo ? (videoCursor++ % VIDEO_COUNT) + 1 : 0;
+  const clip = seed.hasVideo ? VIDEO_CLIPS[videoCursor++ % VIDEO_CLIPS.length]! : 0;
   const videoUrl = seed.hasVideo ? `/videos/watch-${clip}.mp4` : undefined;
   const price = dealPrice(seed.brandSlug, seed.mrp, seed.price);
   return {
@@ -746,7 +748,17 @@ const seeds: Seed[] = [
   { slug: "titan-raga-power-pearl", title: "Titan Raga Power Pearl", brandSlug: "titan-raga", category: "womens-watches", price: 13995, mrp: 16995, photo: "1518131672697-613becd4fab5", description: "A bold mother-of-pearl dial framed in gold-tone steel. Boardroom-ready glamour.", rating: 4.7, reviewCount: 53, stock: 12, tags: ["jewellery", "gold"] },
 ];
 
-export const products: Product[] = seeds.map(build);
+/**
+ * Only brands on the active roster are sold — delisting a brand in brands.ts
+ * hides its watches across the whole storefront (grids, drops, search, sitemap).
+ */
+const activeBrandSlugs = new Set(
+  brands.filter((b) => b.isActive).map((b) => b.slug),
+);
+
+export const products: Product[] = seeds
+  .filter((seed) => activeBrandSlugs.has(seed.brandSlug))
+  .map(build);
 
 export function getProductBySlug(slug: string): Product | undefined {
   return products.find((p) => p.slug === slug);

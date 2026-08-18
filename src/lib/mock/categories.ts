@@ -7,8 +7,9 @@ export const categories: Category[] = [
     name: "Men's Watches",
     description:
       "Chronographs, divers and dress watches built for the everyday and the occasion.",
+    // Black-and-gold chronograph on a dark ground — moody, premium hero shot.
     imageUrl:
-      "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=1200&q=70",
+      "https://images.unsplash.com/photo-1547996160-81dfa63595aa?auto=format&fit=crop&w=1200&q=70",
   },
   {
     id: "cat-womens",
@@ -16,8 +17,9 @@ export const categories: Category[] = [
     name: "Women's Watches",
     description:
       "Slim silhouettes, jewellery dials and bracelets that finish every look.",
+    // Gold-tone glam watch — jewellery-grade sparkle instead of a plain wrist shot.
     imageUrl:
-      "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?auto=format&fit=crop&w=1200&q=70",
+      "https://images.unsplash.com/photo-1526045431048-f857369baa09?auto=format&fit=crop&w=1200&q=70",
   },
 ];
 

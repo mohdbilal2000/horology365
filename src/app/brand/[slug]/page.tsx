@@ -3,7 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ProductGrid } from "@/components/ProductGrid";
 import { BrandLogo } from "@/components/BrandLogo";
-import { brands, getBrandBySlug } from "@/lib/mock/brands";
+import { activeBrands, getBrandBySlug } from "@/lib/mock/brands";
 import { getProductsByBrand } from "@/lib/mock/products";
 
 interface PageProps {
@@ -11,7 +11,7 @@ interface PageProps {
 }
 
 export function generateStaticParams() {
-  return brands.map((b) => ({ slug: b.slug }));
+  return activeBrands.map((b) => ({ slug: b.slug }));
 }
 
 export async function generateMetadata({
@@ -19,7 +19,7 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const brand = getBrandBySlug(slug);
-  if (!brand) return { title: "Brand not found" };
+  if (!brand?.isActive) return { title: "Brand not found" };
   return {
     title: `${brand.name} Watches`,
     description: `Shop authentic ${brand.name} watches — ${brand.tagline}`,
@@ -29,7 +29,8 @@ export async function generateMetadata({
 export default async function BrandPage({ params }: PageProps) {
   const { slug } = await params;
   const brand = getBrandBySlug(slug);
-  if (!brand) notFound();
+  // Delisted brands 404 — their pages disappear along with their products.
+  if (!brand?.isActive) notFound();
 
   const items = getProductsByBrand(brand.slug);
 

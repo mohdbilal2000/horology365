@@ -30,8 +30,8 @@ export const reviews: Review[] = [
     author: "Ananya Iyer",
     location: "Bengaluru",
     rating: 5,
-    body: "Genuine MK at a genuinely lower price. Returns policy made me comfortable buying online for the first time.",
-    productTitle: "Michael Kors Lexington Gold",
+    body: "Genuine Fossil at a genuinely lower price. Returns policy made me comfortable buying online for the first time.",
+    productTitle: "Fossil Carlie Rose-Gold Mesh",
   },
   {
     id: "rv-5",

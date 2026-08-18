@@ -67,7 +67,7 @@ src/
   app/
     layout.tsx              # fonts, metadata, header/footer, cart drawer, WhatsApp float
     page.tsx                # homepage — assembles every showroom section
-    brand/[slug]/           # one template, all 14 brands (SSG)
+    brand/[slug]/           # one template, all 9 active brands (SSG)
     category/[slug]/        # men / women (SSG)
     product/[slug]/         # gallery + zoom, JSON-LD, related (SSG)
     cart/  checkout/  order/[id]/
@@ -91,8 +91,9 @@ reviews) through functions like `getProductBySlug`, `getProductsByBrand`,
 `searchProducts`. In **Phase 2** this module is replaced by Supabase queries with the
 **same signatures**, so components never change.
 
-**Seeded brands (14):** Casio, Timex, Armani Exchange, Titan, Fastrack, Sonata, Fossil,
-Diesel, Michael Kors, Guess, Lacoste, French Connection, Carter London, Titan Raga.
+**Active brands (9):** Casio, Timex, Titan, Fastrack, Sonata, Fossil, French Connection,
+Carter London, Titan Raga. (Armani Exchange, Diesel, Michael Kors, Guess and Lacoste are
+seeded but delisted — flip `isActive` in `src/lib/mock/brands.ts` to bring one back.)
 **Categories:** Men's Watches, Women's Watches.
 
 ## Accessibility & performance

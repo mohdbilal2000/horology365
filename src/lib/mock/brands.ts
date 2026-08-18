@@ -36,7 +36,7 @@ export const brands: Brand[] = [
     tagline: "Milan attitude on your wrist.",
     logoUrl: "/logos/armani-exchange.svg",
     coverUrl: cover("1547996160-81dfa63595aa"),
-    isActive: true,
+    isActive: false,
     sortOrder: 5,
   },
   {
@@ -86,7 +86,7 @@ export const brands: Brand[] = [
     tagline: "Oversized, fearless, unmistakable.",
     logoUrl: "/logos/diesel.png",
     coverUrl: cover("1542496658-e33a6d0d50f6"),
-    isActive: true,
+    isActive: false,
     sortOrder: 8,
   },
   {
@@ -96,7 +96,7 @@ export const brands: Brand[] = [
     tagline: "Glamour, jet-set, effortlessly luxe.",
     logoUrl: "/logos/michael-kors.svg",
     coverUrl: cover("1526045431048-f857369baa09"),
-    isActive: true,
+    isActive: false,
     sortOrder: 9,
   },
   {
@@ -106,7 +106,7 @@ export const brands: Brand[] = [
     tagline: "Sparkle, swagger, statement dials.",
     logoUrl: "/logos/guess.svg",
     coverUrl: cover("1518131672697-613becd4fab5"),
-    isActive: true,
+    isActive: false,
     sortOrder: 10,
   },
   {
@@ -116,7 +116,7 @@ export const brands: Brand[] = [
     tagline: "Court-ready sport, French ease.",
     logoUrl: "/logos/lacoste.svg",
     coverUrl: cover("1612817159949-195b6eb9e31a"),
-    isActive: true,
+    isActive: false,
     sortOrder: 11,
   },
   {

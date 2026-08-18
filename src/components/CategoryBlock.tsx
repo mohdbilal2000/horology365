@@ -50,12 +50,12 @@ export function CategoryBlock({ categories }: CategoryBlockProps) {
                 className="lg:row-span-1"
               />
             ) : null}
-            {/* Promo tile — the drop */}
+            {/* Promo tile — the drop. Real G-Shock product still, not a generic macro. */}
             <CategoryTile
               href="/#weekly-drop"
               title="This Week's Drop"
               copy="Pre-order the next batch — lock today's price."
-              image="/posters/watch-5.jpg"
+              image="/posters/casio-3.jpg"
               eyebrow="Pre-order"
             />
           </div>

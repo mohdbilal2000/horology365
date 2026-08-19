@@ -8,6 +8,12 @@ import type { Config } from "tailwindcss";
  */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx,mdx}"],
+  future: {
+    // Compile `hover:` to @media (hover: hover). On touch screens a tap
+    // otherwise leaves the hover state stuck on (a tapped "Add to bag" stayed
+    // filled gold, and cards stayed lifted) until you tapped somewhere else.
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     extend: {
       colors: {

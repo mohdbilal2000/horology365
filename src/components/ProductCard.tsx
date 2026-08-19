@@ -13,7 +13,7 @@ interface ProductCardProps {
   product: Product;
   brandName: string;
   className?: string;
-  /** Carousel cards get a fixed width; grid cards stay fluid. */
+  /** Carousel cards get their own width; grid cards stay fluid. */
   fixedWidth?: boolean;
 }
 
@@ -49,7 +49,10 @@ export function ProductCard({
     <article
       className={cn(
         "surface-card group relative flex flex-col overflow-hidden rounded-2xl hover:-translate-y-1 hover:shadow-product-hover",
-        fixedWidth && "w-[260px] shrink-0 snap-start sm:w-[280px]",
+        // Mobile: ~2 cards per screen (matching the 2-col ProductGrid) plus a
+        // sliver of the next, so the row reads as swipeable. A fixed 260px
+        // here filled almost the whole phone width with a single card.
+        fixedWidth && "w-[44%] shrink-0 snap-start sm:w-[280px]",
         className,
       )}
     >

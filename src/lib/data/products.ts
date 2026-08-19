@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { getSupabaseAnon } from "@/lib/supabase/server";
 import { products as seedProducts } from "@/lib/mock/products";
+import { DELISTED_BRAND_SLUGS } from "@/lib/data/brands";
 import type { CategorySlug, Product } from "@/lib/types";
 
 interface ProductRow {
@@ -55,9 +56,12 @@ function rowToProduct(row: ProductRow): Product {
  * Supabase isn't configured or the query itself fails — never merely because
  * a configured query returned zero rows.
  */
+/** Delisted brands' watches never reach the storefront, even if their DB rows remain. */
+const sellable = (p: Product): boolean => !DELISTED_BRAND_SLUGS.has(p.brandSlug);
+
 export const getAllProducts = cache(async (): Promise<Product[]> => {
   const supabase = getSupabaseAnon();
-  if (!supabase) return seedProducts;
+  if (!supabase) return seedProducts.filter(sellable);
 
   const { data, error } = await supabase
     .from("products")
@@ -68,9 +72,9 @@ export const getAllProducts = cache(async (): Promise<Product[]> => {
 
   if (error) {
     console.error("[data/products] Supabase query failed, using seed catalogue:", error.message);
-    return seedProducts;
+    return seedProducts.filter(sellable);
   }
-  return (data as ProductRow[]).map(rowToProduct);
+  return (data as ProductRow[]).map(rowToProduct).filter(sellable);
 });
 
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {

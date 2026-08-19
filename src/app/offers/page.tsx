@@ -8,7 +8,7 @@ import { discountPercent } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "Offers & Deals",
   description:
-    "Every live Horology365 deal in one place — genuine markdowns on Casio, Titan, Fossil, Michael Kors and more.",
+    "Every live Horology365 deal in one place — genuine markdowns on Casio, Titan, Fossil, Timex and more.",
 };
 
 export default function OffersPage() {

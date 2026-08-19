@@ -20,19 +20,21 @@ export interface KnownModel {
 
 export const modelCatalog: Record<string, KnownModel[]> = {
   casio: [
-    { name: "G-Shock GA-2100", category: "mens-watches", price: 9995, mrp: 12995 },
-    { name: "G-Shock GA-B2100", category: "mens-watches", price: 14995, mrp: 18995 },
-    { name: "G-Shock GD-100", category: "mens-watches", price: 8995, mrp: 11995 },
-    { name: "G-Shock GA-900", category: "mens-watches", price: 9495, mrp: 12495 },
-    { name: "G-Squad GBA-900", category: "mens-watches", price: 12995, mrp: 15995 },
     { name: "Edifice EFR-552D", category: "mens-watches", price: 10995, mrp: 13995 },
     { name: "Edifice EQS-800", category: "mens-watches", price: 13995, mrp: 17995 },
     { name: "Vintage A168WA", category: "mens-watches", price: 3995, mrp: 5495 },
     { name: "Vintage A158WA", category: "mens-watches", price: 2995, mrp: 4295 },
     { name: "Duro MDV-106 (Marlin)", category: "mens-watches", price: 6995, mrp: 8995 },
     { name: "Enticer MTP-1374", category: "mens-watches", price: 4995, mrp: 6995 },
-    { name: "Baby-G BA-110", category: "womens-watches", price: 8995, mrp: 11495 },
     { name: "Sheen SHE-4052", category: "womens-watches", price: 9995, mrp: 12995 },
+  ],
+  "g-shock": [
+    { name: "G-Shock GA-2100", category: "mens-watches", price: 9995, mrp: 12995 },
+    { name: "G-Shock GA-B2100", category: "mens-watches", price: 14995, mrp: 18995 },
+    { name: "G-Shock GD-100", category: "mens-watches", price: 8995, mrp: 11995 },
+    { name: "G-Shock GA-900", category: "mens-watches", price: 9495, mrp: 12495 },
+    { name: "G-Squad GBA-900", category: "mens-watches", price: 12995, mrp: 15995 },
+    { name: "Baby-G BA-110", category: "womens-watches", price: 8995, mrp: 11495 },
   ],
   titan: [
     { name: "Titan Edge", category: "mens-watches", price: 11995, mrp: 14995 },
@@ -56,13 +58,6 @@ export const modelCatalog: Record<string, KnownModel[]> = {
     { name: "Sonata Volt+", category: "mens-watches", price: 1995, mrp: 2995 },
     { name: "Sonata Splash", category: "mens-watches", price: 995, mrp: 1595 },
     { name: "Sonata Stainless Steel", category: "womens-watches", price: 1295, mrp: 1995 },
-  ],
-  fossil: [
-    { name: "Fossil Grant", category: "mens-watches", price: 12995, mrp: 16995 },
-    { name: "Fossil Townsman", category: "mens-watches", price: 13995, mrp: 17995 },
-    { name: "Fossil Machine", category: "mens-watches", price: 11995, mrp: 15995 },
-    { name: "Fossil Neutra", category: "mens-watches", price: 12495, mrp: 15995 },
-    { name: "Fossil Jacqueline", category: "womens-watches", price: 10995, mrp: 13995 },
   ],
   timex: [
     { name: "Timex Weekender", category: "mens-watches", price: 4995, mrp: 6995 },

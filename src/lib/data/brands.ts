@@ -39,14 +39,27 @@ export const DELISTED_BRAND_SLUGS = new Set([
   "michael-kors",
   "guess",
   "lacoste",
+  "fossil",
 ]);
 
 const applyDelisting = (brand: Brand): Brand =>
   DELISTED_BRAND_SLUGS.has(brand.slug) ? { ...brand, isActive: false } : brand;
 
+/**
+ * G-Shock sells as its own storefront brand (its own tile, bay and page),
+ * split out of Casio. The Supabase brands table may predate that split, so
+ * the seed entry is appended whenever the DB has no g-shock row — once the
+ * row exists (or after a re-seed), this shim is a no-op.
+ */
+function ensureGShock(brands: Brand[]): Brand[] {
+  if (brands.some((b) => b.slug === "g-shock")) return brands;
+  const seed = seedBrands.find((b) => b.slug === "g-shock");
+  return seed ? [...brands, seed] : brands;
+}
+
 export const getAllBrands = cache(async (): Promise<Brand[]> => {
   const supabase = getSupabaseAnon();
-  if (!supabase) return seedBrands.map(applyDelisting);
+  if (!supabase) return ensureGShock(seedBrands.map(applyDelisting));
 
   const { data, error } = await supabase
     .from("brands")
@@ -55,9 +68,9 @@ export const getAllBrands = cache(async (): Promise<Brand[]> => {
 
   if (error) {
     console.error("[data/brands] Supabase query failed, using seed brands:", error.message);
-    return seedBrands.map(applyDelisting);
+    return ensureGShock(seedBrands.map(applyDelisting));
   }
-  return (data as BrandRow[]).map(rowToBrand).map(applyDelisting);
+  return ensureGShock((data as BrandRow[]).map(rowToBrand).map(applyDelisting));
 });
 
 export async function getActiveBrands(): Promise<Brand[]> {

@@ -59,9 +59,22 @@ function rowToProduct(row: ProductRow): Product {
 /** Delisted brands' watches never reach the storefront, even if their DB rows remain. */
 const sellable = (p: Product): boolean => !DELISTED_BRAND_SLUGS.has(p.brandSlug);
 
+/**
+ * G-Shock has its own storefront column: Casio products from the G-Shock /
+ * Baby-G family file under the dedicated g-shock brand, even while their
+ * catalogue rows still say casio. Matches by tag or title so admin-added
+ * G-Shock watches land in the right place automatically.
+ */
+const isGShock = (p: Product): boolean =>
+  p.brandSlug === "casio" &&
+  (p.tags.includes("g-shock") || /g-shock|baby-g/i.test(p.title));
+
+const fileGShock = (p: Product): Product =>
+  isGShock(p) ? { ...p, brandSlug: "g-shock" } : p;
+
 export const getAllProducts = cache(async (): Promise<Product[]> => {
   const supabase = getSupabaseAnon();
-  if (!supabase) return seedProducts.filter(sellable);
+  if (!supabase) return seedProducts.filter(sellable).map(fileGShock);
 
   const { data, error } = await supabase
     .from("products")
@@ -72,9 +85,9 @@ export const getAllProducts = cache(async (): Promise<Product[]> => {
 
   if (error) {
     console.error("[data/products] Supabase query failed, using seed catalogue:", error.message);
-    return seedProducts.filter(sellable);
+    return seedProducts.filter(sellable).map(fileGShock);
   }
-  return (data as ProductRow[]).map(rowToProduct).filter(sellable);
+  return (data as ProductRow[]).map(rowToProduct).filter(sellable).map(fileGShock);
 });
 
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {

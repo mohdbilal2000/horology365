@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { CatalogSourceBanner } from "@/components/admin/CatalogSourceBanner";
+
+// The fallback banner reflects live database state, so nothing here may be
+// served from a build-time cache.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -14,6 +19,8 @@ export default function AdminLayout({
 }) {
   return (
     <div className="min-h-screen bg-bone-200">
+      <CatalogSourceBanner />
+
       {/* Shared-password gate; real per-user Supabase Auth is a future upgrade. */}
       <div className="bg-gold px-4 py-1.5 text-center text-xs font-semibold text-ink">
         Admin · password-protected · catalog &amp; orders are stored in Supabase

@@ -28,10 +28,11 @@ function rowToBrand(row: BrandRow): Brand {
 }
 
 /**
- * Brands the store no longer carries. Forced inactive here — not just in the
- * seed — so the delisting ships with a deploy even while the Supabase rows
- * still say is_active=true. Once the rows are flipped (or re-seeded from the
- * updated seed data), entries here become redundant and can be removed.
+ * Brands the store didn't carry at launch. This is the DEFAULT for the seed
+ * catalogue only — it is NOT applied to rows coming from Supabase, because
+ * the admin's brand controls write is_active there and an override here would
+ * silently ignore them (hide a brand the admin had just switched on, with no
+ * explanation). The database is the source of truth whenever there is one.
  */
 export const DELISTED_BRAND_SLUGS = new Set([
   "armani-exchange",
@@ -70,7 +71,8 @@ export const getAllBrands = cache(async (): Promise<Brand[]> => {
     console.error("[data/brands] Supabase query failed, using seed brands:", error.message);
     return ensureGShock(seedBrands.map(applyDelisting));
   }
-  return ensureGShock((data as BrandRow[]).map(rowToBrand).map(applyDelisting));
+  // No applyDelisting here: these rows are what the admin controls.
+  return ensureGShock((data as BrandRow[]).map(rowToBrand));
 });
 
 export async function getActiveBrands(): Promise<Brand[]> {

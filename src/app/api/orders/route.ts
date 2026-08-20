@@ -9,8 +9,10 @@ import type { CartItem, CheckoutDetails, Order } from "@/lib/types";
 
 /**
  * Server-side validated order creation, persisted to Supabase when
- * configured (falls back to an unpersisted response otherwise, so checkout
- * still completes before the backend is set up — see /order/[id]).
+ * configured. With no Supabase configured at all (local dev, before the
+ * backend is set up) checkout still completes unpersisted — see /order/[id].
+ * But once Supabase IS configured, a failed write rejects the order rather
+ * than acknowledging one the shop has no record of.
  *
  * Fail closed on payment method: an order is only acknowledged after
  * validation passes, and each method is rejected until it's actually enabled
@@ -86,9 +88,18 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const persisted = await createOrder(order);
   if (!persisted.ok && isSupabaseAdminConfigured()) {
-    // Supabase IS configured but the write failed — don't silently lose the
-    // order without a trace. Still return it to the customer (fail open).
+    // Supabase IS configured but the write failed, so this order exists
+    // nowhere. Fail closed: acknowledging it would hand the customer a
+    // confirmation and an order number for a purchase the shop has no record
+    // of and will never fulfil — worse than asking them to try again.
     console.error("[api/orders] failed to persist order:", persisted.error);
+    return NextResponse.json(
+      {
+        error:
+          "We couldn't save your order just now — please try again in a moment. You have not been charged.",
+      },
+      { status: 503 },
+    );
   }
 
   return NextResponse.json({ order }, { status: 201 });

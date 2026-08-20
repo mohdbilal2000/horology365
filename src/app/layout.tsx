@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Manrope, Sora } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteDegradedBanner } from "@/components/SiteDegradedBanner";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CartDrawer } from "@/components/CartDrawer";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
@@ -74,6 +75,7 @@ export default function RootLayout({
         >
           Skip to content
         </a>
+        <SiteDegradedBanner />
         <SiteHeader />
         <main id="main" className="flex-1">
           {children}

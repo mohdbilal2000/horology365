@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { getSupabaseAnon } from "@/lib/supabase/server";
 import { products as seedProducts } from "@/lib/mock/products";
-import { DELISTED_BRAND_SLUGS } from "@/lib/data/brands";
+import { DELISTED_BRAND_SLUGS, getAllBrands } from "@/lib/data/brands";
 import type { CategorySlug, Product } from "@/lib/types";
 
 interface ProductRow {
@@ -53,11 +53,17 @@ function rowToProduct(row: ProductRow): Product {
  * in memory by every other helper below — mirrors how the static seed array
  * already works, and avoids an N+1 query pattern (e.g. the home page loops
  * over every brand). Falls back to the static seed catalogue only when
- * Supabase isn't configured or the query itself fails — never merely because
- * a configured query returned zero rows.
+ * Supabase isn't configured at all (local dev before the backend exists) —
+ * never merely because a configured query returned zero rows, and never when
+ * a configured database is simply unreachable, which is a live outage rather
+ * than a shop with no backend.
  */
-/** Delisted brands' watches never reach the storefront, even if their DB rows remain. */
-const sellable = (p: Product): boolean => !DELISTED_BRAND_SLUGS.has(p.brandSlug);
+/**
+ * Seed-only delisting. Database-backed shops decide visibility from each
+ * brand's is_active row instead (see getAllProducts), so hiding a brand in
+ * the admin also hides its watches everywhere.
+ */
+const sellableInSeed = (p: Product): boolean => !DELISTED_BRAND_SLUGS.has(p.brandSlug);
 
 /**
  * G-Shock has its own storefront column: Casio products from the G-Shock /
@@ -74,7 +80,7 @@ const fileGShock = (p: Product): Product =>
 
 export const getAllProducts = cache(async (): Promise<Product[]> => {
   const supabase = getSupabaseAnon();
-  if (!supabase) return seedProducts.filter(sellable).map(fileGShock);
+  if (!supabase) return seedProducts.filter(sellableInSeed).map(fileGShock);
 
   const { data, error } = await supabase
     .from("products")
@@ -84,10 +90,25 @@ export const getAllProducts = cache(async (): Promise<Product[]> => {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("[data/products] Supabase query failed, using seed catalogue:", error.message);
-    return seedProducts.filter(sellable).map(fileGShock);
+    // Supabase IS configured, so this is a live shop whose database is down —
+    // not a dev machine without a backend. Serving the demo catalogue here
+    // would put watches the shop doesn't stock, at prices it never set, in
+    // front of real customers, and it reads to the people running the store
+    // as "the site reverted and our uploads were deleted". Show nothing
+    // instead; SiteDegradedBanner explains why, and the real catalogue
+    // returns by itself once the database answers again.
+    console.error("[data/products] Supabase query failed, serving no products:", error.message);
+    return [];
   }
-  return (data as ProductRow[]).map(rowToProduct).filter(sellable).map(fileGShock);
+  // Hidden brands take their watches with them, so switching a brand off in
+  // the admin clears it from every grid, drop, offer and search result too.
+  const visibleBrands = new Set(
+    (await getAllBrands()).filter((b) => b.isActive).map((b) => b.slug),
+  );
+  return (data as ProductRow[])
+    .map(rowToProduct)
+    .map(fileGShock)
+    .filter((p) => visibleBrands.has(p.brandSlug));
 });
 
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {

@@ -12,6 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "",
     "/about",
     "/why-buy",
+    "/offers",
     "/contact",
     "/cart",
     "/legal/terms",

@@ -67,7 +67,7 @@ src/
   app/
     layout.tsx              # fonts, metadata, header/footer, cart drawer, WhatsApp float
     page.tsx                # homepage — assembles every showroom section
-    brand/[slug]/           # one template, all 9 active brands (SSG)
+    brand/[slug]/           # one template, all active brands (SSG)
     category/[slug]/        # men / women (SSG)
     product/[slug]/         # gallery + zoom, JSON-LD, related (SSG)
     cart/  checkout/  order/[id]/
@@ -91,9 +91,12 @@ reviews) through functions like `getProductBySlug`, `getProductsByBrand`,
 `searchProducts`. In **Phase 2** this module is replaced by Supabase queries with the
 **same signatures**, so components never change.
 
-**Active brands (9):** Casio, Timex, Titan, Fastrack, Sonata, Fossil, French Connection,
-Carter London, Titan Raga. (Armani Exchange, Diesel, Michael Kors, Guess and Lacoste are
-seeded but delisted — flip `isActive` in `src/lib/mock/brands.ts` to bring one back.)
+**Active brands (9):** Casio, G-Shock, Timex, Sonata, Titan, Fastrack, French Connection,
+Carter London, Titan Raga. (Armani Exchange, Diesel, Michael Kors, Guess, Lacoste and
+Fossil are seeded but delisted — flip `isActive` in `src/lib/mock/brands.ts` and remove
+the slug from `DELISTED_BRAND_SLUGS` in `src/lib/data/brands.ts` to bring one back.
+G-Shock is split out of Casio: `src/lib/data/products.ts` files G-Shock/Baby-G watches
+under the dedicated g-shock brand.)
 **Categories:** Men's Watches, Women's Watches.
 
 ## Accessibility & performance

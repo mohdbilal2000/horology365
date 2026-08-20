@@ -16,11 +16,11 @@ export const offers: Offer[] = [
     badge: "50% Off",
   },
   {
-    id: "of-fossil-machine",
-    title: "Fossil Machine Chrono",
-    subtitle: "Gunmetal chronograph",
-    productSlug: "fossil-machine-chrono",
-    badge: "Limited",
+    id: "of-gshock-ga2100",
+    title: "G-Shock GA-2100 'CasiOak'",
+    subtitle: "The octagonal cult icon",
+    productSlug: "casio-g-shock-ga2100",
+    badge: "60% Off",
   },
   {
     id: "of-titan-raga-viva",

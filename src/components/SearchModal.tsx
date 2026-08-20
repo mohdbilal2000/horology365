@@ -1,24 +1,43 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { searchProducts } from "@/lib/mock/products";
-import { getBrandBySlug } from "@/lib/mock/brands";
 import { formatINR } from "@/lib/utils";
+import type { Product } from "@/lib/types";
 
 interface SearchModalProps {
   open: boolean;
   onClose: () => void;
 }
 
+type SearchResult = Product & { brandName: string };
+
 const SUGGESTED = ["G-Shock", "Titan Raga", "Smartwatch", "Rose Gold", "Diver"];
 
 export function SearchModal({ open, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const results = useMemo(() => searchProducts(query).slice(0, 8), [query]);
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setResults([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: controller.signal })
+        .then((res) => res.json())
+        .then((data) => setResults(data.results ?? []))
+        .catch(() => {});
+    }, 150);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query]);
 
   useEffect(() => {
     if (!open) return;
@@ -105,7 +124,6 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
             <ul>
               {results.map((product) => {
                 const cover = product.images[0];
-                const brand = getBrandBySlug(product.brandSlug);
                 return (
                   <li key={product.id}>
                     <Link
@@ -121,12 +139,13 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
                             fill
                             sizes="56px"
                             className="object-cover"
+                            unoptimized={cover.url.startsWith("data:")}
                           />
                         ) : null}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[11px] font-semibold uppercase tracking-label text-ink-500">
-                          {brand?.name}
+                          {product.brandName}
                         </span>
                         <span className="block truncate font-medium">
                           {product.title}

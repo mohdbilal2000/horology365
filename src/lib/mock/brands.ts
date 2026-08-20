@@ -20,6 +20,16 @@ export const brands: Brand[] = [
     sortOrder: 1,
   },
   {
+    id: "br-g-shock",
+    slug: "g-shock",
+    name: "G-Shock",
+    tagline: "Absolute toughness — the Casio icon.",
+    logoUrl: "",
+    coverUrl: cover("1508057198894-247b23fe5ade"),
+    isActive: true,
+    sortOrder: 2,
+  },
+  {
     id: "br-timex",
     slug: "timex",
     name: "Timex",
@@ -27,7 +37,7 @@ export const brands: Brand[] = [
     logoUrl: "/logos/timex.svg",
     coverUrl: cover("1524805444758-089113d48a6d"),
     isActive: true,
-    sortOrder: 2,
+    sortOrder: 3,
   },
   {
     id: "br-armani-exchange",
@@ -47,7 +57,7 @@ export const brands: Brand[] = [
     logoUrl: "/logos/titan.svg",
     coverUrl: cover("1434056886845-dac89ffe9b56"),
     isActive: true,
-    sortOrder: 4,
+    sortOrder: 5,
   },
   {
     id: "br-fastrack",
@@ -67,7 +77,7 @@ export const brands: Brand[] = [
     logoUrl: "",
     coverUrl: cover("1523170335258-f5ed11844a49"),
     isActive: true,
-    sortOrder: 3,
+    sortOrder: 4,
   },
   {
     id: "br-fossil",
@@ -76,7 +86,7 @@ export const brands: Brand[] = [
     tagline: "Vintage American design, modern soul.",
     logoUrl: "/logos/fossil.svg",
     coverUrl: cover("1622434641406-a158123450f9"),
-    isActive: true,
+    isActive: false,
     sortOrder: 7,
   },
   {

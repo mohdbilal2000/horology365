@@ -3,36 +3,121 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  useCatalogStore,
-  unitsInStock,
-  preordersReserved,
-} from "@/lib/store/catalog";
 import { getBrandBySlug } from "@/lib/mock/brands";
 import { formatINR } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { AdminModel, Variant } from "@/lib/types";
 
-export function InventoryBoard() {
-  const models = useCatalogStore((s) => s.models);
-  const adjustStock = useCatalogStore((s) => s.adjustStock);
-  const startDelivery = useCatalogStore((s) => s.startDelivery);
-  const removeModel = useCatalogStore((s) => s.removeModel);
-  const resetToSamples = useCatalogStore((s) => s.resetToSamples);
+function unitsInStock(model: AdminModel): number {
+  return model.variants.reduce(
+    (sum, v) => sum + (v.availability !== "preorder" ? v.stockQty : 0),
+    0,
+  );
+}
+function preordersReserved(model: AdminModel): number {
+  return model.variants.reduce((sum, v) => sum + v.preorderReserved, 0);
+}
 
-  // Avoid hydration mismatch (store rehydrates from localStorage on client).
-  const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
-  if (!ready) {
+export function InventoryBoard() {
+  const [models, setModels] = useState<AdminModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/products");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to load products.");
+      setModels(data.models ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load products.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  async function adjustStock(modelId: string, variantId: string, delta: number) {
+    setModels((ms) =>
+      ms.map((m) =>
+        m.id !== modelId
+          ? m
+          : {
+              ...m,
+              variants: m.variants.map((v) =>
+                v.id !== variantId ? v : { ...v, stockQty: Math.max(0, v.stockQty + delta) },
+              ),
+            },
+      ),
+    );
+    await fetch(`/api/admin/products/${modelId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ variantId, delta }),
+    });
+  }
+
+  async function startDelivery(modelId: string, variantId: string) {
+    setModels((ms) =>
+      ms.map((m) =>
+        m.id !== modelId
+          ? m
+          : {
+              ...m,
+              variants: m.variants.map((v) =>
+                v.id !== variantId
+                  ? v
+                  : { ...v, availability: "in_delivery", stockQty: v.preorderReserved },
+              ),
+            },
+      ),
+    );
+    await fetch(`/api/admin/products/${modelId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ variantId, action: "startDelivery" }),
+    });
+  }
+
+  /** Re-upserts the built-in catalogue (categories, brands, seed products) from
+   *  the code into Supabase. Needed after a seed-data change — e.g. swapping a
+   *  category image — since the database keeps its own copy of those rows. */
+  async function resyncCatalogue() {
+    setSyncing(true);
+    setNotice(null);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/seed", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Re-sync failed.");
+      setNotice("Catalogue re-synced from the site's built-in data.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Re-sync failed.");
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function removeModel(id: string) {
+    setModels((ms) => ms.filter((m) => m.id !== id));
+    await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+  }
+
+  if (loading) {
     return <div className="h-64 animate-pulse rounded-3xl bg-bone-300/60" />;
   }
 
   const totalUnits = models.reduce((s, m) => s + unitsInStock(m), 0);
   const totalReserved = models.reduce((s, m) => s + preordersReserved(m), 0);
-  const stockValue = models.reduce(
-    (s, m) => s + unitsInStock(m) * m.price,
-    0,
-  );
+  const stockValue = models.reduce((s, m) => s + unitsInStock(m) * m.price, 0);
 
   const stats = [
     { label: "Models", value: String(models.length) },
@@ -52,19 +137,35 @@ export function InventoryBoard() {
             Live stock and pre-order pipeline across every brand.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={resetToSamples}
-            className="rounded-full border border-bone-300 px-4 py-2 text-sm font-medium transition hover:border-gold hover:text-gold"
+            onClick={resyncCatalogue}
+            disabled={syncing}
+            title="Reload the built-in categories, brands and starter products from the site's code"
+            className="rounded-full border border-bone-300 px-4 py-2 text-sm font-medium transition enabled:hover:border-gold enabled:hover:text-gold disabled:opacity-50"
           >
-            Reset samples
+            {syncing ? "Re-syncing…" : "Re-sync catalogue"}
           </button>
           <Link href="/admin/products/new" className="btn-gold">
             + Add product
           </Link>
         </div>
       </div>
+
+      {error ? (
+        <p
+          role="alert"
+          className="rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {error}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {notice}
+        </p>
+      ) : null}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
@@ -134,7 +235,7 @@ function ModelRow({
               alt=""
               fill
               sizes="56px"
-              className="object-cover"
+              className="object-contain"
               unoptimized
             />
           ) : null}
@@ -150,6 +251,16 @@ function ModelRow({
         <span className="hidden text-sm font-semibold sm:block">
           {formatINR(model.price)}
         </span>
+        <Link
+          href={`/admin/products/${model.id}/edit`}
+          aria-label={`Edit ${model.title}`}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-bone-300 px-3.5 py-1.5 text-xs font-semibold transition hover:border-gold hover:text-gold"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 20h4l10-10a2.8 2.8 0 10-4-4L4 16v4z" />
+          </svg>
+          Edit
+        </Link>
         <button
           type="button"
           onClick={() => onRemove(model.id)}

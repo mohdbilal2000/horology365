@@ -9,7 +9,7 @@ const ONLINE_SHOPPING = [
   { label: "Men's Watches", href: "/category/mens-watches" },
   { label: "Women's Watches", href: "/category/womens-watches" },
   { label: "This Week's Drop", href: "/#weekly-drop" },
-  { label: "Offers & Sale", href: "/#offers" },
+  { label: "Offers & Deals", href: "/offers" },
 ] as const;
 
 const USEFUL_LINKS = [

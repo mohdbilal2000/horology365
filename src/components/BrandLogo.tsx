@@ -14,9 +14,9 @@ interface BrandLogoProps {
   monogram?: boolean;
 }
 
-/** First letters of a brand name — "Fastrack" → "F", "Carter London" → "CL". */
+/** First letters of a brand name — "Fastrack" → "FA", "Carter London" → "CL", "G-Shock" → "GS". */
 function monogramOf(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
+  const words = name.trim().split(/[\s-]+/).filter(Boolean);
   if (words.length >= 2) {
     return (words[0]![0]! + words[1]![0]!).toUpperCase();
   }

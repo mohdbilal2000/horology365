@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
 import { validateCheckout, validateCartItems } from "@/lib/validation";
-import { cartSubtotal, cartShipping } from "@/lib/store/cart";
+import { cartSubtotal, cartShipping } from "@/lib/cartMath";
 import { generateOrderId } from "@/lib/utils";
-import { COD_ENABLED, UPI_ENABLED } from "@/lib/config";
+import { COD_ENABLED, UPI_ENABLED, BANK_ENABLED, CARD_ENABLED } from "@/lib/config";
+import { createOrder } from "@/lib/data/orders";
+import { isSupabaseAdminConfigured } from "@/lib/supabase/server";
 import type { CartItem, CheckoutDetails, Order } from "@/lib/types";
 
 /**
- * Phase 1: server-side validated mock order creation. No database write yet.
- * The same contract is reused in Phase 2, where the body is persisted to
- * Supabase and (for UPI) a Razorpay order is created + signature verified.
+ * Server-side validated order creation, persisted to Supabase when
+ * configured (falls back to an unpersisted response otherwise, so checkout
+ * still completes before the backend is set up — see /order/[id]).
  *
- * Fail closed: an order is only acknowledged after validation passes, and
- * UPI is rejected until NEXT_PUBLIC_PAYMENT_MODE enables it.
+ * Fail closed on payment method: an order is only acknowledged after
+ * validation passes, and each method is rejected until it's actually enabled
+ * (UPI/COD via NEXT_PUBLIC_PAYMENT_MODE, card via real Razorpay keys).
  */
 export async function POST(request: Request): Promise<NextResponse> {
   let body: unknown;
@@ -51,6 +54,18 @@ export async function POST(request: Request): Promise<NextResponse> {
       { status: 409 },
     );
   }
+  if (method === "bank_transfer" && !BANK_ENABLED) {
+    return NextResponse.json(
+      { error: "Bank transfer is currently unavailable." },
+      { status: 409 },
+    );
+  }
+  if (method === "card" && !CARD_ENABLED) {
+    return NextResponse.json(
+      { error: "Card payments aren't available yet." },
+      { status: 409 },
+    );
+  }
 
   const typedItems = items as CartItem[];
   const subtotal = cartSubtotal(typedItems);
@@ -63,11 +78,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     subtotal,
     shipping,
     total: subtotal + shipping,
-    // COD orders are "pending" until delivered; UPI would be "paid" after
-    // verified signature in Phase 2.
+    // COD/UPI orders start "pending" until delivered/reconciled; card orders
+    // are created "pending" too and flipped to "paid" once Razorpay confirms.
     status: "pending",
     createdAt: new Date().toISOString(),
   };
+
+  const persisted = await createOrder(order);
+  if (!persisted.ok && isSupabaseAdminConfigured()) {
+    // Supabase IS configured but the write failed — don't silently lose the
+    // order without a trace. Still return it to the customer (fail open).
+    console.error("[api/orders] failed to persist order:", persisted.error);
+  }
 
   return NextResponse.json({ order }, { status: 201 });
 }

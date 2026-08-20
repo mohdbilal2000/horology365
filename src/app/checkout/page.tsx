@@ -12,9 +12,34 @@ import {
 } from "@/lib/store/cart";
 import { validateCheckout, type FieldErrors } from "@/lib/validation";
 import { formatINR } from "@/lib/utils";
-import { COD_ENABLED, UPI_ENABLED, UPI, buildUpiUri } from "@/lib/config";
+import {
+  COD_ENABLED,
+  UPI_ENABLED,
+  BANK_ENABLED,
+  CARD_ENABLED,
+  UPI,
+  BANK,
+  buildUpiUri,
+} from "@/lib/config";
 import { cn } from "@/lib/utils";
 import type { CheckoutDetails, Order, PaymentMethod } from "@/lib/types";
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, unknown>) => { open: () => void };
+  }
+}
+
+function loadRazorpayScript(): Promise<boolean> {
+  if (window.Razorpay) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
 
 const INITIAL: CheckoutDetails = {
   name: "",
@@ -40,7 +65,17 @@ export default function CheckoutPage() {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
-  const [copied, setCopied] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  function copyToClipboard(text: string, field: string) {
+    navigator.clipboard
+      ?.writeText(text)
+      .then(() => {
+        setCopiedField(field);
+        window.setTimeout(() => setCopiedField(null), 1500);
+      })
+      .catch(() => undefined);
+  }
 
   const subtotal = cartSubtotal(items);
   const shipping = cartShipping(subtotal);
@@ -92,6 +127,11 @@ export default function CheckoutPage() {
 
     setSubmitting(true);
     try {
+      if (form.paymentMethod === "card") {
+        await submitCardPayment();
+        return;
+      }
+
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -109,8 +149,8 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Phase 1: hand the confirmation page its order via sessionStorage.
-      // Phase 2 reads the persisted order from Supabase by id instead.
+      // Safety net for pre-Supabase-setup: /order/[id] falls back to this if
+      // the server-side order lookup finds nothing yet.
       sessionStorage.setItem(
         `order:${data.order.id}`,
         JSON.stringify(data.order),
@@ -122,6 +162,67 @@ export default function CheckoutPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function submitCardPayment() {
+    const res = await fetch("/api/razorpay/order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ details: form, items }),
+    });
+    const data = (await res.json()) as {
+      orderId?: string;
+      razorpayOrderId?: string;
+      amount?: number;
+      keyId?: string;
+      error?: string;
+      errors?: FieldErrors;
+    };
+
+    if (!res.ok || !data.orderId || !data.razorpayOrderId) {
+      if (data.errors) setErrors(data.errors);
+      setServerError(data.error ?? "Could not start the card payment.");
+      setSubmitting(false);
+      return;
+    }
+
+    const scriptLoaded = await loadRazorpayScript();
+    if (!scriptLoaded || !window.Razorpay) {
+      setServerError("Could not load the payment window. Check your connection.");
+      setSubmitting(false);
+      return;
+    }
+
+    const rzp = new window.Razorpay({
+      key: data.keyId,
+      amount: data.amount,
+      currency: "INR",
+      name: "Horology365",
+      order_id: data.razorpayOrderId,
+      prefill: { name: form.name, contact: form.phone, email: form.email },
+      handler: async (response: {
+        razorpay_order_id: string;
+        razorpay_payment_id: string;
+        razorpay_signature: string;
+      }) => {
+        const verifyRes = await fetch("/api/razorpay/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(response),
+        });
+        if (!verifyRes.ok) {
+          setServerError("Payment verification failed. Contact us with your payment id.");
+          setSubmitting(false);
+          return;
+        }
+        clear();
+        router.push(`/order/${data.orderId}`);
+      },
+      modal: {
+        ondismiss: () => setSubmitting(false),
+      },
+    });
+    rzp.open();
   }
 
   if (items.length === 0) {
@@ -243,6 +344,16 @@ export default function CheckoutPage() {
                 title="UPI"
                 subtitle="Pay instantly via any UPI app — GPay, PhonePe, Paytm."
               />
+              {BANK_ENABLED ? (
+                <PaymentOption
+                  method="bank_transfer"
+                  selected={form.paymentMethod === "bank_transfer"}
+                  onSelect={() => update("paymentMethod", "bank_transfer")}
+                  disabled={false}
+                  title="Bank Transfer"
+                  subtitle="NEFT / IMPS directly to our bank account."
+                />
+              ) : null}
               <PaymentOption
                 method="cod"
                 selected={form.paymentMethod === "cod"}
@@ -255,6 +366,16 @@ export default function CheckoutPage() {
                     : "Coming soon — pay on delivery is being enabled."
                 }
               />
+              {CARD_ENABLED ? (
+                <PaymentOption
+                  method="card"
+                  selected={form.paymentMethod === "card"}
+                  onSelect={() => update("paymentMethod", "card")}
+                  disabled={false}
+                  title="Card / Net Banking"
+                  subtitle="Cards, net banking, wallets & UPI via Razorpay's secure checkout."
+                />
+              ) : null}
               {errors.paymentMethod ? (
                 <p className="text-sm text-red-600">{errors.paymentMethod}</p>
               ) : null}
@@ -293,18 +414,10 @@ export default function CheckoutPage() {
                           </code>
                           <button
                             type="button"
-                            onClick={() => {
-                              navigator.clipboard
-                                ?.writeText(UPI.vpa)
-                                .then(() => {
-                                  setCopied(true);
-                                  window.setTimeout(() => setCopied(false), 1500);
-                                })
-                                .catch(() => undefined);
-                            }}
+                            onClick={() => copyToClipboard(UPI.vpa, "vpa")}
                             className="rounded-lg border border-bone-300 px-3 py-1.5 text-xs font-medium transition hover:border-gold hover:text-gold-600"
                           >
-                            {copied ? "Copied!" : "Copy"}
+                            {copiedField === "vpa" ? "Copied!" : "Copy"}
                           </button>
                         </div>
                       </div>
@@ -328,6 +441,65 @@ export default function CheckoutPage() {
                       error={errors.upiReference}
                       placeholder="e.g. 4567 8910 1234"
                       inputMode="numeric"
+                      required
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Bank transfer panel — account details + reference */}
+              {form.paymentMethod === "bank_transfer" ? (
+                <div className="mt-2 rounded-2xl border border-gold/30 bg-gold/5 p-5">
+                  <p className="text-sm font-semibold text-ink">
+                    Transfer {formatINR(total)} to complete your order
+                  </p>
+                  <dl className="mt-4 space-y-3 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-ink-500">Account name</dt>
+                      <dd className="font-medium">{BANK.accountName}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-ink-500">Account number</dt>
+                      <dd className="flex items-center gap-2">
+                        <code className="rounded-lg bg-bone-200 px-3 py-1.5 font-semibold">
+                          {BANK.accountNumber}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(BANK.accountNumber, "account")}
+                          className="rounded-lg border border-bone-300 px-3 py-1.5 text-xs font-medium transition hover:border-gold hover:text-gold-600"
+                        >
+                          {copiedField === "account" ? "Copied!" : "Copy"}
+                        </button>
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-ink-500">IFSC</dt>
+                      <dd className="flex items-center gap-2">
+                        <code className="rounded-lg bg-bone-200 px-3 py-1.5 font-semibold">
+                          {BANK.ifsc}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(BANK.ifsc, "ifsc")}
+                          className="rounded-lg border border-bone-300 px-3 py-1.5 text-xs font-medium transition hover:border-gold hover:text-gold-600"
+                        >
+                          {copiedField === "ifsc" ? "Copied!" : "Copy"}
+                        </button>
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="mt-4 text-xs text-ink-500">
+                    After transferring, enter the reference number below so we can
+                    verify and ship your order.
+                  </p>
+                  <div className="mt-4">
+                    <Field
+                      label="Bank transfer reference number"
+                      value={form.upiReference ?? ""}
+                      onChange={(v) => update("upiReference", v)}
+                      error={errors.upiReference}
+                      placeholder="From your bank's transfer confirmation"
                       required
                     />
                   </div>
@@ -388,9 +560,11 @@ export default function CheckoutPage() {
             >
               {submitting
                 ? "Placing order…"
-                : form.paymentMethod === "upi"
+                : form.paymentMethod === "upi" || form.paymentMethod === "bank_transfer"
                   ? "I've paid — place order"
-                  : "Place order (COD)"}
+                  : form.paymentMethod === "card"
+                    ? "Pay by card"
+                    : "Place order (COD)"}
             </button>
             <p className="mt-3 text-center text-xs text-ink-500">
               By placing your order you agree to our{" "}

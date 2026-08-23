@@ -87,7 +87,7 @@ export async function GET(): Promise<NextResponse> {
     ok: Boolean(process.env.APP_SECRET),
     detail: process.env.APP_SECRET
       ? "APP_SECRET set — invoice links are signed"
-      : "APP_SECRET missing — invoice links cannot be generated",
+      : "APP_SECRET missing — customers cannot download or be sent an invoice (the confirmation page still works; the link is hidden)",
   };
   checks.email = {
     ok: EMAIL_ENABLED,

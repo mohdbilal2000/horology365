@@ -18,10 +18,11 @@ export const categories: Category[] = [
     name: "Women's Watches",
     description:
       "Slim silhouettes, jewellery dials and bracelets that finish every look.",
-    // Watch-only imagery (never clothing) — gold-tone glam watch,
-    // jewellery-grade sparkle instead of a plain wrist shot.
-    imageUrl:
-      "https://images.unsplash.com/photo-1526045431048-f857369baa09?auto=format&fit=crop&w=1200&q=70",
+    // A rose-gold, mother-of-pearl bracelet watch on the wrist. The previous
+    // image was a men's Rolex diver — wrong gender, and a brand we don't sell.
+    // Self-hosted so a key homepage tile never depends on a third-party CDN,
+    // and cropped so the watch sits clear of the tile's heading.
+    imageUrl: "/posters/womens-watch.jpg",
   },
 ];
 

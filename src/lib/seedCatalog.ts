@@ -4,11 +4,11 @@ import { products } from "@/lib/mock/products";
 
 /**
  * Row-shaping for the one-time catalog seed — shared by the standalone
- * `npm run seed` script (scripts/seed-supabase.ts, run with a local
+ * `npm run seed` script (scripts/seed-db.ts, run with a local
  * .env.local) and the admin-gated /api/admin/seed route (for re-seeding a
  * deployed environment without needing the service-role key on a laptop).
- * Pure data, no Supabase client here — each caller upserts with whichever
- * client it already has.
+ * Pure data, no database client here — each caller writes the rows with the
+ * connection it already has.
  */
 
 export function categoryRows() {

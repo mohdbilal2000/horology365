@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { updateOrderStatus } from "@/lib/data/orders";
-import { isSupabaseAdminConfigured } from "@/lib/supabase/server";
+import { isDatabaseConfigured } from "@/lib/db/client";
 import type { OrderStatus } from "@/lib/types";
 
 const VALID_STATUSES: OrderStatus[] = ["pending", "paid", "shipped", "delivered"];
@@ -10,7 +10,7 @@ interface RouteParams {
 }
 
 export async function PATCH(request: Request, { params }: RouteParams): Promise<NextResponse> {
-  if (!isSupabaseAdminConfigured()) {
+  if (!isDatabaseConfigured()) {
     return NextResponse.json({ error: "The order database isn't configured yet." }, { status: 503 });
   }
   const { id } = await params;

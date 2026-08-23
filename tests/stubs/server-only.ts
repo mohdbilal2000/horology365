@@ -1,10 +1,10 @@
 /**
  * Test stub for the `server-only` package.
  *
- * `server-only` resolves to a module that throws unless Node is run with the
- * `react-server` export condition — but that condition also swaps React for the
- * RSC build, which @react-pdf/renderer cannot use. Stubbing it here lets the
- * tests execute server modules and render a real PDF at the same time.
+ * `server-only` resolves to a module that throws unless Node runs with the
+ * `react-server` export condition — which also swaps in the RSC build of React
+ * that @react-pdf/renderer can't use. Stubbing it lets the integration tests
+ * import the server-side data layer directly.
  *
  * It only marks a module as server-side; there is no behaviour to reproduce.
  */

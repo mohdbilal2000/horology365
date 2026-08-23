@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { getSupabaseAnon } from "@/lib/supabase/server";
+import { query, isDatabaseConfigured } from "@/lib/db/client";
 import { categories as seedCategories } from "@/lib/mock/categories";
 import type { Category, CategorySlug } from "@/lib/types";
 
@@ -28,18 +28,20 @@ function rowToCategory(row: CategoryRow): Category {
 }
 
 export const getAllCategories = cache(async (): Promise<Category[]> => {
-  const supabase = getSupabaseAnon();
-  if (!supabase) return seedCategories;
+  if (!isDatabaseConfigured()) return seedCategories;
 
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, slug, name, description, image_url");
-
-  if (error) {
-    console.error("[data/categories] Supabase query failed, using seed categories:", error.message);
+  try {
+    const rows = await query<CategoryRow>(
+      "select id, slug, name, description, image_url from categories",
+    );
+    return rows.map(rowToCategory);
+  } catch (err) {
+    console.error(
+      "[data/categories] query failed, using seed categories:",
+      err instanceof Error ? err.message : err,
+    );
     return seedCategories;
   }
-  return (data as CategoryRow[]).map(rowToCategory);
 });
 
 export async function getCategoryBySlug(slug: string): Promise<Category | undefined> {

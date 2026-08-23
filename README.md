@@ -9,7 +9,7 @@ champagne-gold accent (`#C8A55B`), display serif headlines and a clean grotesk s
 > against a typed mock-data layer with **zero backend required**. Checkout takes **UPI**
 > today — pay to our VPA via a generated QR / UPI ID and enter the transaction reference
 > (orders stay `pending` until the payment is verified — fail closed). **Cash on Delivery**
-> is "coming soon" and flips on via a single env flag. Phase 2 (Supabase + Razorpay UPI +
+> is "coming soon" and flips on via a single env flag. (Razorpay card checkout +
 > admin) swaps the mock layer for real queries and a verified gateway.
 
 
@@ -25,9 +25,24 @@ This is enforced by `tests/data-safety.test.ts`, which runs in CI on every push.
 **If one of those tests fails, do not loosen it** — it means the change can
 destroy live data. Full detail: [`DATA_SAFETY.md`](./DATA_SAFETY.md).
 
-Applying to an existing Supabase project: run
-`supabase/migrations/20260823-product-data-safety.sql` once.
+Applying to an existing database: run
+`db/migrations/20260823-product-data-safety.sql` once.
 
+
+
+## Database
+
+Plain PostgreSQL over the standard wire protocol — **no vendor SDK**. One
+environment variable moves the whole app between Supabase, Neon, Railway, RDS or
+your own server:
+
+```bash
+DATABASE_URL=postgresql://user:password@host:5432/dbname
+```
+
+Schema and migrations live in `db/`. **Use a transaction-mode pooler in
+production** — serverless functions each open their own connections and will
+exhaust Postgres otherwise. Full detail: [`DATABASE.md`](./DATABASE.md).
 
 ## Order delivery
 
@@ -54,7 +69,7 @@ numbers. **`APP_SECRET` is required in production.**
 - **Tailwind CSS** — design tokens in `tailwind.config.ts`
 - **Zustand** — cart state, persisted to `localStorage`
 - `next/image`, `next/font`, native `<video>` with `preload="none"` + poster
-- **Supabase** (Phase 2) — Postgres, Auth, Storage
+- **PostgreSQL** via `pg` — no vendor SDK, so any provider works ([`DATABASE.md`](./DATABASE.md))
 - **Razorpay** UPI (Phase 2) — Orders API + server-side signature verification
 - **Vercel** hosting
 
@@ -113,7 +128,7 @@ src/
     sitemap.ts  robots.ts  not-found.tsx
   components/               # SiteHeader, VideoHero, BrandBay, ProductCard, CartDrawer, …
   lib/
-    types.ts                # domain types (mirror the Phase 2 Supabase schema)
+    types.ts                # domain types (mirror the database schema)
     config.ts               # site + payment-mode config from env
     utils.ts  validation.ts
     store/cart.ts           # Zustand cart (+ derived selectors)
@@ -124,7 +139,7 @@ src/
 
 Everything reads from `@/lib/mock` (brands, categories, products, banners, offers,
 reviews) through functions like `getProductBySlug`, `getProductsByBrand`,
-`searchProducts`. In **Phase 2** this module is replaced by Supabase queries with the
+`searchProducts`. With a database configured these are served by SQL queries with the
 **same signatures**, so components never change.
 
 **Active brands (9):** Casio, G-Shock, Timex, Sonata, Titan, Fastrack, French Connection,
@@ -154,13 +169,13 @@ under the dedicated g-shock brand.)
 
 ## Roadmap — Phase 2 (Backend)
 
-- Supabase schema + migrations + seed; RLS (public read on active
+- Schema + migrations + seed live in `db/`; RLS (public read on active
   brands/categories/products/offers/banners/reviews; writes restricted to authenticated
   admin; `orders` / `order_items` inserted via server route only).
-- Swap `@/lib/mock` for typed Supabase queries.
+- Swap `@/lib/mock` for typed SQL queries.
 - Razorpay UPI checkout: server route creates the order, client opens UPI, a server route
   verifies the signature before writing `orders` + `order_items` and marking `paid`
   (**fail closed** — never mark paid without a verified signature). Order-confirmation
   email + WhatsApp link.
-- `/admin/*` (Supabase Auth): dashboard (orders + revenue), product CRUD with
+- `/admin/*`: dashboard (orders + revenue), product CRUD with
   image/video upload to Storage, order status transitions, brand/banner/offer management.

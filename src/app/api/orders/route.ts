@@ -4,7 +4,7 @@ import { cartSubtotal, cartShipping } from "@/lib/cartMath";
 import { generateOrderId } from "@/lib/utils";
 import { COD_ENABLED, UPI_ENABLED, BANK_ENABLED, CARD_ENABLED } from "@/lib/config";
 import { createOrder } from "@/lib/data/orders";
-import { isSupabaseAdminConfigured } from "@/lib/supabase/server";
+import { isDatabaseConfigured } from "@/lib/db/client";
 import { dispatchOrder } from "@/lib/notify/dispatch";
 import type { CartItem, CheckoutDetails, Order } from "@/lib/types";
 
@@ -86,7 +86,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   };
 
   const persisted = await createOrder(order);
-  if (!persisted.ok && isSupabaseAdminConfigured()) {
+  if (!persisted.ok && isDatabaseConfigured()) {
     // Supabase IS configured but the write failed — don't silently lose the
     // order without a trace. Still return it to the customer (fail open).
     console.error("[api/orders] failed to persist order:", persisted.error);

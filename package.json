@@ -8,15 +8,16 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "seed": "tsx scripts/seed-supabase.ts",
-    "test": "tsx --test tests/data-safety.test.ts && tsx --tsconfig tsconfig.test.json --test tests/product-routes.test.ts",
-    "verify": "npm run typecheck && npm run lint && npm run test && npm run build"
+    "seed": "tsx scripts/seed-db.ts",
+    "test": "tsx --test tests/data-safety.test.ts tests/invoice-link.test.ts",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run test:db && npm run build",
+    "test:db": "bash scripts/with-test-db.sh"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",
-    "@supabase/supabase-js": "^2.112.0",
     "clsx": "2.1.1",
     "next": "15.5.19",
+    "pg": "^8.16.3",
     "qrcode": "^1.5.4",
     "razorpay": "^2.9.8",
     "react": "19.1.0",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@types/node": "22.15.30",
+    "@types/pg": "^8.15.5",
     "@types/qrcode": "^1.5.5",
     "@types/react": "19.1.6",
     "@types/react-dom": "19.1.6",

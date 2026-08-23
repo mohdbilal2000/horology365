@@ -77,12 +77,12 @@ request.
 Run once, in the Supabase SQL editor:
 
 ```
-supabase/migrations/20260823-product-data-safety.sql
+db/migrations/20260823-product-data-safety.sql
 ```
 
 It adds `products.deleted_at`, the `admin_audit` table, and the protection
 triggers. It is safe to re-run. Fresh projects get all of it from
-`supabase/schema.sql`.
+`db/schema.sql`.
 
 Verify afterwards:
 

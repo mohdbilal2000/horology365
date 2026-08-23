@@ -1,5 +1,5 @@
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { query, isDatabaseConfigured } from "@/lib/db/client";
 
 /**
  * Append-only record of every admin change to the catalog.
@@ -10,8 +10,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * before/after state so any change can be inspected — or reversed — later.
  *
  * Nothing in the app updates or deletes rows in this table, and a Postgres
- * trigger (supabase/migrations/20260823-product-data-safety.sql) rejects the
- * attempt even for the service role, so a bug cannot rewrite history.
+ * trigger (db/migrations/20260823-product-data-safety.sql) rejects the
+ * attempt even for a superuser connection, so a bug cannot rewrite history.
  */
 
 export type AuditAction =
@@ -35,25 +35,28 @@ export interface RecordAuditInput {
 /**
  * Writes one audit entry. Deliberately never throws: failing to log must not
  * fail the admin action the owner just took. A failure is logged loudly so it
- * is visible in the server logs instead.
+ * shows up in the server logs instead.
  */
-export async function recordAudit(
-  supabase: SupabaseClient,
-  input: RecordAuditInput,
-): Promise<void> {
-  const { error } = await supabase.from("admin_audit").insert({
-    action: input.action,
-    target_id: input.targetId,
-    summary: input.summary,
-    actor: input.actor ?? "admin",
-    before: input.before ?? null,
-    after: input.after ?? null,
-  });
+export async function recordAudit(input: RecordAuditInput): Promise<void> {
+  if (!isDatabaseConfigured()) return;
 
-  if (error) {
+  try {
+    await query(
+      `insert into admin_audit (action, target_id, summary, actor, before, after)
+       values ($1, $2, $3, $4, $5, $6)`,
+      [
+        input.action,
+        input.targetId,
+        input.summary,
+        input.actor ?? "admin",
+        input.before === undefined ? null : JSON.stringify(input.before),
+        input.after === undefined ? null : JSON.stringify(input.after),
+      ],
+    );
+  } catch (err) {
     console.error(
       `[audit] failed to record ${input.action} on ${input.targetId}:`,
-      error.message,
+      err instanceof Error ? err.message : err,
     );
   }
 }
@@ -70,19 +73,23 @@ export interface AuditEntry {
 }
 
 /** Newest entries first. */
-export async function listAudit(
-  supabase: SupabaseClient,
-  limit = 200,
-): Promise<AuditEntry[]> {
-  const { data, error } = await supabase
-    .from("admin_audit")
-    .select("*")
-    .order("at", { ascending: false })
-    .limit(limit);
+export async function listAudit(limit = 200): Promise<AuditEntry[]> {
+  if (!isDatabaseConfigured()) return [];
 
-  if (error) {
-    console.error("[audit] list failed:", error.message);
+  try {
+    const rows = await query<Omit<AuditEntry, "at"> & { at: string | Date }>(
+      `select id, at, action, target_id, summary, actor, before, after
+         from admin_audit
+        order by at desc
+        limit $1`,
+      [limit],
+    );
+    return rows.map((r) => ({
+      ...r,
+      at: r.at instanceof Date ? r.at.toISOString() : r.at,
+    }));
+  } catch (err) {
+    console.error("[audit] list failed:", err instanceof Error ? err.message : err);
     return [];
   }
-  return (data ?? []) as AuditEntry[];
 }

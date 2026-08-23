@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { getSupabaseAnon } from "@/lib/supabase/server";
+import { query, isDatabaseConfigured } from "@/lib/db/client";
 import { products as seedProducts } from "@/lib/mock/products";
 import { DELISTED_BRAND_SLUGS } from "@/lib/data/brands";
 import type { CategorySlug, Product } from "@/lib/types";
@@ -72,24 +72,32 @@ const isGShock = (p: Product): boolean =>
 const fileGShock = (p: Product): Product =>
   isGShock(p) ? { ...p, brandSlug: "g-shock" } : p;
 
+/** Columns every product read selects. */
+export const PRODUCT_SELECT = `
+  id, slug, title, description, brand_slug, category_slug, price, mrp,
+  images, video_url, video_poster, rating, review_count, stock,
+  is_preorder, drop_date, is_featured, tags
+`;
+
 export const getAllProducts = cache(async (): Promise<Product[]> => {
-  const supabase = getSupabaseAnon();
-  if (!supabase) return seedProducts.filter(sellable).map(fileGShock);
+  if (!isDatabaseConfigured()) return seedProducts.filter(sellable).map(fileGShock);
 
-  const { data, error } = await supabase
-    .from("products")
-    .select(
-      "id, slug, title, description, brand_slug, category_slug, price, mrp, images, video_url, video_poster, rating, review_count, stock, is_preorder, drop_date, is_featured, tags",
-    )
-    // Soft-deleted products stay in the table but must never reach the shop.
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("[data/products] Supabase query failed, using seed catalogue:", error.message);
+  try {
+    const rows = await query<ProductRow>(
+      // Soft-deleted products stay in the table but must never reach the shop.
+      `select ${PRODUCT_SELECT}
+         from products
+        where deleted_at is null
+        order by created_at desc`,
+    );
+    return rows.map(rowToProduct).filter(sellable).map(fileGShock);
+  } catch (err) {
+    console.error(
+      "[data/products] query failed, using seed catalogue:",
+      err instanceof Error ? err.message : err,
+    );
     return seedProducts.filter(sellable).map(fileGShock);
   }
-  return (data as ProductRow[]).map(rowToProduct).filter(sellable).map(fileGShock);
 });
 
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {

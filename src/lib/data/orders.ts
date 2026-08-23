@@ -1,12 +1,17 @@
 import "server-only";
-import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { query, queryOne, isDatabaseConfigured } from "@/lib/db/client";
 import type { CartItem, CheckoutDetails, Order, OrderStatus } from "@/lib/types";
 
 /**
- * Order persistence — service-role only, no static fallback (orders never
- * existed as static data). Every function degrades gracefully to a no-op
- * when Supabase isn't configured yet, so checkout never breaks pre-setup.
+ * Order persistence.
+ *
+ * No static fallback — orders never existed as static data — but every function
+ * degrades to a no-op when no database is configured, so checkout still
+ * completes before the backend is set up.
  */
+
+const ORDER_SELECT =
+  "id, items, details, status, subtotal, shipping, total, created_at";
 
 interface OrderRow {
   id: string;
@@ -16,7 +21,7 @@ interface OrderRow {
   subtotal: number;
   shipping: number;
   total: number;
-  created_at: string;
+  created_at: string | Date;
 }
 
 function rowToOrder(row: OrderRow): Order {
@@ -28,68 +33,82 @@ function rowToOrder(row: OrderRow): Order {
     shipping: row.shipping,
     total: row.total,
     status: row.status,
-    createdAt: row.created_at,
+    // pg returns timestamptz as a Date; the app's Order type is an ISO string.
+    createdAt:
+      row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
   };
 }
 
 export async function createOrder(order: Order): Promise<{ ok: boolean; error?: string }> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return { ok: false, error: "Supabase not configured" };
+  if (!isDatabaseConfigured()) return { ok: false, error: "DATABASE_URL not configured" };
 
-  const { error } = await supabase.from("orders").insert({
-    id: order.id,
-    items: order.items,
-    details: order.details,
-    payment_method: order.details.paymentMethod,
-    upi_reference: order.details.upiReference ?? null,
-    subtotal: order.subtotal,
-    shipping: order.shipping,
-    total: order.total,
-    status: order.status,
-  });
-
-  if (error) return { ok: false, error: error.message };
-  return { ok: true };
+  try {
+    await query(
+      `insert into orders
+         (id, items, details, payment_method, upi_reference,
+          subtotal, shipping, total, status)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        order.id,
+        JSON.stringify(order.items),
+        JSON.stringify(order.details),
+        order.details.paymentMethod,
+        order.details.upiReference ?? null,
+        order.subtotal,
+        order.shipping,
+        order.total,
+        order.status,
+      ],
+    );
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 export async function getOrderById(id: string): Promise<Order | null> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
+  if (!isDatabaseConfigured()) return null;
 
-  const { data, error } = await supabase
-    .from("orders")
-    .select("id, items, details, status, subtotal, shipping, total, created_at")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error || !data) return null;
-  return rowToOrder(data as OrderRow);
+  try {
+    const row = await queryOne<OrderRow>(
+      `select ${ORDER_SELECT} from orders where id = $1`,
+      [id],
+    );
+    return row ? rowToOrder(row) : null;
+  } catch (err) {
+    console.error("[data/orders] getOrderById failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
 }
 
 export async function listOrders(limit = 200): Promise<Order[]> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return [];
+  if (!isDatabaseConfigured()) return [];
 
-  const { data, error } = await supabase
-    .from("orders")
-    .select("id, items, details, status, subtotal, shipping, total, created_at")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-
-  if (error || !data) return [];
-  return (data as OrderRow[]).map(rowToOrder);
+  try {
+    const rows = await query<OrderRow>(
+      `select ${ORDER_SELECT} from orders order by created_at desc limit $1`,
+      [limit],
+    );
+    return rows.map(rowToOrder);
+  } catch (err) {
+    console.error("[data/orders] listOrders failed:", err instanceof Error ? err.message : err);
+    return [];
+  }
 }
 
 export async function updateOrderStatus(id: string, status: OrderStatus): Promise<boolean> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return false;
+  if (!isDatabaseConfigured()) return false;
 
-  const { error } = await supabase
-    .from("orders")
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", id);
-
-  return !error;
+  try {
+    const rows = await query(
+      "update orders set status = $2, updated_at = now() where id = $1 returning id",
+      [id, status],
+    );
+    return rows.length > 0;
+  } catch (err) {
+    console.error("[data/orders] updateOrderStatus failed:", err instanceof Error ? err.message : err);
+    return false;
+  }
 }
 
 export async function markOrderPaidViaRazorpay(
@@ -97,33 +116,40 @@ export async function markOrderPaidViaRazorpay(
   paymentId: string,
   signature: string,
 ): Promise<boolean> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return false;
+  if (!isDatabaseConfigured()) return false;
 
-  const { error } = await supabase
-    .from("orders")
-    .update({
-      status: "paid",
-      razorpay_payment_id: paymentId,
-      razorpay_signature: signature,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("razorpay_order_id", razorpayOrderId);
-
-  return !error;
+  try {
+    const rows = await query(
+      `update orders
+          set status = 'paid',
+              razorpay_payment_id = $2,
+              razorpay_signature = $3,
+              updated_at = now()
+        where razorpay_order_id = $1
+        returning id`,
+      [razorpayOrderId, paymentId, signature],
+    );
+    return rows.length > 0;
+  } catch (err) {
+    console.error("[data/orders] markOrderPaid failed:", err instanceof Error ? err.message : err);
+    return false;
+  }
 }
 
 export async function attachRazorpayOrderId(
   orderId: string,
   razorpayOrderId: string,
 ): Promise<boolean> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return false;
+  if (!isDatabaseConfigured()) return false;
 
-  const { error } = await supabase
-    .from("orders")
-    .update({ razorpay_order_id: razorpayOrderId })
-    .eq("id", orderId);
-
-  return !error;
+  try {
+    const rows = await query(
+      "update orders set razorpay_order_id = $2 where id = $1 returning id",
+      [orderId, razorpayOrderId],
+    );
+    return rows.length > 0;
+  } catch (err) {
+    console.error("[data/orders] attachRazorpayOrderId failed:", err instanceof Error ? err.message : err);
+    return false;
+  }
 }

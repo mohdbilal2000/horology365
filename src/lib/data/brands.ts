@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { getSupabaseAnon } from "@/lib/supabase/server";
+import { query, isDatabaseConfigured } from "@/lib/db/client";
 import { brands as seedBrands } from "@/lib/mock/brands";
 import type { Brand } from "@/lib/types";
 
@@ -58,19 +58,22 @@ function ensureGShock(brands: Brand[]): Brand[] {
 }
 
 export const getAllBrands = cache(async (): Promise<Brand[]> => {
-  const supabase = getSupabaseAnon();
-  if (!supabase) return ensureGShock(seedBrands.map(applyDelisting));
+  if (!isDatabaseConfigured()) return ensureGShock(seedBrands.map(applyDelisting));
 
-  const { data, error } = await supabase
-    .from("brands")
-    .select("id, slug, name, tagline, logo_url, cover_url, is_active, sort_order")
-    .order("sort_order", { ascending: true });
-
-  if (error) {
-    console.error("[data/brands] Supabase query failed, using seed brands:", error.message);
+  try {
+    const rows = await query<BrandRow>(
+      `select id, slug, name, tagline, logo_url, cover_url, is_active, sort_order
+         from brands
+        order by sort_order asc`,
+    );
+    return ensureGShock(rows.map(rowToBrand).map(applyDelisting));
+  } catch (err) {
+    console.error(
+      "[data/brands] query failed, using seed brands:",
+      err instanceof Error ? err.message : err,
+    );
     return ensureGShock(seedBrands.map(applyDelisting));
   }
-  return ensureGShock((data as BrandRow[]).map(rowToBrand).map(applyDelisting));
 });
 
 export async function getActiveBrands(): Promise<Brand[]> {

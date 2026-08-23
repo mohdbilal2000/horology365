@@ -1,4 +1,4 @@
--- Product data safety — run this once against the existing Supabase project.
+-- Product data safety — run this once against an existing database.
 --
 -- Why this exists: products the store owner entered by hand, together with the
 -- photos he uploaded for them, were lost. Two things made that possible and
@@ -37,7 +37,19 @@ create index if not exists admin_audit_at_idx on public.admin_audit (at desc);
 create index if not exists admin_audit_target_idx on public.admin_audit (target_id);
 
 alter table public.admin_audit enable row level security;
-revoke all on public.admin_audit from anon, authenticated;
+
+-- Revoke the roles a hosted provider may have granted. Wrapped because those
+-- roles only exist on some providers — on a plain Postgres they don't, and the
+-- statement would abort the migration.
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'anon') then
+    execute 'revoke all on public.admin_audit from anon';
+  end if;
+  if exists (select 1 from pg_roles where rolname = 'authenticated') then
+    execute 'revoke all on public.admin_audit from authenticated';
+  end if;
+end $$;
 
 -- ── History protection ─────────────────────────────────────────────
 -- These fire for the service role too, so an application bug cannot erase a

@@ -48,9 +48,9 @@ function read(rel: string): string {
 }
 
 test("no code path hard-deletes a product", () => {
-  // `supabase.from("products").delete()` is what destroyed the owner's data.
+  // A DELETE against products is what destroyed the owner's data.
   const offenders = SOURCES.filter((f) =>
-    /from\(\s*["']products["']\s*\)[\s\S]{0,200}?\.delete\(/.test(f.code),
+    /delete\s+from\s+products\b/i.test(f.code),
   ).map((f) => f.file);
 
   assert.deepEqual(
@@ -60,28 +60,30 @@ test("no code path hard-deletes a product", () => {
   );
 });
 
-test("the product DELETE route soft-deletes and can be undone", () => {
-  const route = read(path.join("src", "app", "api", "admin", "products", "[id]", "route.ts"));
+test("removal is a soft delete and can be undone", () => {
+  const queries = read(path.join("src", "lib", "data", "adminProductQueries.ts"));
 
   assert.match(
-    route,
-    /deleted_at:\s*new Date\(\)\.toISOString\(\)/,
-    "DELETE must stamp deleted_at rather than removing the row.",
+    queries,
+    /set\s+deleted_at\s*=\s*now\(\)/,
+    "Removal must stamp deleted_at rather than removing the row.",
+  );
+  assert.match(
+    queries,
+    /set\s+deleted_at\s*=\s*null/,
+    "Restore must clear deleted_at.",
   );
   assert.doesNotMatch(
-    route,
-    /\.delete\(\)/,
-    "The product route must not call .delete().",
+    queries,
+    /delete\s+from/i,
+    "The product data layer must contain no delete statement at all.",
   );
+
+  const route = read(path.join("src", "app", "api", "admin", "products", "[id]", "route.ts"));
   assert.match(
     route,
     /export async function POST/,
     "A removed product must be restorable — the route needs a restore handler.",
-  );
-  assert.match(
-    route,
-    /deleted_at:\s*null/,
-    "Restore must clear deleted_at.",
   );
 });
 
@@ -90,18 +92,19 @@ test("seeding never overwrites an existing product", () => {
   // products with the mock catalogue.
   for (const rel of [
     path.join("src", "app", "api", "admin", "seed", "route.ts"),
-    path.join("scripts", "seed-supabase.ts"),
+    path.join("scripts", "seed-db.ts"),
   ]) {
     const code = read(rel);
-    const productUpsert = /from\(\s*["']products["']\s*\)\s*\.upsert\(([^;]*?)\)\s*;/s.exec(code)
-      ?? /\.upsert\(\s*products\s*,\s*\{([^}]*)\}/s.exec(code);
+    const productInsert = /insert\s+into\s+products[\s\S]*?on\s+conflict\s*\(\s*slug\s*\)\s*do\s+(\w+)/i.exec(
+      code,
+    );
 
-    assert.ok(productUpsert, `${rel}: expected a products upsert to inspect.`);
-    assert.match(
-      productUpsert[0],
-      /ignoreDuplicates:\s*true/,
-      `${rel}: the products seed must pass ignoreDuplicates:true so it can only INSERT. ` +
-        "Without it, re-seeding overwrites the owner's edited products and uploaded images.",
+    assert.ok(productInsert, `${rel}: expected a products insert to inspect.`);
+    assert.equal(
+      productInsert[1]?.toLowerCase(),
+      "nothing",
+      `${rel}: the products seed must be "on conflict (slug) do nothing" so it can only ` +
+        "INSERT. \"do update\" overwrites the owner's edited products and uploaded images.",
     );
   }
 });
@@ -109,12 +112,12 @@ test("seeding never overwrites an existing product", () => {
 test("the storefront and admin list hide removed products", () => {
   assert.match(
     read(path.join("src", "lib", "data", "products.ts")),
-    /\.is\(\s*["']deleted_at["']\s*,\s*null\s*\)/,
+    /where\s+deleted_at\s+is\s+null/i,
     "getAllProducts must filter out soft-deleted products.",
   );
   assert.match(
-    read(path.join("src", "app", "api", "admin", "products", "route.ts")),
-    /\.is\(\s*["']deleted_at["']\s*,\s*null\s*\)/,
+    read(path.join("src", "lib", "data", "adminProductQueries.ts")),
+    /deleted_at\s+is\s+\$\{|deleted_at\s+is\s+null/i,
     "The admin product list must filter out soft-deleted products by default.",
   );
 });
@@ -123,22 +126,22 @@ test("admin changes are written to an append-only audit trail", () => {
   const audit = read(path.join("src", "lib", "data", "adminAudit.ts"));
   assert.doesNotMatch(
     audit,
-    /from\(\s*["']admin_audit["']\s*\)[\s\S]{0,120}?\.(delete|update)\(/,
+    /(update|delete\s+from)\s+admin_audit/i,
     "Audit entries must never be edited or removed.",
   );
 
-  const idRoute = read(path.join("src", "app", "api", "admin", "products", "[id]", "route.ts"));
-  for (const action of ["product.delete", "product.restore", "product.update"]) {
+  const queries = read(path.join("src", "lib", "data", "adminProductQueries.ts"));
+  for (const action of ["product.delete", "product.restore", "product.update", "product.create"]) {
     assert.ok(
-      idRoute.includes(action),
-      `The product route must record a ${action} audit entry.`,
+      queries.includes(action),
+      `The product data layer must record a ${action} audit entry.`,
     );
   }
 });
 
 test("the database blocks deletion of products, orders and audit rows", () => {
   const migration = readFileSync(
-    path.join(ROOT, "supabase", "migrations", "20260823-product-data-safety.sql"),
+    path.join(ROOT, "db", "migrations", "20260823-product-data-safety.sql"),
     "utf8",
   );
   for (const trigger of [
@@ -153,7 +156,7 @@ test("the database blocks deletion of products, orders and audit rows", () => {
     );
   }
   assert.match(
-    readFileSync(path.join(ROOT, "supabase", "schema.sql"), "utf8"),
+    readFileSync(path.join(ROOT, "db", "schema.sql"), "utf8"),
     /deleted_at\s+timestamptz/,
     "schema.sql must declare products.deleted_at so a fresh project supports soft delete.",
   );

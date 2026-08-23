@@ -1,8 +1,11 @@
--- Horology365 — Supabase schema (Phase 2)
+-- Horology365 — database schema
 --
--- Run this once in the Supabase SQL editor (Project → SQL Editor → New query)
--- after creating a free Supabase project. Safe to re-run: every statement is
--- guarded with IF NOT EXISTS / OR REPLACE where Postgres allows it.
+-- Plain PostgreSQL — no vendor extensions. Apply with:
+--   psql "$DATABASE_URL" -f db/schema.sql
+--   psql "$DATABASE_URL" -f db/migrations/20260823-product-data-safety.sql
+-- Works on Supabase, Neon, Railway, RDS or a server you run yourself. Safe to
+-- re-run: every statement is guarded with IF NOT EXISTS / OR REPLACE where
+-- Postgres allows it.
 
 create extension if not exists pgcrypto; -- for gen_random_uuid()
 
@@ -86,10 +89,16 @@ create unique index if not exists orders_razorpay_order_id_idx
   on public.orders (razorpay_order_id) where razorpay_order_id is not null;
 
 -- ── Row Level Security ───────────────────────────────────────────
--- Catalog tables: public can read, nobody can write via the anon key (writes
--- only ever happen server-side with the service-role key, which bypasses RLS
--- entirely). Orders: zero policies at all — the anon key cannot read or write
--- a single row, by construction, not by convention.
+-- Defence in depth. The app no longer exposes any database credential to the
+-- browser — every query runs server-side over DATABASE_URL — so RLS is not the
+-- thing standing between a visitor and your orders any more. It is kept so that
+-- a restricted read-only role (analytics, a BI tool, a future public API) is
+-- safe by default rather than by remembering to be careful.
+--
+-- IMPORTANT: the application role must OWN these tables, or have BYPASSRLS.
+-- Table owners bypass RLS automatically, which is the normal setup. If you
+-- point DATABASE_URL at a limited role instead, reads will work and every
+-- write will fail — grant it ownership or BYPASSRLS.
 
 alter table public.categories enable row level security;
 alter table public.brands     enable row level security;

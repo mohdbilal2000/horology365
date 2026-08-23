@@ -30,11 +30,14 @@ test("a missing APP_SECRET hides the link instead of breaking the page", async (
   // In production appSecret() throws by design. Anything on a rendering path
   // must ask first, or a customer who has just paid gets a 500 on the order
   // confirmation page instead of their receipt.
-  const originalSecret = process.env.APP_SECRET;
-  const originalEnv = process.env.NODE_ENV;
+  // NODE_ENV is typed readonly, but the whole point here is to reproduce the
+  // production branch of appSecret(), so write through a mutable view of env.
+  const env = process.env as Record<string, string | undefined>;
+  const originalSecret = env.APP_SECRET;
+  const originalEnv = env.NODE_ENV;
   try {
-    delete process.env.APP_SECRET;
-    process.env.NODE_ENV = "production";
+    delete env.APP_SECRET;
+    env.NODE_ENV = "production";
 
     // Fresh module instance so config.ts re-reads the environment.
     const mod = await import(`../src/lib/orders/invoiceLink.ts?nosecret=${Date.now()}`);
@@ -47,8 +50,8 @@ test("a missing APP_SECRET hides the link instead of breaking the page", async (
       "an unverifiable request is simply not authorised",
     );
   } finally {
-    if (originalSecret === undefined) delete process.env.APP_SECRET;
-    else process.env.APP_SECRET = originalSecret;
-    process.env.NODE_ENV = originalEnv;
+    if (originalSecret === undefined) delete env.APP_SECRET;
+    else env.APP_SECRET = originalSecret;
+    env.NODE_ENV = originalEnv;
   }
 });

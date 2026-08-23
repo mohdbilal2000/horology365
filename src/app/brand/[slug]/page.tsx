@@ -14,7 +14,13 @@ interface PageProps {
 // Re-fetch from Supabase at most once per this many seconds, so admin
 // catalog changes show up without a redeploy — see the admin write routes
 // for the complementary on-demand revalidation.
-export const revalidate = 60;
+// One hour, not one minute. Every admin write already calls
+// revalidateCatalog(), so an edit is live immediately and this timer only
+// exists as a backstop for changes made outside the admin. At 60s each of the
+// ~63 catalogue pages regenerated every minute under crawler traffic — about
+// 90,000 ISR writes a day, which is what blew the hosting quota. Nothing here
+// changes how fast an admin edit appears.
+export const revalidate = 3600;
 
 export function generateStaticParams() {
   return seedActiveBrands.map((b) => ({ slug: b.slug }));

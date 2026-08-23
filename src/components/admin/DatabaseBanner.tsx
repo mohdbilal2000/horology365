@@ -13,16 +13,25 @@ import { useEffect, useState } from "react";
  *
  * Renders nothing while checking and nothing when healthy; the warning is the
  * only state with any UI.
+ *
+ * The reason comes from /api/health rather than being written here. An earlier
+ * version hardcoded "ask your developer to set DATABASE_URL", which was wrong
+ * the moment the variable was set but the tables had not been created — it sent
+ * the reader to fix something that was already fine while the real cause
+ * ("relation \"products\" does not exist") sat unmentioned.
  */
 export function DatabaseBanner() {
   const [down, setDown] = useState(false);
+  const [detail, setDetail] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/health", { cache: "no-store" })
       .then((r) => r.json())
-      .then((d: { checks?: { database?: { ok?: boolean } } }) => {
-        if (!cancelled) setDown(d.checks?.database?.ok === false);
+      .then((d: { checks?: { database?: { ok?: boolean; detail?: string } } }) => {
+        if (cancelled) return;
+        setDown(d.checks?.database?.ok === false);
+        setDetail(d.checks?.database?.detail ?? "");
       })
       .catch(() => {
         // Can't reach our own health route: say nothing rather than guess.
@@ -38,10 +47,9 @@ export function DatabaseBanner() {
       role="alert"
       className="border-b border-red-300 bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-800"
     >
-      The product database is not connected, so nothing can be saved right now —
-      adding or editing products will not work. The shop still shows the
-      built-in catalogue. Ask your developer to set DATABASE_URL (see
-      DATABASE.md in the project).
+      Nothing can be saved right now — adding or editing products will not
+      work, and the shop is showing the built-in catalogue.
+      {detail ? <span className="block font-normal">{detail}</span> : null}
     </div>
   );
 }

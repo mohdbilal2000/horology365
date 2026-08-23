@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/admin/products/new", label: "Add product" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/trash", label: "Removed" },
+  { href: "/admin/backup", label: "Backup" },
 ];
 
 export function AdminNav() {

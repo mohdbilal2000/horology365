@@ -47,9 +47,9 @@ after(async () => {
   if (db) await db.closePool();
 });
 
-const sampleProduct = (slug: string) => ({
-  slug,
-  title: "MY G-SHOCK (owner photo)",
+/** `label` only distinguishes one test's product from another's. */
+const sampleProduct = (label: string) => ({
+  title: `MY G-SHOCK (owner photo) ${label}`,
   description: "Photographed in my shop",
   brandSlug: "casio",
   categorySlug: "mens-watches" as const,
@@ -72,8 +72,8 @@ const sampleProduct = (slug: string) => ({
 });
 
 test("a product survives a remove/restore round trip with its photo", { skip }, async () => {
-  const created = await adminQ.createProduct(sampleProduct("test-roundtrip"));
-  assert.equal(created.title, "MY G-SHOCK (owner photo)");
+  const created = await adminQ.createProduct(sampleProduct("roundtrip"));
+  assert.match(created.title, /MY G-SHOCK \(owner photo\)/);
   assert.match(created.imageUrl, /owner-photo\.jpg/);
 
   // Removed: gone from the shop and the admin list...
@@ -98,7 +98,7 @@ test("a product survives a remove/restore round trip with its photo", { skip }, 
 });
 
 test("the database physically refuses to delete a product", { skip }, async () => {
-  const created = await adminQ.createProduct(sampleProduct("test-nodelete"));
+  const created = await adminQ.createProduct(sampleProduct("nodelete"));
   await assert.rejects(
     () => db.query("delete from products where id = $1", [created.id]),
     /not permitted/i,
@@ -109,8 +109,10 @@ test("the database physically refuses to delete a product", { skip }, async () =
 });
 
 test("re-seeding never overwrites an existing product", { skip }, async () => {
-  const slug = "test-seed-collision";
-  const mine = await adminQ.createProduct(sampleProduct(slug));
+  const mine = await adminQ.createProduct(sampleProduct("seed-collision"));
+  const slug = (
+    await db.query<{ slug: string }>("select slug from products where id = $1", [mine.id])
+  )[0]!.slug;
 
   // Exactly what the seed does: insert ... on conflict (slug) do nothing.
   await db.query(
@@ -123,13 +125,13 @@ test("re-seeding never overwrites an existing product", { skip }, async () => {
   );
 
   const after = await adminQ.getAdminProduct(mine.id);
-  assert.equal(after?.title, "MY G-SHOCK (owner photo)", "the seed must not rename it");
+  assert.equal(after?.title, mine.title, "the seed must not rename it");
   assert.match(after!.imageUrl, /owner-photo\.jpg/, "the seed must not replace the photo");
   assert.equal(after?.price, 7777, "the seed must not change the price");
 });
 
 test("the audit trail records changes and cannot be rewritten", { skip }, async () => {
-  const created = await adminQ.createProduct(sampleProduct("test-audit"));
+  const created = await adminQ.createProduct(sampleProduct("audit"));
   await adminQ.adjustVariant(created.id, "v1", { delta: -2 });
   await adminQ.softDeleteProduct(created.id);
 
@@ -204,7 +206,7 @@ test("orders round-trip and cannot be deleted", { skip }, async () => {
 });
 
 test("the storefront query excludes removed products", { skip }, async () => {
-  const created = await adminQ.createProduct(sampleProduct("test-storefront"));
+  const created = await adminQ.createProduct(sampleProduct("storefront"));
   const { getAllProducts } = await import("../src/lib/data/products");
 
   await adminQ.softDeleteProduct(created.id);
@@ -229,4 +231,75 @@ test("TRUNCATE is blocked on every table that holds records", { skip }, async ()
       `TRUNCATE on ${table} must be blocked — it bypasses the DELETE trigger and would erase everything.`,
     );
   }
+});
+
+test("a backup can rebuild the shop after total loss", { skip }, async () => {
+  // The protections stop loss through the app. This is the answer to losing the
+  // database itself, so it has to be proven the only way that counts: take a
+  // backup, destroy everything, put it back.
+  const backupMod = await import("../src/lib/data/backup");
+
+  const created = await adminQ.createProduct(sampleProduct("backup-me"));
+  // The slug is generated from the title, so read back the one that was stored.
+  const slug = (
+    await db.query<{ slug: string }>("select slug from products where id = $1", [created.id])
+  )[0]!.slug;
+
+  const backup = await backupMod.buildBackup();
+  assert.ok(backup.counts.products > 0, "the backup must contain products");
+  assert.ok(
+    backup.products.some((p) => p.slug === slug),
+    "the backup must contain the product we just made",
+  );
+
+  // Simulate catastrophe. The triggers rightly refuse DELETE, so drop them for
+  // the length of this test to stand in for "the database was lost".
+  await db.query("alter table products disable trigger products_no_hard_delete");
+  await db.query("delete from products");
+  await db.query("alter table products enable trigger products_no_hard_delete");
+  assert.equal(
+    (await db.query("select 1 from products")).length,
+    0,
+    "everything should be gone at this point",
+  );
+
+  const result = await backupMod.restoreFromBackup(backup);
+  assert.ok(result.productsRestored > 0, `nothing was restored: ${result.errors.join("; ")}`);
+
+  const back = await db.query<{ title: string; images: { url: string }[] }>(
+    "select title, images from products where slug = $1",
+    [slug],
+  );
+  assert.equal(back.length, 1, "the product must come back");
+  assert.equal(back[0]?.title, created.title, "its title must come back intact");
+  assert.match(
+    back[0]?.images?.[0]?.url ?? "",
+    /owner-photo\.jpg/,
+    "the owner's photo must come back intact",
+  );
+});
+
+test("restoring never overwrites what is already there", { skip }, async () => {
+  const backupMod = await import("../src/lib/data/backup");
+
+  const created = await adminQ.createProduct(sampleProduct("restore-safe"));
+  const backup = await backupMod.buildBackup();
+
+  // The owner edits it after the backup was taken.
+  await db.query("update products set title = $2, price = $3 where id = $1", [
+    created.id,
+    "EDITED AFTER BACKUP",
+    1234,
+  ]);
+
+  const result = await backupMod.restoreFromBackup(backup);
+  assert.ok(result.productsSkipped > 0, "existing products must be skipped, not rewritten");
+
+  const after = await adminQ.getAdminProduct(created.id);
+  assert.equal(
+    after?.title,
+    "EDITED AFTER BACKUP",
+    "a restore must never revert newer work — that would be the original bug again",
+  );
+  assert.equal(after?.price, 1234, "the newer price must survive the restore");
 });

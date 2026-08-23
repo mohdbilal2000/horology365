@@ -18,10 +18,14 @@ machine you run yourself. The schema and its migrations live in this repo, under
 ## Setting it up
 
 ```bash
-psql "$DATABASE_URL" -f db/schema.sql
-psql "$DATABASE_URL" -f db/migrations/20260823-product-data-safety.sql
-npm run seed        # loads the static catalogue; never overwrites existing products
+export DATABASE_URL='postgres://…'
+npm run db:setup    # creates the tables and installs the protections; safe to re-run
+npm run seed        # loads the catalogue; only ever ADDS, never overwrites
+npm run db:backup   # writes a full backup to a file you keep
 ```
+
+`db:setup` prints `protection triggers: 6 of 6` when the guards are in place. If
+it says fewer, the database can still lose data — re-run it.
 
 ## Environment
 

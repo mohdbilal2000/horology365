@@ -11,7 +11,10 @@
     "seed": "tsx scripts/seed-db.ts",
     "test": "tsx --test tests/data-safety.test.ts tests/invoice-link.test.ts tests/inventory-maths.test.ts",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run test:db && npm run build",
-    "test:db": "bash scripts/with-test-db.sh"
+    "test:db": "bash scripts/with-test-db.sh",
+    "db:setup": "bash scripts/db-setup.sh",
+    "db:backup": "tsx scripts/backup-db.ts",
+    "health": "node -e \"const u=process.env.SITE||'https://www.horology365.com';fetch(u+'/api/health').then(r=>r.json()).then(d=>{console.log('status:',d.status);for(const[k,v]of Object.entries(d.checks))console.log((v.ok?'  OK   ':'  TODO ')+k+': '+v.detail)}).catch(e=>{console.error('could not reach',u,'-',e.message);process.exit(1)})\""
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",

@@ -80,6 +80,63 @@ export const BANK = {
 export const FREE_SHIPPING_THRESHOLD = 1499;
 export const FLAT_SHIPPING = 79;
 
+/**
+ * Where order notifications go.
+ *
+ * Every order produces a PDF that is sent to the customer AND to the store, so
+ * there is always a second copy of the record outside the database.
+ */
+export const ORDER_NOTIFY = {
+  /** Resend API key. Without it, email delivery is skipped (and reported as such). */
+  resendApiKey: process.env.RESEND_API_KEY,
+  /** Verified sender address on your Resend domain. */
+  fromEmail: process.env.ORDER_FROM_EMAIL || "orders@horology365.com",
+  /** Store inbox that receives a copy of every order. Defaults to the sender. */
+  storeEmail:
+    process.env.ORDER_NOTIFY_EMAIL ||
+    process.env.ORDER_FROM_EMAIL ||
+    "orders@horology365.com",
+  /** Store WhatsApp number (digits + country code) that gets a copy. */
+  storeWhatsApp:
+    process.env.ORDER_NOTIFY_WHATSAPP ||
+    process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ||
+    "919217239733",
+} as const;
+
+/**
+ * Meta WhatsApp Cloud API credentials. With both present the invoice is pushed
+ * as a real WhatsApp document to the customer and the store; without them we
+ * fall back to a wa.me link and say so in the response.
+ */
+export const WHATSAPP = {
+  token: process.env.WHATSAPP_TOKEN,
+  phoneNumberId: process.env.WHATSAPP_PHONE_ID,
+  apiVersion: process.env.WHATSAPP_API_VERSION || "v21.0",
+  /** Approved template used to open a conversation outside Meta's 24h window. */
+  templateName: process.env.WHATSAPP_TEMPLATE_NAME,
+  templateLanguage: process.env.WHATSAPP_TEMPLATE_LANG || "en",
+} as const;
+
+export const WHATSAPP_ENABLED = Boolean(WHATSAPP.token && WHATSAPP.phoneNumberId);
+export const EMAIL_ENABLED = Boolean(ORDER_NOTIFY.resendApiKey);
+
+/**
+ * Secret used to sign invoice download links.
+ *
+ * Invoice URLs are public by necessity (Meta fetches them to attach the PDF,
+ * and customers open them from email), so the link carries an HMAC instead of
+ * relying on the order id being hard to guess. Required in production: signing
+ * with a public constant would leave every customer's address enumerable.
+ */
+export function appSecret(): string {
+  const secret = process.env.APP_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("APP_SECRET must be set in production (it signs invoice links).");
+  }
+  return "dev-only-insecure-secret";
+}
+
 export const ANALYTICS = {
   ga4Id: process.env.NEXT_PUBLIC_GA4_ID,
   metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID,

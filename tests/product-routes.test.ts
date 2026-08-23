@@ -202,3 +202,90 @@ test("seeding asks Postgres to IGNORE duplicates, not merge them", async () => {
     "The products seed must never merge (overwrite) existing rows.",
   );
 });
+
+test("an invoice link without a valid signature is refused", async () => {
+  const { verifyInvoiceToken, invoiceToken, invoicePath } = await import(
+    "../src/lib/orders/invoiceLink"
+  );
+
+  const id = "H365-TEST-0001";
+  const good = invoiceToken(id);
+
+  assert.equal(verifyInvoiceToken(id, good), true, "the real token must verify");
+  assert.equal(verifyInvoiceToken(id, null), false, "a missing token must be refused");
+  assert.equal(verifyInvoiceToken(id, "0".repeat(32)), false, "a wrong token must be refused");
+  assert.equal(
+    verifyInvoiceToken("H365-TEST-0002", good),
+    false,
+    "a token must not work for a different order — otherwise one leaked link opens all of them",
+  );
+  assert.match(invoicePath(id), /\?t=[0-9a-f]{32}$/);
+});
+
+test("the invoice route renders a real PDF only for a correctly signed link", async () => {
+  const { invoiceToken } = await import("../src/lib/orders/invoiceLink");
+  const { GET } = await import("../src/app/api/orders/[id]/invoice/route");
+
+  const id = "H365-TEST-0001";
+  const order = {
+    id,
+    items: [
+      {
+        productId: "p1",
+        slug: "casio-g-shock-ga2100",
+        title: "Casio G-Shock GA-2100",
+        brandName: "Casio",
+        price: 9995,
+        mrp: 12995,
+        imageUrl: "",
+        imageAlt: "",
+        quantity: 1,
+        isPreorder: false,
+      },
+    ],
+    details: {
+      name: "Ananya Sharma",
+      phone: "9876543210",
+      email: "ananya@example.com",
+      addressLine1: "Flat 402, MG Road",
+      city: "Dimapur",
+      state: "Nagaland",
+      pincode: "797112",
+      paymentMethod: "upi",
+    },
+    status: "pending",
+    subtotal: 9995,
+    shipping: 0,
+    total: 9995,
+    created_at: "2026-08-23T00:00:00.000Z",
+  };
+
+  // Unsigned: refused, and the database is never even consulted.
+  reset(order);
+  const denied = await GET(new Request(`http://test/api/orders/${id}/invoice`), {
+    params: Promise.resolve({ id }),
+  });
+  assert.equal(denied.status, 404, "an unsigned invoice link must be refused");
+  assert.equal(
+    captured.length,
+    0,
+    "a refused request must not hit the database — that is what stops id-walking",
+  );
+
+  // Signed: a real PDF comes back.
+  reset(order);
+  const ok = await GET(
+    new Request(`http://test/api/orders/${id}/invoice?t=${invoiceToken(id)}`),
+    { params: Promise.resolve({ id }) },
+  );
+  assert.equal(ok.status, 200);
+  assert.equal(ok.headers.get("content-type"), "application/pdf");
+
+  const bytes = Buffer.from(await ok.arrayBuffer());
+  assert.equal(
+    bytes.subarray(0, 5).toString("latin1"),
+    "%PDF-",
+    "the response must be a real PDF, not an error page",
+  );
+  assert.ok(bytes.length > 1000, `PDF looks truncated (${bytes.length} bytes)`);
+});

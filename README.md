@@ -28,6 +28,26 @@ destroy live data. Full detail: [`DATA_SAFETY.md`](./DATA_SAFETY.md).
 Applying to an existing Supabase project: run
 `supabase/migrations/20260823-product-data-safety.sql` once.
 
+
+## Order delivery
+
+When an order is placed, the invoice PDF goes to **both the customer and the
+store**, over email (Resend) and WhatsApp (Meta Cloud API), so there are always
+at least two copies of the record outside the database.
+
+Delivery can never fail an order: the two channels run independently, and a
+failure only downgrades the response — the confirmation page then reports what
+actually happened and offers a manual `wa.me` link. Without
+`WHATSAPP_TOKEN`/`WHATSAPP_PHONE_ID` nothing is sent automatically and that
+fallback link is returned instead, so the flow works before the Business API
+account is approved. Meta's 24-hour rule means first-time buyers need an
+approved template — set `WHATSAPP_TEMPLATE_NAME`.
+
+Invoice links are HMAC-signed (`?t=…`). They have to be publicly fetchable so
+Meta can attach the PDF, and order ids are guessable, so without a signature a
+scraper could walk them and harvest customers' names, addresses and phone
+numbers. **`APP_SECRET` is required in production.**
+
 ## Stack
 
 - **Next.js 15** (App Router) + **TypeScript** (strict, `noUncheckedIndexedAccess`)

@@ -8,11 +8,21 @@ interface OrderConfirmationProps {
   /** Hide the invoice link when the order only exists in sessionStorage
    *  (pre-Supabase-setup) — the invoice route reads from the database. */
   downloadable?: boolean;
+  /** Signed invoice URL. Required for the download link to work: the invoice
+   *  route rejects an unsigned request. */
+  invoiceHref?: string;
+  /** Channels the invoice was sent on, so the page can say where to look. */
+  sentTo?: { email?: string; whatsapp?: boolean };
 }
 
 /** Pure presentational order-confirmation body — shared by the server-side
  *  lookup path and the pre-Supabase-setup sessionStorage fallback. */
-export function OrderConfirmation({ order, downloadable = true }: OrderConfirmationProps) {
+export function OrderConfirmation({
+  order,
+  downloadable = true,
+  invoiceHref,
+  sentTo,
+}: OrderConfirmationProps) {
   const waHref = whatsappLink(
     SITE.whatsappNumber,
     `Hi Horology365 👋 I just placed order ${order.id}. Please confirm the details.`,
@@ -123,14 +133,29 @@ export function OrderConfirmation({ order, downloadable = true }: OrderConfirmat
           </address>
         </div>
 
-        {downloadable ? (
+        {sentTo && (sentTo.email || sentTo.whatsapp) ? (
+          <div className="mt-6 rounded-2xl border border-gold/30 bg-gold/5 p-5 text-sm">
+            <p className="font-semibold text-ink">
+              Your invoice is on its way
+              {sentTo.email ? ` to ${sentTo.email}` : ""}
+              {sentTo.email && sentTo.whatsapp ? " and" : ""}
+              {sentTo.whatsapp ? " to your WhatsApp" : ""}.
+            </p>
+            <p className="mt-1 text-ink-600">
+              We keep a copy at the store too, so your order is on record either
+              way. Not arrived? Download it below.
+            </p>
+          </div>
+        ) : null}
+
+        {downloadable && invoiceHref ? (
           <div className="mt-6 flex items-center justify-between rounded-2xl border border-bone-300 bg-bone-100 p-5">
             <div>
               <p className="text-sm font-semibold text-ink">Invoice</p>
               <p className="text-xs text-ink-500">Download a PDF copy for your records.</p>
             </div>
             <a
-              href={`/api/orders/${order.id}/invoice`}
+              href={invoiceHref}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-outline border-ink/20 px-5 py-2 text-sm"

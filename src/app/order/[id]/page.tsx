@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getOrderById } from "@/lib/data/orders";
 import { isSupabaseAdminConfigured } from "@/lib/supabase/server";
 import { OrderConfirmation } from "@/components/order/OrderConfirmation";
+import { invoicePath } from "@/lib/orders/invoiceLink";
+import { EMAIL_ENABLED, WHATSAPP_ENABLED } from "@/lib/config";
 import { OrderSessionFallback } from "@/components/order/OrderSessionFallback";
 
 interface PageProps {
@@ -13,7 +15,19 @@ export default async function OrderConfirmationPage({ params }: PageProps) {
   const order = await getOrderById(id);
 
   if (order) {
-    return <OrderConfirmation order={order} />;
+    // The invoice link has to be signed — the route rejects it otherwise. Only
+    // claim a channel that is actually configured, so the page never tells a
+    // customer to check an inbox nothing was sent to.
+    return (
+      <OrderConfirmation
+        order={order}
+        invoiceHref={invoicePath(order.id)}
+        sentTo={{
+          email: EMAIL_ENABLED ? order.details.email : undefined,
+          whatsapp: WHATSAPP_ENABLED,
+        }}
+      />
+    );
   }
 
   // Supabase not set up yet — fall back to the sessionStorage the checkout

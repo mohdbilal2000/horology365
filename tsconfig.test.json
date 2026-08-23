@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Next compiles JSX itself, so tsconfig.json leaves it as "preserve".
+    // The test runner has to execute it, so use the automatic runtime.
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./src/*"],
+      // `server-only` throws unless Node runs with the react-server export
+      // condition — but that condition swaps in the RSC build of React, which
+      // @react-pdf/renderer can't use. Stubbing it lets the tests execute
+      // server modules and render a real PDF at the same time.
+      "server-only": ["./tests/stubs/server-only.ts"]
+    }
+  }
+}

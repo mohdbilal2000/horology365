@@ -5,6 +5,7 @@ import { generateOrderId } from "@/lib/utils";
 import { COD_ENABLED, UPI_ENABLED, BANK_ENABLED, CARD_ENABLED } from "@/lib/config";
 import { createOrder } from "@/lib/data/orders";
 import { isSupabaseAdminConfigured } from "@/lib/supabase/server";
+import { dispatchOrder } from "@/lib/notify/dispatch";
 import type { CartItem, CheckoutDetails, Order } from "@/lib/types";
 
 /**
@@ -91,5 +92,34 @@ export async function POST(request: Request): Promise<NextResponse> {
     console.error("[api/orders] failed to persist order:", persisted.error);
   }
 
-  return NextResponse.json({ order }, { status: 201 });
+  // Send the invoice PDF to the customer and to the store. This runs after the
+  // order exists and can only downgrade the response, never reject it: the
+  // customer may already have paid, and losing their order because a mail
+  // provider is down would be the worse failure.
+  let delivery: {
+    invoiceUrl: string;
+    emailedTo: string[];
+    whatsappTo: string[];
+    whatsappFallbackLink?: string;
+  } | null = null;
+
+  try {
+    const report = await dispatchOrder(order);
+    delivery = {
+      invoiceUrl: report.invoiceUrl,
+      emailedTo: report.email.recipients,
+      whatsappTo: report.whatsapp.recipients,
+      whatsappFallbackLink: report.whatsapp.fallbackLink,
+    };
+  } catch (err) {
+    console.error(
+      "[api/orders] invoice delivery failed — order stands:",
+      err,
+      JSON.stringify({ id: order.id }),
+    );
+  }
+
+  // The client uses `delivery` to tell the customer where their copy went, and
+  // to offer a manual WhatsApp send when automatic delivery is unavailable.
+  return NextResponse.json({ order, delivery }, { status: 201 });
 }

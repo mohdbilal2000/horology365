@@ -49,6 +49,29 @@ actually busy, and requests start failing with "too many clients".
 `DATABASE_POOL_MAX` is deliberately small for the same reason. Raise it only if
 you move to a long-lived server (one process, not many lambdas).
 
+## Checking a deployment
+
+`GET /api/health` reports what is actually configured — booleans and counts
+only, no secrets:
+
+```json
+{
+  "status": "ok",
+  "checks": {
+    "database":       { "ok": true,  "detail": "connected · 45 live products" },
+    "dataSafety":     { "ok": true,  "detail": "soft delete + all 3 protection triggers active" },
+    "invoiceSigning": { "ok": true,  "detail": "APP_SECRET set — invoice links are signed" },
+    "email":          { "ok": true,  "detail": "RESEND_API_KEY set — invoices are emailed" },
+    "whatsapp":       { "ok": false, "detail": "… falling back to a wa.me link" }
+  }
+}
+```
+
+It returns **503** when the database is unreachable and **200** otherwise, so a
+missing `RESEND_API_KEY` reads as degraded rather than failing a platform probe.
+Check this after any environment change — it is faster and more reliable than
+inferring configuration from the storefront's behaviour.
+
 ## Uptime and backups
 
 Whoever hosts Postgres owns uptime. Managed providers give you automatic

@@ -8,6 +8,9 @@ away from being moved.
 DATABASE_URL=postgresql://user:password@host:5432/dbname
 ```
 
+`POSTGRES_URL` is accepted too, so Vercel's own Postgres works with nothing to
+copy: **Vercel → Storage → Create Database → Postgres** sets it for you.
+
 That works unchanged on Supabase, Neon, Railway, AWS RDS, DigitalOcean, or a
 machine you run yourself. The schema and its migrations live in this repo, under
 `db/` — that, not the hosting, is where control actually lives.

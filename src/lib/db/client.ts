@@ -18,7 +18,22 @@ import { Pool, type PoolClient, type QueryResultRow } from "pg";
  * production. See DATABASE.md.
  */
 
-const connectionString = process.env.DATABASE_URL;
+/**
+ * The connection string, under whichever name the host injected it.
+ *
+ * Providers disagree: Neon and most others set DATABASE_URL, while Vercel's own
+ * Postgres integration sets POSTGRES_URL. Accepting both means clicking
+ * "Create Database" in the Vercel dashboard just works, with nothing to copy by
+ * hand — one less step to get wrong.
+ *
+ * Pooled URLs come first deliberately: the non-pooled variants open a direct
+ * connection per serverless instance and will exhaust Postgres under load.
+ */
+const connectionString =
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  undefined;
 
 /** True when a database is configured. Everything degrades gracefully if not. */
 export function isDatabaseConfigured(): boolean {

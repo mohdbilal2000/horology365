@@ -11,9 +11,9 @@
 import { categoryRows, brandRows, productRows } from "../src/lib/seedCatalog";
 import { Pool } from "pg";
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 if (!connectionString) {
-  console.error("DATABASE_URL is not set. Add it to .env.local or pass it inline.");
+  console.error("DATABASE_URL (or POSTGRES_URL) is not set. Add it to .env.local or pass it inline.");
   process.exit(1);
 }
 

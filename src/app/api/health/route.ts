@@ -30,7 +30,7 @@ export async function GET(): Promise<NextResponse> {
   if (!isDatabaseConfigured()) {
     checks.database = {
       ok: false,
-      detail: "DATABASE_URL is not set — the site is serving the static catalogue, the admin cannot save, and orders are not being stored.",
+      detail: "No database connection string found (DATABASE_URL or POSTGRES_URL) — the site is serving the static catalogue, the admin cannot save, and orders are not being stored.",
     };
   } else {
     try {

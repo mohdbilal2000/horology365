@@ -35,7 +35,15 @@ function rowToProduct(row: ProductRow): Product {
     categorySlug: row.category_slug as CategorySlug,
     price: row.price,
     mrp: row.mrp,
-    images: row.images ?? [],
+    // Defensive: a row written before image-shape normalisation could hold
+    // `{url: {url, alt}}`. Flatten it here so one bad row cannot 500 every
+    // listing page that renders a product card.
+    images: (row.images ?? [])
+      .map((i) => ({
+        url: typeof i?.url === "string" ? i.url : ((i?.url as unknown as { url?: string })?.url ?? ""),
+        alt: typeof i?.alt === "string" ? i.alt : row.title,
+      }))
+      .filter((i) => i.url),
     videoUrl: row.video_url ?? undefined,
     videoPoster: row.video_poster ?? undefined,
     rating: Number(row.rating) || 0,

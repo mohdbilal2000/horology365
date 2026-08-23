@@ -63,11 +63,36 @@ export function computeDerivedFields(variants: Variant[]) {
   return { stock, isPreorder, dropDate };
 }
 
+/**
+ * Coerces one gallery entry to a plain URL string.
+ *
+ * The admin UI sends `images` as `string[]`, but `AdminModel.images` has been
+ * read as `{url, alt}[]` too. Storing the wrong shape nests the object as
+ * `{url: {url, alt}}`, and every storefront surface that renders a card then
+ * calls `.startsWith` on an object and throws — one bad row 500s the home,
+ * brand and category pages at once. Accept either shape and always store the
+ * flat one.
+ */
+function toImageUrl(entry: unknown): string {
+  if (typeof entry === "string") return entry;
+  if (entry && typeof entry === "object") {
+    const inner = (entry as { url?: unknown }).url;
+    if (typeof inner === "string") return inner;
+    // A row written before this normalisation existed nests one level deeper.
+    if (inner && typeof inner === "object") {
+      const nested = (inner as { url?: unknown }).url;
+      if (typeof nested === "string") return nested;
+    }
+  }
+  return "";
+}
+
 /** Builds an insertable row from a freshly-authored admin model (no id yet —
  *  Postgres generates it). Ensures a unique slug via a short random suffix. */
 export function adminModelToInsertRow(model: Omit<AdminModel, "id" | "createdAt">): ProductInsertRow {
   const { stock, isPreorder, dropDate } = computeDerivedFields(model.variants);
-  const gallery = model.images?.length ? model.images : [model.imageUrl];
+  const source = model.images?.length ? model.images : [model.imageUrl];
+  const gallery = source.map(toImageUrl).filter(Boolean);
   const suffix = Math.random().toString(36).slice(2, 8);
 
   return {
@@ -96,7 +121,7 @@ export function adminModelToUpdateRow(
 }
 
 export function rowToAdminModel(row: ProductRowForAdmin): AdminModel {
-  const gallery = row.images?.length ? row.images.map((i) => i.url) : [];
+  const gallery = row.images?.length ? row.images.map(toImageUrl).filter(Boolean) : [];
   return {
     id: row.id,
     brandSlug: row.brand_slug,

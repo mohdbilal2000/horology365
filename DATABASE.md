@@ -17,6 +17,23 @@ machine you run yourself. The schema and its migrations live in this repo, under
 
 ## Setting it up
 
+### The short way
+
+From a fresh database to a working shop in one command:
+
+```bash
+npm run setup:prod -- "postgres://user:pass@host/dbname"
+```
+
+It creates the tables, installs all six protections (and refuses to continue if
+fewer than six took), loads the starter catalogue, and prints the environment
+variables to paste into Vercel — including a freshly generated `APP_SECRET`.
+
+Safe to re-run at any point: the seed is insert-only, so a product the owner has
+edited keeps its title and photos.
+
+### Step by step
+
 ```bash
 export DATABASE_URL='postgres://…'
 npm run db:setup    # creates the tables and installs the protections; safe to re-run

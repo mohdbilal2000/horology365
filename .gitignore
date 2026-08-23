@@ -34,3 +34,7 @@ next-env.d.ts
 # generated client deck (regenerate via scripts/capture-deck.cjs)
 *.pdf
 /tmp
+
+# append-only local journal (orders + admin audit) used when Supabase is unset.
+# Real customer data — never commit it.
+/.data

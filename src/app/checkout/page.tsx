@@ -14,7 +14,12 @@ import { validateCheckout, type FieldErrors } from "@/lib/validation";
 import { formatINR } from "@/lib/utils";
 import { COD_ENABLED, UPI_ENABLED, UPI, buildUpiUri } from "@/lib/config";
 import { cn } from "@/lib/utils";
-import type { CheckoutDetails, Order, PaymentMethod } from "@/lib/types";
+import type {
+  CheckoutDetails,
+  Order,
+  OrderDelivery,
+  PaymentMethod,
+} from "@/lib/types";
 
 const INITIAL: CheckoutDetails = {
   name: "",
@@ -99,6 +104,7 @@ export default function CheckoutPage() {
       });
       const data = (await res.json()) as {
         order?: Order;
+        delivery?: OrderDelivery;
         error?: string;
         errors?: FieldErrors;
       };
@@ -109,11 +115,11 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Phase 1: hand the confirmation page its order via sessionStorage.
-      // Phase 2 reads the persisted order from Supabase by id instead.
+      // The order is already persisted and emailed server-side; this is only so
+      // the confirmation page can render instantly without a round trip.
       sessionStorage.setItem(
         `order:${data.order.id}`,
-        JSON.stringify(data.order),
+        JSON.stringify({ order: data.order, delivery: data.delivery ?? null }),
       );
       clear();
       router.push(`/order/${data.order.id}`);
@@ -180,6 +186,7 @@ export default function CheckoutPage() {
                 error={errors.email}
                 type="email"
                 autoComplete="email"
+                hint="We'll email your invoice PDF here. We also send it to your WhatsApp."
               />
             </fieldset>
 
@@ -416,6 +423,8 @@ interface FieldProps {
   autoComplete?: string;
   placeholder?: string;
   required?: boolean;
+  /** Short helper text shown under the input. */
+  hint?: string;
 }
 
 function Field({
@@ -428,6 +437,7 @@ function Field({
   autoComplete,
   placeholder,
   required,
+  hint,
 }: FieldProps) {
   const id = label.toLowerCase().replace(/[^a-z]+/g, "-");
   return (
@@ -455,6 +465,8 @@ function Field({
         <p id={`${id}-error`} className="mt-1 text-xs text-red-600">
           {error}
         </p>
+      ) : hint ? (
+        <p className="mt-1 text-xs text-ink-500">{hint}</p>
       ) : null}
     </div>
   );

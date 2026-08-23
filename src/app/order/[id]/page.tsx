@@ -4,7 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { SITE } from "@/lib/config";
 import { formatINR, whatsappLink } from "@/lib/utils";
-import type { Order } from "@/lib/types";
+import type { Order, OrderDelivery } from "@/lib/types";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -13,12 +13,25 @@ interface PageProps {
 export default function OrderConfirmationPage({ params }: PageProps) {
   const { id } = use(params);
   const [order, setOrder] = useState<Order | null>(null);
+  const [delivery, setDelivery] = useState<OrderDelivery | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(`order:${id}`);
-      if (raw) setOrder(JSON.parse(raw) as Order);
+      if (raw) {
+        const parsed = JSON.parse(raw) as
+          | { order: Order; delivery: OrderDelivery | null }
+          | Order;
+        // Tolerate the older shape (a bare Order) still sitting in a tab that
+        // was open across the deploy.
+        if ("order" in parsed) {
+          setOrder(parsed.order);
+          setDelivery(parsed.delivery);
+        } else {
+          setOrder(parsed);
+        }
+      }
     } catch {
       setOrder(null);
     } finally {
@@ -54,10 +67,12 @@ export default function OrderConfirmationPage({ params }: PageProps) {
     );
   }
 
-  const waHref = whatsappLink(
-    SITE.whatsappNumber,
-    `Hi Horology365 👋 I just placed order ${order.id}. Please confirm the details.`,
-  );
+  const waHref =
+    delivery?.whatsappFallbackLink ??
+    whatsappLink(
+      SITE.whatsappNumber,
+      `Hi Horology365 👋 I just placed order ${order.id}. Please confirm the details.`,
+    );
 
   return (
     <div className="band-light">
@@ -154,20 +169,68 @@ export default function OrderConfirmationPage({ params }: PageProps) {
           </address>
         </div>
 
+        <DeliveryPanel delivery={delivery} />
+
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          {delivery?.invoiceUrl ? (
+            <a
+              href={delivery.invoiceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-gold flex-1"
+            >
+              Download invoice (PDF)
+            </a>
+          ) : null}
           <a
             href={waHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-gold flex-1"
+            className={
+              delivery?.invoiceUrl
+                ? "btn-outline flex-1 border-ink/20"
+                : "btn-gold flex-1"
+            }
           >
-            Confirm on WhatsApp
+            {delivery?.whatsappTo.length ? "Message us on WhatsApp" : "Send on WhatsApp"}
           </a>
           <Link href="/" className="btn-outline flex-1 border-ink/20">
             Continue shopping
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Tells the customer where their copy of the invoice actually went.
+ *
+ * This reports what the server really did rather than a fixed reassurance —
+ * if email or WhatsApp delivery didn't run, saying "check your email" would be
+ * a lie, and the customer would wait for something that never arrives.
+ */
+function DeliveryPanel({ delivery }: { delivery: OrderDelivery | null }) {
+  if (!delivery) return null;
+
+  const emailed = delivery.emailedTo.length > 0;
+  const whatsapped = delivery.whatsappTo.length > 0;
+  if (!emailed && !whatsapped) return null;
+
+  const channels = [
+    emailed ? "email" : null,
+    whatsapped ? "WhatsApp" : null,
+  ].filter(Boolean);
+
+  return (
+    <div className="mt-6 rounded-2xl border border-gold/30 bg-gold/5 p-5 text-sm">
+      <p className="font-semibold text-ink">
+        Your invoice is on its way by {channels.join(" and ")}.
+      </p>
+      <p className="mt-1 text-ink-600">
+        We&rsquo;ve also kept a copy at the store, so your order is on record
+        either way.
+      </p>
     </div>
   );
 }

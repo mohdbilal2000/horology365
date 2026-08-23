@@ -97,6 +97,7 @@ export function ProductBuilder() {
   const [variants, setVariants] = useState<Variant[]>([blankVariant()]);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   const knownModels = brandSlug ? getModelsForBrand(brandSlug) : [];
   const usingNewBrand = addingBrand && newBrand.trim().length > 0;
@@ -196,7 +197,7 @@ export function ProductBuilder() {
     setStep((s) => Math.max(0, s - 1));
   }
 
-  function publish() {
+  async function publish() {
     for (let s = 0; s < 3; s++) {
       const e = validateStep(s);
       if (e) {
@@ -205,6 +206,8 @@ export function ProductBuilder() {
         return;
       }
     }
+    setPublishing(true);
+    setError(null);
     const slug =
       brandSlug || newBrand.trim().toLowerCase().replace(/\s+/g, "-");
     const gallery = cleanImages.length ? cleanImages : [FALLBACK_IMG];
@@ -227,7 +230,17 @@ export function ProductBuilder() {
       })),
       createdAt: new Date().toISOString(),
     };
-    addModel(model);
+    const saved = await addModel(model);
+    setPublishing(false);
+    if (!saved) {
+      // The store keeps the reason; surface it instead of navigating away and
+      // leaving the admin to believe the product was added.
+      setError(
+        useCatalogStore.getState().error ??
+          "Could not save the product. Please try again.",
+      );
+      return;
+    }
     router.push("/admin");
   }
 
@@ -584,8 +597,13 @@ export function ProductBuilder() {
                 Continue
               </button>
             ) : (
-              <button type="button" onClick={publish} className="btn-gold">
-                Publish product
+              <button
+                type="button"
+                onClick={() => void publish()}
+                disabled={publishing}
+                className="btn-gold disabled:opacity-60"
+              >
+                {publishing ? "Saving…" : "Publish product"}
               </button>
             )}
           </div>

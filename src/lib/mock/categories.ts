@@ -17,9 +17,9 @@ export const categories: Category[] = [
     name: "Women's Watches",
     description:
       "Slim silhouettes, jewellery dials and bracelets that finish every look.",
-    // Gold-tone glam watch — jewellery-grade sparkle instead of a plain wrist shot.
-    imageUrl:
-      "https://images.unsplash.com/photo-1526045431048-f857369baa09?auto=format&fit=crop&w=1200&q=70",
+    // Rose-gold, mother-of-pearl bracelet watch on the wrist. Self-hosted so a
+    // key homepage tile never depends on a third-party CDN staying up.
+    imageUrl: "/posters/womens-watch.jpg",
   },
 ];
 

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
   useCatalogStore,
   unitsInStock,
   preordersReserved,
+  type StorageInfo,
 } from "@/lib/store/catalog";
 import { getBrandBySlug } from "@/lib/mock/brands";
 import { formatINR } from "@/lib/utils";
@@ -15,15 +16,23 @@ import type { AdminModel, Variant } from "@/lib/types";
 
 export function InventoryBoard() {
   const models = useCatalogStore((s) => s.models);
+  const status = useCatalogStore((s) => s.status);
+  const error = useCatalogStore((s) => s.error);
+  const storage = useCatalogStore((s) => s.storage);
+  const saving = useCatalogStore((s) => s.saving);
+  const load = useCatalogStore((s) => s.load);
   const adjustStock = useCatalogStore((s) => s.adjustStock);
   const startDelivery = useCatalogStore((s) => s.startDelivery);
   const removeModel = useCatalogStore((s) => s.removeModel);
-  const resetToSamples = useCatalogStore((s) => s.resetToSamples);
+  const seedSamples = useCatalogStore((s) => s.seedSamples);
 
-  // Avoid hydration mismatch (store rehydrates from localStorage on client).
-  const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
-  if (!ready) {
+  // The catalog lives on the server now, so it is fetched rather than
+  // rehydrated from localStorage.
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (status === "idle" || status === "loading") {
     return <div className="h-64 animate-pulse rounded-3xl bg-bone-300/60" />;
   }
 
@@ -55,16 +64,28 @@ export function InventoryBoard() {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={resetToSamples}
-            className="rounded-full border border-bone-300 px-4 py-2 text-sm font-medium transition hover:border-gold hover:text-gold"
+            onClick={() => void load()}
+            disabled={saving}
+            className="rounded-full border border-bone-300 px-4 py-2 text-sm font-medium transition hover:border-gold hover:text-gold disabled:opacity-50"
           >
-            Reset samples
+            {saving ? "Saving…" : "Refresh"}
           </button>
           <Link href="/admin/products/new" className="btn-gold">
             + Add product
           </Link>
         </div>
       </div>
+
+      <StorageNotice storage={storage} />
+
+      {error ? (
+        <p
+          role="alert"
+          className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {error}
+        </p>
+      ) : null}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
@@ -91,9 +112,19 @@ export function InventoryBoard() {
             Add your first model and its variants to start tracking stock and
             pre-orders.
           </p>
-          <Link href="/admin/products/new" className="btn-gold">
-            + Add product
-          </Link>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link href="/admin/products/new" className="btn-gold">
+              + Add product
+            </Link>
+            <button
+              type="button"
+              onClick={() => void seedSamples()}
+              disabled={saving}
+              className="rounded-full border border-bone-300 px-4 py-2 text-sm font-medium transition hover:border-gold hover:text-gold disabled:opacity-50"
+            >
+              Load sample products
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -119,9 +150,9 @@ function ModelRow({
   onRemove,
 }: {
   model: AdminModel;
-  onAdjust: (modelId: string, variantId: string, delta: number) => void;
-  onStartDelivery: (modelId: string, variantId: string) => void;
-  onRemove: (id: string) => void;
+  onAdjust: (modelId: string, variantId: string, delta: number) => Promise<boolean>;
+  onStartDelivery: (modelId: string, variantId: string) => Promise<boolean>;
+  onRemove: (id: string) => Promise<boolean>;
 }) {
   const brand = getBrandBySlug(model.brandSlug);
   return (
@@ -152,8 +183,9 @@ function ModelRow({
         </span>
         <button
           type="button"
-          onClick={() => onRemove(model.id)}
-          aria-label={`Delete ${model.title}`}
+          onClick={() => void onRemove(model.id)}
+          aria-label={`Remove ${model.title} from the storefront`}
+          title="Removes it from the storefront. The record and its history are kept."
           className="rounded-full p-2 text-ink-400 transition hover:bg-red-50 hover:text-red-600"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -184,7 +216,7 @@ function ModelRow({
               {v.availability === "preorder" ? (
                 <button
                   type="button"
-                  onClick={() => onStartDelivery(model.id, v.id)}
+                  onClick={() => void onStartDelivery(model.id, v.id)}
                   className="rounded-full bg-gold px-3.5 py-1.5 text-xs font-semibold text-ink transition hover:bg-gold-700"
                 >
                   Start delivery
@@ -194,7 +226,7 @@ function ModelRow({
                   <button
                     type="button"
                     aria-label="Decrease stock"
-                    onClick={() => onAdjust(model.id, v.id, -1)}
+                    onClick={() => void onAdjust(model.id, v.id, -1)}
                     className="flex h-8 w-8 items-center justify-center text-lg transition hover:text-gold disabled:opacity-30"
                     disabled={v.stockQty <= 0}
                   >
@@ -206,7 +238,7 @@ function ModelRow({
                   <button
                     type="button"
                     aria-label="Increase stock"
-                    onClick={() => onAdjust(model.id, v.id, 1)}
+                    onClick={() => void onAdjust(model.id, v.id, 1)}
                     className="flex h-8 w-8 items-center justify-center text-lg transition hover:text-gold"
                   >
                     +
@@ -264,5 +296,45 @@ function VariantStatus({ variant: v }: { variant: Variant }) {
             ? `Low · ${v.stockQty}`
             : "In stock"}
     </span>
+  );
+}
+
+/**
+ * Says plainly where admin changes are being stored.
+ *
+ * The point of this banner is that an admin should never have to guess whether
+ * what they just typed will still be there tomorrow. It stays visible (and
+ * amber) until Supabase is configured, because until then a redeploy on a
+ * serverless host really can drop the journal.
+ */
+function StorageNotice({ storage }: { storage: StorageInfo | null }) {
+  if (!storage) return null;
+
+  if (storage.durable) {
+    return (
+      <p className="flex items-center gap-2 rounded-xl border border-green-300 bg-green-50 px-4 py-2.5 text-sm text-green-800">
+        <span aria-hidden="true">✓</span>
+        Changes are saved to the database and kept permanently — nothing you edit
+        here is ever deleted, and every change is recorded in the{" "}
+        <Link href="/admin/audit" className="font-semibold underline">
+          audit log
+        </Link>
+        .
+      </p>
+    );
+  }
+
+  return (
+    <p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+      <strong>Changes are not yet permanently stored.</strong> They are being
+      written to an append-only file at{" "}
+      <code className="font-mono text-xs">{storage.journalPath}</code>
+      {storage.journalDurable
+        ? ", which survives restarts on this server."
+        : ", which is wiped on every redeploy of a serverless host."}{" "}
+      Set <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+      <code className="font-mono text-xs">SUPABASE_SERVICE_ROLE_KEY</code> to
+      store them permanently.
+    </p>
   );
 }

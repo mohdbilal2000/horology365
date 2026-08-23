@@ -3,7 +3,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { CartItem, Product } from "@/lib/types";
-import { FREE_SHIPPING_THRESHOLD, FLAT_SHIPPING } from "@/lib/config";
 
 interface CartState {
   items: CartItem[];
@@ -84,21 +83,14 @@ export const useCartStore = create<CartState>()(
   ),
 );
 
-// ── Derived selectors (pure helpers, used outside the store) ──
+// ── Derived selectors ──
+// The maths lives in `@/lib/pricing` so the server can use it too — this module
+// is "use client", and importing these from an API route made them client
+// references that threw at runtime. Re-exported here so existing imports work.
 
-export function cartCount(items: CartItem[]): number {
-  return items.reduce((sum, i) => sum + i.quantity, 0);
-}
-
-export function cartSubtotal(items: CartItem[]): number {
-  return items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-}
-
-export function cartSavings(items: CartItem[]): number {
-  return items.reduce((sum, i) => sum + (i.mrp - i.price) * i.quantity, 0);
-}
-
-export function cartShipping(subtotal: number): number {
-  if (subtotal <= 0 || subtotal >= FREE_SHIPPING_THRESHOLD) return 0;
-  return FLAT_SHIPPING;
-}
+export {
+  cartCount,
+  cartSubtotal,
+  cartSavings,
+  cartShipping,
+} from "@/lib/pricing";

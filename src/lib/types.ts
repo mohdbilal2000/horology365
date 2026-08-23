@@ -135,6 +135,24 @@ export interface Order {
   createdAt: string;
 }
 
+/**
+ * Where an order's invoice PDF actually went. Returned by POST /api/orders so
+ * the confirmation page can tell the customer exactly what to expect rather
+ * than promising an email that was never sent.
+ */
+export interface OrderDelivery {
+  /** True when the order reached durable storage or at least one channel. */
+  recorded: boolean;
+  /** Signed URL for downloading the invoice PDF. */
+  invoiceUrl: string;
+  /** Addresses that received the invoice. */
+  emailedTo: string[];
+  /** Numbers that received the invoice on WhatsApp. */
+  whatsappTo: string[];
+  /** Prefilled wa.me link, present when automatic WhatsApp delivery didn't run. */
+  whatsappFallbackLink?: string;
+}
+
 // ─── Admin / inventory model (Brand → Model → Variant) ──────────
 // Mirrors the Phase 2 Supabase schema: a Model is a product line; a Variant
 // is the actual SKU you sell (a colourway / strap), each with its own

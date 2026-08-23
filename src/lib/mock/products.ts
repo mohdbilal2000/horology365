@@ -64,6 +64,12 @@ let videoCursor = 0;
  * Current headline deals. Casio (incl. G-Shock) runs 60% off; Fastrack and
  * Sonata run deep 50% deals. Applied at build time so every price, badge and
  * the hero reflect the same number.
+ *
+ * This only sets the price of a product the FIRST time it is seeded. After
+ * that the price lives in the database and the admin owns it: editing a price
+ * sticks, and re-syncing the catalogue will not undo it. The admin dashboard
+ * shows the MRP and the resulting discount on every row, so a deal set here is
+ * visible rather than an unexplained number.
  */
 const DEAL_OFF: Record<string, number> = {
   casio: 0.6,

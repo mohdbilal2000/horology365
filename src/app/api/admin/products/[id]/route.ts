@@ -84,7 +84,17 @@ export async function PATCH(request: Request, { params }: RouteParams): Promise<
   if (!isDatabaseConfigured()) return unavailable();
   const { id } = await params;
 
-  let body: { variantId?: string; delta?: number; action?: "startDelivery" };
+  let body: {
+    variantId?: string;
+    delta?: number;
+    action?: "startDelivery";
+    set?: {
+      stockQty?: number;
+      preorderTarget?: number;
+      preorderReserved?: number;
+      availability?: "in_stock" | "preorder" | "in_delivery";
+    };
+  };
   try {
     body = await request.json();
   } catch {
@@ -98,6 +108,7 @@ export async function PATCH(request: Request, { params }: RouteParams): Promise<
     const model = await adjustVariant(id, body.variantId, {
       delta: body.delta,
       action: body.action,
+      set: body.set,
     });
     if (!model) return notFound();
     revalidateCatalog();

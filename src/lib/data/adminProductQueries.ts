@@ -129,11 +129,28 @@ export async function updateProduct(
   return product;
 }
 
-/** Adjusts one variant's stock, or moves its pre-orders into delivery. */
+/**
+ * Changes one variant: nudge stock, set any figure outright, or move a
+ * pre-order batch into delivery.
+ *
+ * Absolute `set` values exist so the owner can *correct* a number rather than
+ * only nudge it. Stock counts drift against a real shelf, and a batch size or
+ * reserved count entered wrongly at creation was previously impossible to fix
+ * without deleting the product.
+ */
 export async function adjustVariant(
   id: string,
   variantId: string,
-  change: { delta?: number; action?: "startDelivery" },
+  change: {
+    delta?: number;
+    action?: "startDelivery";
+    set?: {
+      stockQty?: number;
+      preorderTarget?: number;
+      preorderReserved?: number;
+      availability?: Variant["availability"];
+    };
+  },
 ): Promise<AdminModel | null> {
   const current = await queryOne<{ title: string; variants: Variant[] }>(
     "select title, variants from products where id = $1 and deleted_at is null",
@@ -143,13 +160,28 @@ export async function adjustVariant(
 
   const previous = (current.variants ?? []).find((v) => v.id === variantId) ?? null;
 
+  /** Never let a count go negative, whichever route set it. */
+  const clamp = (n: number) => Math.max(0, Math.round(n));
+
   const variants: Variant[] = (current.variants ?? []).map((v) => {
     if (v.id !== variantId) return v;
     if (change.action === "startDelivery") {
       return { ...v, availability: "in_delivery" as const, stockQty: v.preorderReserved };
     }
+    if (change.set) {
+      const next = { ...v };
+      if (typeof change.set.stockQty === "number") next.stockQty = clamp(change.set.stockQty);
+      if (typeof change.set.preorderTarget === "number") {
+        next.preorderTarget = clamp(change.set.preorderTarget);
+      }
+      if (typeof change.set.preorderReserved === "number") {
+        next.preorderReserved = clamp(change.set.preorderReserved);
+      }
+      if (change.set.availability) next.availability = change.set.availability;
+      return next;
+    }
     if (typeof change.delta === "number") {
-      return { ...v, stockQty: Math.max(0, v.stockQty + change.delta) };
+      return { ...v, stockQty: clamp(v.stockQty + change.delta) };
     }
     return v;
   });
@@ -169,12 +201,7 @@ export async function adjustVariant(
   await recordAudit({
     action: "product.stock",
     targetId: id,
-    summary:
-      change.action === "startDelivery"
-        ? `${current.title} · ${changed?.name ?? variantId}: pre-orders moved to delivery`
-        : `${current.title} · ${changed?.name ?? variantId}: stock ${
-            change.delta && change.delta > 0 ? "+" : ""
-          }${change.delta ?? 0} -> ${changed?.stockQty ?? "?"}`,
+    summary: describeVariantChange(current.title, changed?.name ?? variantId, previous, changed, change),
     before: previous,
     after: changed ?? null,
   });
@@ -228,4 +255,36 @@ export async function restoreProduct(id: string): Promise<AdminModel | null> {
     after: product,
   });
   return product;
+}
+
+/** Human-readable summary of a variant change, for the audit log. */
+function describeVariantChange(
+  title: string,
+  variantName: string,
+  before: Variant | null,
+  after: Variant | undefined,
+  change: { delta?: number; action?: "startDelivery"; set?: Record<string, unknown> },
+): string {
+  const who = `${title} · ${variantName}`;
+  if (change.action === "startDelivery") {
+    return `${who}: ${before?.preorderReserved ?? 0} pre-orders moved to delivery`;
+  }
+  if (change.set && before && after) {
+    const parts: string[] = [];
+    if (before.stockQty !== after.stockQty) {
+      parts.push(`stock ${before.stockQty} -> ${after.stockQty}`);
+    }
+    if (before.preorderTarget !== after.preorderTarget) {
+      parts.push(`batch size ${before.preorderTarget} -> ${after.preorderTarget}`);
+    }
+    if (before.preorderReserved !== after.preorderReserved) {
+      parts.push(`reserved ${before.preorderReserved} -> ${after.preorderReserved}`);
+    }
+    if (before.availability !== after.availability) {
+      parts.push(`${before.availability} -> ${after.availability}`);
+    }
+    return `${who}: ${parts.length ? parts.join(", ") : "no change"}`;
+  }
+  const d = change.delta ?? 0;
+  return `${who}: stock ${d > 0 ? "+" : ""}${d} -> ${after?.stockQty ?? "?"}`;
 }

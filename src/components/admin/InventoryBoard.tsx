@@ -5,18 +5,18 @@ import Link from "next/link";
 import Image from "next/image";
 import { getBrandBySlug } from "@/lib/mock/brands";
 import { formatINR } from "@/lib/utils";
+import {
+  unitsInStock,
+
+  inventoryTotals,
+  discountPercent,
+  discountPerUnit,
+  stockValue,
+  variantValue,
+} from "@/lib/inventory";
 import { cn } from "@/lib/utils";
 import type { AdminModel, Variant } from "@/lib/types";
 
-function unitsInStock(model: AdminModel): number {
-  return model.variants.reduce(
-    (sum, v) => sum + (v.availability !== "preorder" ? v.stockQty : 0),
-    0,
-  );
-}
-function preordersReserved(model: AdminModel): number {
-  return model.variants.reduce((sum, v) => sum + v.preorderReserved, 0);
-}
 
 export function InventoryBoard() {
   const [models, setModels] = useState<AdminModel[]>([]);
@@ -64,6 +64,42 @@ export function InventoryBoard() {
     });
   }
 
+  /**
+   * Writes an exact figure for one variant.
+   *
+   * Separate from the +/- nudges because a stock count drifts against the real
+   * shelf, and a batch size typed wrongly at creation was previously impossible
+   * to correct without deleting the product.
+   */
+  async function setVariant(
+    modelId: string,
+    variantId: string,
+    set: { stockQty?: number; preorderTarget?: number; preorderReserved?: number },
+  ) {
+    const previous = models;
+    setModels((ms) =>
+      ms.map((m) =>
+        m.id !== modelId
+          ? m
+          : {
+              ...m,
+              variants: m.variants.map((v) =>
+                v.id !== variantId ? v : { ...v, ...set },
+              ),
+            },
+      ),
+    );
+    const res = await fetch(`/api/admin/products/${modelId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ variantId, set }),
+    });
+    if (!res.ok) {
+      setModels(previous);
+      setError("Could not save that change. Nothing was altered.");
+    }
+  }
+
   async function startDelivery(modelId: string, variantId: string) {
     setModels((ms) =>
       ms.map((m) =>
@@ -87,7 +123,7 @@ export function InventoryBoard() {
   }
 
   /** Re-upserts the built-in catalogue (categories, brands, seed products) from
-   *  the code into Supabase. Needed after a seed-data change — e.g. swapping a
+   *  the code into the database. Needed after a seed-data change — e.g. swapping a
    *  category image — since the database keeps its own copy of those rows. */
   async function resyncCatalogue() {
     setSyncing(true);
@@ -127,15 +163,23 @@ export function InventoryBoard() {
     return <div className="h-64 animate-pulse rounded-3xl bg-bone-300/60" />;
   }
 
-  const totalUnits = models.reduce((s, m) => s + unitsInStock(m), 0);
-  const totalReserved = models.reduce((s, m) => s + preordersReserved(m), 0);
-  const stockValue = models.reduce((s, m) => s + unitsInStock(m) * m.price, 0);
+  const t = inventoryTotals(models);
 
-  const stats = [
-    { label: "Models", value: String(models.length) },
-    { label: "Units in stock", value: String(totalUnits) },
-    { label: "Pre-orders reserved", value: String(totalReserved) },
-    { label: "Stock value", value: formatINR(stockValue) },
+  // Every tile states how its own number is arrived at, so nothing on this page
+  // is a figure the owner has to take on trust.
+  const stats: { label: string; value: string; note: string }[] = [
+    { label: "Products", value: String(t.products),
+      note: `${t.variants} colour/strap options` },
+    { label: "Units in stock", value: String(t.unitsInStock),
+      note: `${t.outOfStock} out of stock · ${t.lowStock} running low` },
+    { label: "Stock value", value: formatINR(t.stockValue),
+      note: `${t.unitsInStock} units × selling price` },
+    { label: "Value at MRP", value: formatINR(t.stockValueAtMrp),
+      note: `${formatINR(t.discountOnStock)} given away as discount` },
+    { label: "Pre-orders reserved", value: String(t.preordersReserved),
+      note: `${formatINR(t.preorderValue)} once collected` },
+    { label: "Batch units left", value: String(t.preorderRemaining),
+      note: `${t.preorderTarget} ordered in, ${t.preordersReserved} spoken for` },
   ];
 
   return (
@@ -145,8 +189,10 @@ export function InventoryBoard() {
           <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
             Inventory
           </h1>
-          <p className="mt-1 text-ink-500">
-            Live stock and pre-order pipeline across every brand.
+          <p className="mt-1 max-w-xl text-ink-500">
+            Live stock and pre-order pipeline across every brand. Every figure
+            below is worked out from your own numbers — tap any count to correct
+            it, and use Edit to change a price.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -180,7 +226,7 @@ export function InventoryBoard() {
       ) : null}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         {stats.map((s) => (
           <div
             key={s.label}
@@ -192,6 +238,7 @@ export function InventoryBoard() {
             <p className="mt-1.5 font-serif text-2xl font-bold tracking-tight sm:text-3xl">
               {s.value}
             </p>
+            <p className="mt-1 text-xs text-ink-400">{s.note}</p>
           </div>
         ))}
       </div>
@@ -215,6 +262,7 @@ export function InventoryBoard() {
               key={model.id}
               model={model}
               onAdjust={adjustStock}
+              onSet={setVariant}
               onStartDelivery={startDelivery}
               onRemove={removeModel}
             />
@@ -228,10 +276,16 @@ export function InventoryBoard() {
 function ModelRow({
   model,
   onAdjust,
+  onSet,
   onStartDelivery,
   onRemove,
 }: {
   model: AdminModel;
+  onSet: (
+    modelId: string,
+    variantId: string,
+    set: { stockQty?: number; preorderTarget?: number; preorderReserved?: number },
+  ) => void;
   onAdjust: (modelId: string, variantId: string, delta: number) => void;
   onStartDelivery: (modelId: string, variantId: string) => void;
   onRemove: (id: string) => void;
@@ -260,8 +314,19 @@ function ModelRow({
             {model.title}
           </p>
         </div>
-        <span className="hidden text-sm font-semibold sm:block">
-          {formatINR(model.price)}
+        <span className="hidden text-right sm:block">
+          <span className="block text-sm font-semibold">{formatINR(model.price)}</span>
+          {discountPerUnit(model) > 0 ? (
+            <span className="block text-xs text-ink-400">
+              <span className="line-through">{formatINR(model.mrp)}</span>{" "}
+              <span className="text-gold-600">−{discountPercent(model)}%</span>
+            </span>
+          ) : (
+            <span className="block text-xs text-ink-400">no discount</span>
+          )}
+          <span className="block text-xs text-ink-400">
+            {unitsInStock(model)} in stock · {formatINR(stockValue(model))}
+          </span>
         </span>
         <Link
           href={`/admin/products/${model.id}/edit`}
@@ -302,16 +367,34 @@ function ModelRow({
               </span>
             </span>
 
-            <div className="ml-auto flex items-center gap-5">
+            <span className="text-xs text-ink-400 tabular-nums">
+              {formatINR(variantValue(model, v))}
+            </span>
+
+            <div className="ml-auto flex flex-wrap items-center gap-4">
               <VariantStatus variant={v} />
               {v.availability === "preorder" ? (
-                <button
-                  type="button"
-                  onClick={() => onStartDelivery(model.id, v.id)}
-                  className="rounded-full bg-gold px-3.5 py-1.5 text-xs font-semibold text-ink transition hover:bg-gold-700"
-                >
-                  Start delivery
-                </button>
+                <>
+                  <NumberField
+                    label="Batch"
+                    title="How many units you are bringing in for this batch"
+                    value={v.preorderTarget}
+                    onCommit={(n) => onSet(model.id, v.id, { preorderTarget: n })}
+                  />
+                  <NumberField
+                    label="Reserved"
+                    title="How many customers have already paid or committed"
+                    value={v.preorderReserved}
+                    onCommit={(n) => onSet(model.id, v.id, { preorderReserved: n })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onStartDelivery(model.id, v.id)}
+                    className="rounded-full bg-gold px-3.5 py-1.5 text-xs font-semibold text-ink transition hover:bg-gold-700"
+                  >
+                    Start delivery
+                  </button>
+                </>
               ) : (
                 <span className="inline-flex items-center rounded-full border border-bone-300">
                   <button
@@ -323,9 +406,24 @@ function ModelRow({
                   >
                     −
                   </button>
-                  <span className="w-9 text-center text-sm font-semibold tabular-nums">
-                    {v.stockQty}
-                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    aria-label={`Units of ${v.name} in stock`}
+                    title="Type the real count if it has drifted from the shelf"
+                    defaultValue={v.stockQty}
+                    key={`stock-${v.id}-${v.stockQty}`}
+                    onBlur={(e) => {
+                      const n = Number(e.target.value);
+                      if (Number.isFinite(n) && n !== v.stockQty) {
+                        onSet(model.id, v.id, { stockQty: Math.max(0, Math.round(n)) });
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                    }}
+                    className="w-12 border-0 bg-transparent text-center text-sm font-semibold tabular-nums outline-none focus:ring-2 focus:ring-gold"
+                  />
                   <button
                     type="button"
                     aria-label="Increase stock"
@@ -387,5 +485,46 @@ function VariantStatus({ variant: v }: { variant: Variant }) {
             ? `Low · ${v.stockQty}`
             : "In stock"}
     </span>
+  );
+}
+
+/**
+ * A number the admin can type over.
+ *
+ * Commits on blur or Enter rather than on every keystroke, so typing "12" isn't
+ * saved as "1" on the way past. Keyed on the incoming value so a rejected save
+ * that rolls the state back is reflected in the field.
+ */
+function NumberField({
+  label,
+  title,
+  value,
+  onCommit,
+}: {
+  label: string;
+  title: string;
+  value: number;
+  onCommit: (n: number) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-0.5" title={title}>
+      <span className="text-[10px] font-semibold uppercase tracking-label text-ink-400">
+        {label}
+      </span>
+      <input
+        type="number"
+        min={0}
+        key={`${label}-${value}`}
+        defaultValue={value}
+        onBlur={(e) => {
+          const n = Number(e.target.value);
+          if (Number.isFinite(n) && n !== value) onCommit(Math.max(0, Math.round(n)));
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        }}
+        className="w-16 rounded-lg border border-bone-300 bg-bone-100 px-2 py-1 text-sm font-semibold tabular-nums outline-none focus:border-gold focus:ring-2 focus:ring-gold"
+      />
+    </label>
   );
 }

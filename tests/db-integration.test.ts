@@ -216,3 +216,17 @@ test("the storefront query excludes removed products", { skip }, async () => {
   assert.equal(rows.length, 0, "a removed product must not be visible to the shop");
   assert.equal(typeof getAllProducts, "function");
 });
+
+test("TRUNCATE is blocked on every table that holds records", { skip }, async () => {
+  // TRUNCATE does not fire row-level DELETE triggers — it is a separate event.
+  // An adversarial run found this hole after the DELETE guards were in place:
+  // one TRUNCATE emptied the whole products table instantly. Statement-level
+  // triggers close it, and this test stops them being dropped later.
+  for (const table of ["products", "orders", "admin_audit"]) {
+    await assert.rejects(
+      () => db.query(`truncate ${table} cascade`),
+      /not permitted/i,
+      `TRUNCATE on ${table} must be blocked — it bypasses the DELETE trigger and would erase everything.`,
+    );
+  }
+});

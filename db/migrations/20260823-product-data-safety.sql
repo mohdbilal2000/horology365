@@ -72,13 +72,32 @@ create trigger products_no_hard_delete
   before delete on public.products
   for each row execute function public.h365_block_operation();
 
+-- TRUNCATE does NOT fire row-level DELETE triggers — it is a separate event, so
+-- the trigger above does not stop it. Without this, one TRUNCATE erases every
+-- product and every photo instantly. Statement-level, because TRUNCATE has no
+-- rows to iterate.
+drop trigger if exists products_no_truncate on public.products;
+create trigger products_no_truncate
+  before truncate on public.products
+  for each statement execute function public.h365_block_operation();
+
 drop trigger if exists admin_audit_append_only on public.admin_audit;
 create trigger admin_audit_append_only
   before update or delete on public.admin_audit
   for each row execute function public.h365_block_operation();
+
+drop trigger if exists admin_audit_no_truncate on public.admin_audit;
+create trigger admin_audit_no_truncate
+  before truncate on public.admin_audit
+  for each statement execute function public.h365_block_operation();
 
 -- Orders are a financial record; they may change status but never disappear.
 drop trigger if exists orders_no_hard_delete on public.orders;
 create trigger orders_no_hard_delete
   before delete on public.orders
   for each row execute function public.h365_block_operation();
+
+drop trigger if exists orders_no_truncate on public.orders;
+create trigger orders_no_truncate
+  before truncate on public.orders
+  for each statement execute function public.h365_block_operation();

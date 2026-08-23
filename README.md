@@ -12,6 +12,22 @@ champagne-gold accent (`#C8A55B`), display serif headlines and a clean grotesk s
 > is "coming soon" and flips on via a single env flag. Phase 2 (Supabase + Razorpay UPI +
 > admin) swaps the mock layer for real queries and a verified gateway.
 
+
+## Product data safety
+
+Products the store owner saves are never destroyed. Removing one is a soft
+delete that can be undone from `/admin/trash`; re-seeding can only ever add
+products, never overwrite an existing one; and every admin change is recorded in
+an append-only audit trail. Postgres triggers reject a hard delete even for the
+service-role key.
+
+This is enforced by `tests/data-safety.test.ts`, which runs in CI on every push.
+**If one of those tests fails, do not loosen it** — it means the change can
+destroy live data. Full detail: [`DATA_SAFETY.md`](./DATA_SAFETY.md).
+
+Applying to an existing Supabase project: run
+`supabase/migrations/20260823-product-data-safety.sql` once.
+
 ## Stack
 
 - **Next.js 15** (App Router) + **TypeScript** (strict, `noUncheckedIndexedAccess`)

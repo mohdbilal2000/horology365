@@ -81,6 +81,8 @@ export const getAllProducts = cache(async (): Promise<Product[]> => {
     .select(
       "id, slug, title, description, brand_slug, category_slug, price, mrp, images, video_url, video_poster, rating, review_count, stock, is_preorder, drop_date, is_featured, tags",
     )
+    // Soft-deleted products stay in the table but must never reach the shop.
+    .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {

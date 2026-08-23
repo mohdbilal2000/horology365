@@ -8,6 +8,7 @@ import {
 } from "@/lib/data/adminProducts";
 import { ensureBrandExists } from "@/lib/data/adminBrands";
 import { revalidateCatalog } from "@/lib/revalidateCatalog";
+import { recordAudit } from "@/lib/data/adminAudit";
 import type { AdminModel } from "@/lib/types";
 
 function unavailable() {
@@ -20,14 +21,20 @@ function unavailable() {
   );
 }
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: Request): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) return unavailable();
   const supabase = getSupabaseAdmin()!;
 
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_COLUMNS)
-    .order("created_at", { ascending: false });
+  // ?includeDeleted=true returns only the removed products, for /admin/trash.
+  const onlyDeleted =
+    new URL(request.url).searchParams.get("includeDeleted") === "true";
+
+  let query = supabase.from("products").select(PRODUCT_COLUMNS);
+  query = onlyDeleted
+    ? query.not("deleted_at", "is", null)
+    : query.is("deleted_at", null);
+
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -63,6 +70,15 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  const model = rowToAdminModel(data as ProductRowForAdmin);
+  await recordAudit(supabase, {
+    action: "product.create",
+    targetId: model.id,
+    summary: `Added "${model.title}"`,
+    after: model,
+  });
+
   revalidateCatalog();
-  return NextResponse.json({ model: rowToAdminModel(data as ProductRowForAdmin) }, { status: 201 });
+  return NextResponse.json({ model }, { status: 201 });
 }

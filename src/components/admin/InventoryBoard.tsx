@@ -106,9 +106,21 @@ export function InventoryBoard() {
     }
   }
 
+  /**
+   * Takes a product off the storefront. This is a soft delete: the record and
+   * its photos are kept and can be restored from /admin/trash.
+   */
   async function removeModel(id: string) {
+    const previous = models;
     setModels((ms) => ms.filter((m) => m.id !== id));
-    await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      // Never leave the screen showing a removal that didn't happen.
+      setModels(previous);
+      setError("Could not remove that product. Nothing was changed.");
+      return;
+    }
+    setNotice("Removed from the storefront. You can restore it from Removed.");
   }
 
   if (loading) {

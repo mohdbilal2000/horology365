@@ -7,8 +7,12 @@ import { revalidateCatalog } from "@/lib/revalidateCatalog";
  * Admin-gated equivalent of `npm run seed` (scripts/seed-supabase.ts) — lets
  * the static catalogue (categories/brands/products) be (re)loaded into a
  * deployed environment's Supabase project without needing the service-role
- * key on a laptop. Same upsert-on-slug shape, so it's safe to call more than
- * once: admin-created products (different slugs) are untouched.
+ * key on a laptop.
+ *
+ * Safe to call any number of times: categories and brands are code-managed
+ * config and are refreshed, but PRODUCTS ARE ONLY EVER INSERTED. An existing
+ * product is never rewritten, so seeding cannot undo the owner's edits or
+ * replace images he uploaded.
  */
 export async function POST(): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) {
@@ -37,9 +41,16 @@ export async function POST(): Promise<NextResponse> {
     return NextResponse.json({ error: `brands: ${brandError.message}` }, { status: 500 });
   }
 
+  // Products are INSERT-ONLY. `ignoreDuplicates` makes this add rows whose slug
+  // isn't present yet and leave every existing row completely untouched.
+  //
+  // It used to upsert, which meant re-seeding wrote the code's mock data over
+  // the live rows — reverting any product the owner had edited, including
+  // photos he had uploaded himself. That is how his products were lost. Do not
+  // change this back to an overwriting upsert.
   const { error: productError } = await supabase
     .from("products")
-    .upsert(products, { onConflict: "slug" });
+    .upsert(products, { onConflict: "slug", ignoreDuplicates: true });
   if (productError) {
     return NextResponse.json({ error: `products: ${productError.message}` }, { status: 500 });
   }

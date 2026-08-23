@@ -9,6 +9,7 @@ import {
 } from "@/lib/data/adminProducts";
 import { ensureBrandExists } from "@/lib/data/adminBrands";
 import { revalidateCatalog } from "@/lib/revalidateCatalog";
+import { recordAudit } from "@/lib/data/adminAudit";
 import type { AdminModel, Variant } from "@/lib/types";
 
 interface RouteParams {
@@ -29,6 +30,7 @@ export async function GET(_request: Request, { params }: RouteParams): Promise<N
     .from("products")
     .select(PRODUCT_COLUMNS)
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) {
@@ -59,10 +61,20 @@ export async function PUT(request: Request, { params }: RouteParams): Promise<Ne
 
   await ensureBrandExists(supabase, body.brandSlug);
 
+  // A removed product is edited by restoring it first, not by writing through
+  // the deletion.
+  const { data: previous } = await supabase
+    .from("products")
+    .select(PRODUCT_COLUMNS)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
   const { data, error } = await supabase
     .from("products")
     .update({ ...adminModelToUpdateRow(body), updated_at: new Date().toISOString() })
     .eq("id", id)
+    .is("deleted_at", null)
     .select(PRODUCT_COLUMNS)
     .maybeSingle();
 
@@ -72,8 +84,17 @@ export async function PUT(request: Request, { params }: RouteParams): Promise<Ne
   if (!data) {
     return NextResponse.json({ error: "Product not found." }, { status: 404 });
   }
+  const model = rowToAdminModel(data as ProductRowForAdmin);
+  await recordAudit(supabase, {
+    action: "product.update",
+    targetId: id,
+    summary: `Updated "${model.title}"`,
+    before: previous ? rowToAdminModel(previous as ProductRowForAdmin) : null,
+    after: model,
+  });
+
   revalidateCatalog();
-  return NextResponse.json({ model: rowToAdminModel(data as ProductRowForAdmin) });
+  return NextResponse.json({ model });
 }
 
 export async function PATCH(request: Request, { params }: RouteParams): Promise<NextResponse> {
@@ -93,8 +114,9 @@ export async function PATCH(request: Request, { params }: RouteParams): Promise<
 
   const { data: row, error: readError } = await supabase
     .from("products")
-    .select("variants")
+    .select("title, variants")
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (readError || !row) {
     return NextResponse.json({ error: "Product not found." }, { status: 404 });
@@ -126,19 +148,93 @@ export async function PATCH(request: Request, { params }: RouteParams): Promise<
   if (writeError) {
     return NextResponse.json({ error: writeError.message }, { status: 500 });
   }
+
+  const changed = variants.find((v) => v.id === body.variantId);
+  await recordAudit(supabase, {
+    action: "product.stock",
+    targetId: id,
+    summary:
+      body.action === "startDelivery"
+        ? `${row.title} · ${changed?.name ?? body.variantId}: pre-orders moved to delivery`
+        : `${row.title} · ${changed?.name ?? body.variantId}: stock ${body.delta && body.delta > 0 ? "+" : ""}${body.delta ?? 0} -> ${changed?.stockQty ?? "?"}`,
+    before: (row.variants ?? []).find((v: Variant) => v.id === body.variantId) ?? null,
+    after: changed ?? null,
+  });
+
   revalidateCatalog();
   return NextResponse.json({ ok: true });
 }
 
+/**
+ * Removes a product from the storefront — as a SOFT delete.
+ *
+ * This used to be `.delete()`, which destroyed the row and with it every image
+ * the owner had uploaded for that product, unrecoverably. It now stamps
+ * `deleted_at`: the product disappears from the shop and the admin list, but
+ * the record is kept in full and can be brought back via POST (restore) or
+ * from /admin/trash. A Postgres trigger blocks a real DELETE as a backstop.
+ */
 export async function DELETE(_request: Request, { params }: RouteParams): Promise<NextResponse> {
   if (!isSupabaseAdminConfigured()) return unavailable();
   const supabase = getSupabaseAdmin()!;
   const { id } = await params;
 
-  const { error } = await supabase.from("products").delete().eq("id", id);
+  const { data, error } = await supabase
+    .from("products")
+    .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select(PRODUCT_COLUMNS)
+    .maybeSingle();
+
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  if (!data) {
+    return NextResponse.json({ error: "Product not found." }, { status: 404 });
+  }
+
+  const model = rowToAdminModel(data as ProductRowForAdmin);
+  await recordAudit(supabase, {
+    action: "product.delete",
+    targetId: id,
+    summary: `Removed "${model.title}" from the storefront (kept in records)`,
+    before: model,
+    after: null,
+  });
+
   revalidateCatalog();
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, model });
+}
+
+/** Restores a soft-deleted product, images and variants intact. */
+export async function POST(_request: Request, { params }: RouteParams): Promise<NextResponse> {
+  if (!isSupabaseAdminConfigured()) return unavailable();
+  const supabase = getSupabaseAdmin()!;
+  const { id } = await params;
+
+  const { data, error } = await supabase
+    .from("products")
+    .update({ deleted_at: null, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select(PRODUCT_COLUMNS)
+    .maybeSingle();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  if (!data) {
+    return NextResponse.json({ error: "Product not found." }, { status: 404 });
+  }
+
+  const model = rowToAdminModel(data as ProductRowForAdmin);
+  await recordAudit(supabase, {
+    action: "product.restore",
+    targetId: id,
+    summary: `Restored "${model.title}"`,
+    after: model,
+  });
+
+  revalidateCatalog();
+  return NextResponse.json({ ok: true, model });
 }

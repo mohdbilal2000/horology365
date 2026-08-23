@@ -52,10 +52,15 @@ create table if not exists public.products (
   tags          text[] not null default '{}',
   variants      jsonb not null default '[]'::jsonb,   -- Variant[]; empty for flat/legacy products
   created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
+  updated_at    timestamptz not null default now(),
+  -- Removal is a soft delete: the row, and the owner's uploaded images with
+  -- it, are retained and restorable. Nothing hard-deletes a product.
+  deleted_at    timestamptz
 );
 create index if not exists products_brand_slug_idx on public.products (brand_slug);
 create index if not exists products_category_slug_idx on public.products (category_slug);
+create index if not exists products_deleted_at_idx
+  on public.products (deleted_at) where deleted_at is null;
 
 -- ── Orders ───────────────────────────────────────────────────────
 
@@ -101,3 +106,9 @@ drop policy if exists "public read products" on public.products;
 create policy "public read products" on public.products for select using (true);
 
 -- Intentionally no policies on public.orders.
+
+-- ── Product data safety ──────────────────────────────────────────
+-- Kept in a separate file so it can also be applied to an existing project:
+-- see supabase/migrations/20260823-product-data-safety.sql. Run that after
+-- this file; it adds the admin_audit table and the triggers that stop a
+-- product, an order or an audit row from ever being deleted.

@@ -42,8 +42,12 @@ async function seed() {
 
   console.log(`Seeding ${products.length} products…`);
   const { error: productError } = await supabase
+    // INSERT-ONLY: `ignoreDuplicates` adds products whose slug isn't present
+    // and leaves existing rows untouched. This used to upsert, which rewrote
+    // live products with the code's mock data and destroyed the owner's edits
+    // and uploaded photos. Do not change it back.
     .from("products")
-    .upsert(products, { onConflict: "slug" });
+    .upsert(products, { onConflict: "slug", ignoreDuplicates: true });
   if (productError) throw productError;
 
   console.log("Done. The storefront now reads from Supabase.");

@@ -1,0 +1,246 @@
+/**
+ * The complete schema and protections, embedded so the running app can create
+ * them itself.
+ *
+ * The files under db/ are not part of the deployed bundle, and the hosting
+ * platform's SQL console is read-only, so a fresh deployment had no way to
+ * create its own tables — the owner had to find a database console and paste
+ * SQL by hand. This lets Admin do it.
+ *
+ * Kept byte-identical to db/schema.sql + db/migrations/20260823-product-data-
+ * safety.sql, which tests/setup-sql.test.ts enforces: edit the .sql files and
+ * regenerate with `npm run gen:setup-sql`, never edit this by hand.
+ *
+ * Deliberately not marked "server-only": it holds no secret, only the same DDL
+ * that is committed in plain text under db/, and the marker made it unloadable
+ * from the test runner for no gain. The route that executes it is server-side
+ * and admin-authenticated.
+ */
+export const SETUP_SQL = `-- Horology365 — database schema
+--
+-- Plain PostgreSQL — no vendor extensions. Apply with:
+--   psql "$DATABASE_URL" -f db/schema.sql
+--   psql "$DATABASE_URL" -f db/migrations/20260823-product-data-safety.sql
+-- Works on Supabase, Neon, Railway, RDS or a server you run yourself. Safe to
+-- re-run: every statement is guarded with IF NOT EXISTS / OR REPLACE where
+-- Postgres allows it.
+
+create extension if not exists pgcrypto; -- for gen_random_uuid()
+
+-- ── Catalog tables ───────────────────────────────────────────────
+
+create table if not exists public.categories (
+  id          uuid primary key default gen_random_uuid(),
+  slug        text unique not null,
+  name        text not null,
+  description text not null default '',
+  image_url   text not null default ''
+);
+
+create table if not exists public.brands (
+  id          uuid primary key default gen_random_uuid(),
+  slug        text unique not null,
+  name        text not null,
+  tagline     text not null default '',
+  logo_url    text not null default '',
+  cover_url   text not null default '',
+  is_active   boolean not null default true,
+  sort_order  integer not null default 0,
+  created_at  timestamptz not null default now()
+);
+
+-- Variants live as JSONB (Variant[]) rather than a join table: the admin
+-- product builder always reads/writes the whole array together, so a
+-- relational table would only add write complexity with no query benefit.
+create table if not exists public.products (
+  id            uuid primary key default gen_random_uuid(),
+  slug          text unique not null,
+  title         text not null,
+  description   text not null default '',
+  brand_slug    text not null references public.brands(slug) on update cascade,
+  category_slug text not null,
+  price         integer not null check (price >= 0),
+  mrp           integer not null check (mrp >= 0),
+  images        jsonb not null default '[]'::jsonb,  -- ProductImage[] { url, alt }
+  video_url     text,
+  video_poster  text,
+  rating        numeric(2,1) not null default 0,
+  review_count  integer not null default 0,
+  stock         integer not null default 0,          -- denormalized sum of non-preorder variant stockQty
+  is_preorder   boolean not null default false,
+  drop_date     date,
+  is_featured   boolean not null default false,
+  tags          text[] not null default '{}',
+  variants      jsonb not null default '[]'::jsonb,   -- Variant[]; empty for flat/legacy products
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  -- Removal is a soft delete: the row, and the owner's uploaded images with
+  -- it, are retained and restorable. Nothing hard-deletes a product.
+  deleted_at    timestamptz
+);
+create index if not exists products_brand_slug_idx on public.products (brand_slug);
+create index if not exists products_category_slug_idx on public.products (category_slug);
+create index if not exists products_deleted_at_idx
+  on public.products (deleted_at) where deleted_at is null;
+
+-- ── Orders ───────────────────────────────────────────────────────
+
+create table if not exists public.orders (
+  id                   text primary key,             -- app-generated via generateOrderId()
+  items                jsonb not null,                -- CartItem[]
+  details              jsonb not null,                -- CheckoutDetails
+  payment_method       text not null check (payment_method in ('cod', 'upi', 'bank_transfer', 'card')),
+  upi_reference        text,
+  subtotal             integer not null,
+  shipping             integer not null,
+  total                integer not null,
+  status               text not null default 'pending' check (status in ('pending', 'paid', 'shipped', 'delivered')),
+  razorpay_order_id    text,
+  razorpay_payment_id  text,
+  razorpay_signature   text,
+  created_at           timestamptz not null default now(),
+  updated_at           timestamptz not null default now()
+);
+create index if not exists orders_status_idx on public.orders (status);
+create index if not exists orders_created_at_idx on public.orders (created_at desc);
+create unique index if not exists orders_razorpay_order_id_idx
+  on public.orders (razorpay_order_id) where razorpay_order_id is not null;
+
+-- ── Row Level Security ───────────────────────────────────────────
+-- Defence in depth. The app no longer exposes any database credential to the
+-- browser — every query runs server-side over DATABASE_URL — so RLS is not the
+-- thing standing between a visitor and your orders any more. It is kept so that
+-- a restricted read-only role (analytics, a BI tool, a future public API) is
+-- safe by default rather than by remembering to be careful.
+--
+-- IMPORTANT: the application role must OWN these tables, or have BYPASSRLS.
+-- Table owners bypass RLS automatically, which is the normal setup. If you
+-- point DATABASE_URL at a limited role instead, reads will work and every
+-- write will fail — grant it ownership or BYPASSRLS.
+
+alter table public.categories enable row level security;
+alter table public.brands     enable row level security;
+alter table public.products   enable row level security;
+alter table public.orders     enable row level security;
+
+drop policy if exists "public read categories" on public.categories;
+create policy "public read categories" on public.categories for select using (true);
+
+drop policy if exists "public read brands" on public.brands;
+create policy "public read brands" on public.brands for select using (true);
+
+drop policy if exists "public read products" on public.products;
+create policy "public read products" on public.products for select using (true);
+
+-- Intentionally no policies on public.orders.
+
+-- ── Product data safety ──────────────────────────────────────────
+-- Kept in a separate file so it can also be applied to an existing project:
+-- see supabase/migrations/20260823-product-data-safety.sql. Run that after
+-- this file; it adds the admin_audit table and the triggers that stop a
+-- product, an order or an audit row from ever being deleted.
+
+-- Product data safety — run this once against an existing database.
+--
+-- Why this exists: products the store owner entered by hand, together with the
+-- photos he uploaded for them, were lost. Two things made that possible and
+-- both are closed here.
+--
+--   1. \`DELETE /api/admin/products/:id\` removed the row outright. It is now a
+--      soft delete, so a removal is reversible and the record is never gone.
+--   2. Re-running the catalog seed upserted every product from the code's mock
+--      data over the top of the live rows, reverting any edits (including
+--      replaced images). The seed is now insert-only for products.
+--
+-- Safe to re-run.
+
+-- ── Soft delete ────────────────────────────────────────────────────
+alter table public.products
+  add column if not exists deleted_at timestamptz;
+
+-- Every read path filters on this, so keep it cheap.
+create index if not exists products_deleted_at_idx
+  on public.products (deleted_at)
+  where deleted_at is null;
+
+-- ── Admin audit trail ──────────────────────────────────────────────
+-- Append-only record of every admin change, with before/after state.
+create table if not exists public.admin_audit (
+  id         uuid primary key default gen_random_uuid(),
+  at         timestamptz not null default now(),
+  action     text not null,
+  target_id  text not null,
+  summary    text not null,
+  actor      text not null default 'admin',
+  before     jsonb,
+  after      jsonb
+);
+create index if not exists admin_audit_at_idx on public.admin_audit (at desc);
+create index if not exists admin_audit_target_idx on public.admin_audit (target_id);
+
+alter table public.admin_audit enable row level security;
+
+-- Revoke the roles a hosted provider may have granted. Wrapped because those
+-- roles only exist on some providers — on a plain Postgres they don't, and the
+-- statement would abort the migration.
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'anon') then
+    execute 'revoke all on public.admin_audit from anon';
+  end if;
+  if exists (select 1 from pg_roles where rolname = 'authenticated') then
+    execute 'revoke all on public.admin_audit from authenticated';
+  end if;
+end $$;
+
+-- ── History protection ─────────────────────────────────────────────
+-- These fire for the service role too, so an application bug cannot erase a
+-- product or rewrite the audit trail. This is the backstop behind the
+-- application-level rules, not a duplicate of them.
+
+create or replace function public.h365_block_operation()
+returns trigger
+language plpgsql
+as $$
+begin
+  raise exception
+    'Blocked: % on % is not permitted. Products are soft-deleted (set deleted_at); audit rows are append-only.',
+    tg_op, tg_table_name;
+end;
+$$;
+
+drop trigger if exists products_no_hard_delete on public.products;
+create trigger products_no_hard_delete
+  before delete on public.products
+  for each row execute function public.h365_block_operation();
+
+-- TRUNCATE does NOT fire row-level DELETE triggers — it is a separate event, so
+-- the trigger above does not stop it. Without this, one TRUNCATE erases every
+-- product and every photo instantly. Statement-level, because TRUNCATE has no
+-- rows to iterate.
+drop trigger if exists products_no_truncate on public.products;
+create trigger products_no_truncate
+  before truncate on public.products
+  for each statement execute function public.h365_block_operation();
+
+drop trigger if exists admin_audit_append_only on public.admin_audit;
+create trigger admin_audit_append_only
+  before update or delete on public.admin_audit
+  for each row execute function public.h365_block_operation();
+
+drop trigger if exists admin_audit_no_truncate on public.admin_audit;
+create trigger admin_audit_no_truncate
+  before truncate on public.admin_audit
+  for each statement execute function public.h365_block_operation();
+
+-- Orders are a financial record; they may change status but never disappear.
+drop trigger if exists orders_no_hard_delete on public.orders;
+create trigger orders_no_hard_delete
+  before delete on public.orders
+  for each row execute function public.h365_block_operation();
+
+drop trigger if exists orders_no_truncate on public.orders;
+create trigger orders_no_truncate
+  before truncate on public.orders
+  for each statement execute function public.h365_block_operation();
+`;

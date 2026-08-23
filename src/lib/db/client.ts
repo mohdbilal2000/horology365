@@ -101,6 +101,20 @@ export async function query<T extends QueryResultRow>(
   return result.rows;
 }
 
+/**
+ * Runs a multi-statement SQL script (no parameters, simple query protocol).
+ *
+ * Separate from query() because node-postgres only allows several statements in
+ * one call when no parameter array is passed. Used solely for the idempotent
+ * setup script; everything that touches user data goes through the
+ * parameterised helpers.
+ */
+export async function runScript(sql: string): Promise<void> {
+  const p = getPool();
+  if (!p) throw new Error("DATABASE_URL is not configured.");
+  await p.query(sql);
+}
+
 /** Returns the first row, or null. */
 export async function queryOne<T extends QueryResultRow>(
   text: string,

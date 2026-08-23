@@ -9,11 +9,12 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "seed": "tsx scripts/seed-db.ts",
-    "test": "tsx --test tests/image-shape.test.ts tests/data-safety.test.ts tests/invoice-link.test.ts tests/inventory-maths.test.ts",
+    "test": "tsx --test tests/setup-sql.test.ts tests/image-shape.test.ts tests/data-safety.test.ts tests/invoice-link.test.ts tests/inventory-maths.test.ts",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run test:db && npm run build",
     "test:db": "bash scripts/with-test-db.sh",
     "db:setup": "bash scripts/db-setup.sh",
     "setup:prod": "bash scripts/setup-production.sh",
+    "gen:setup-sql": "tsx scripts/gen-setup-sql.ts",
     "db:backup": "tsx scripts/backup-db.ts",
     "health": "node -e \"const u=process.env.SITE||'https://www.horology365.com';fetch(u+'/api/health').then(r=>r.json()).then(d=>{console.log('status:',d.status);for(const[k,v]of Object.entries(d.checks))console.log((v.ok?'  OK   ':'  TODO ')+k+': '+v.detail)}).catch(e=>{console.error('could not reach',u,'-',e.message);process.exit(1)})\""
   },

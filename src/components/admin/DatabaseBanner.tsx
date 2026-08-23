@@ -23,6 +23,8 @@ import { useEffect, useState } from "react";
 export function DatabaseBanner() {
   const [down, setDown] = useState(false);
   const [detail, setDetail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +43,30 @@ export function DatabaseBanner() {
     };
   }, []);
 
+  // "connected, but empty" is a different problem from "no connection string",
+  // and it is one the app can fix itself — so offer the fix here rather than
+  // sending the owner to a database console with a file of SQL.
+  const needsTables = /does not exist/i.test(detail);
+
+  async function createTables() {
+    setBusy(true);
+    setResult("");
+    try {
+      const res = await fetch("/api/admin/setup-db", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setResult(`Done — ${data.protections} of ${data.expected} protections installed. Reloading…`);
+        setTimeout(() => window.location.reload(), 1200);
+      } else {
+        setResult(data.error ?? "Could not set up the database.");
+      }
+    } catch {
+      setResult("Could not reach the server.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!down) return null;
   return (
     <div
@@ -50,6 +76,21 @@ export function DatabaseBanner() {
       Nothing can be saved right now — adding or editing products will not
       work, and the shop is showing the built-in catalogue.
       {detail ? <span className="block font-normal">{detail}</span> : null}
+      {needsTables ? (
+        <span className="mt-2 block">
+          <button
+            type="button"
+            onClick={createTables}
+            disabled={busy}
+            className="rounded-full bg-red-800 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-white disabled:opacity-60"
+          >
+            {busy ? "Setting up…" : "Set up the database"}
+          </button>
+          <span className="ml-3 font-normal">
+            {result || "Creates the tables and the protections. Adds nothing, deletes nothing."}
+          </span>
+        </span>
+      ) : null}
     </div>
   );
 }

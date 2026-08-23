@@ -50,7 +50,32 @@ export function VideoHero({ slides }: VideoHeroProps) {
     });
   }, [active]);
 
-  if (slides.length === 0) return null;
+  // An empty shop still needs a top to the page. Rendering nothing left the
+  // header sitting directly on the brand wall, which reads as a broken site
+  // rather than an empty one.
+  if (slides.length === 0) {
+    return (
+      <section className="band-dark aurora relative overflow-hidden">
+        <div className="shell relative z-[2] py-16 text-center sm:py-24">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold">
+            Horology365
+          </p>
+          <h1 className="mt-3 text-3xl font-black text-bone sm:text-5xl">
+            Authentic watches, straight from the brands you love
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-bone/70">
+            The showroom is being stocked right now. New arrivals land shortly.
+          </p>
+          <Link
+            href="/category/mens-watches"
+            className="mt-8 inline-block rounded-full bg-gold px-6 py-3 text-sm font-bold uppercase tracking-wide text-ink"
+          >
+            Browse the collection
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section

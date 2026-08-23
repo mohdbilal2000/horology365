@@ -10,7 +10,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { ProductGrid } from "@/components/ProductGrid";
 import { activeBanners, offers, reviews } from "@/lib/mock";
 import { getAllCategories } from "@/lib/data/categories";
-import { getActiveBrands, getBrandBySlug } from "@/lib/data/brands";
+import { getActiveBrands } from "@/lib/data/brands";
 import {
   getProductBySlug,
   getProductsByBrand,
@@ -37,12 +37,29 @@ export default async function HomePage() {
     getBestSellers(),
   ]);
 
+  // Each hero slide names the product it features. When that product isn't in
+  // the catalogue the slide used to be dropped — and with all four missing the
+  // hero rendered as nothing at all, so the homepage silently lost its banner
+  // with no error anywhere. That is one delete away on a live shop.
+  //
+  // A missing product now costs the slide its subject, not its existence: the
+  // banner keeps its video and copy and borrows another watch. The hero only
+  // disappears if the shop genuinely has no products, which VideoHero handles.
+  const brandNames = new Map(activeBrands.map((b) => [b.slug, b.name]));
+  const substitutes = [...bestSellers, ...preorderProducts];
+  const used = new Set<string>();
+
   const heroSlides: HeroSlide[] = [];
   for (const banner of activeBanners) {
-    const product = await getProductBySlug(banner.productSlug);
+    const named = await getProductBySlug(banner.productSlug);
+    const product = named ?? substitutes.find((p) => !used.has(p.slug));
     if (!product) continue;
-    const brand = await getBrandBySlug(product.brandSlug);
-    heroSlides.push({ banner, product, brandName: brand?.name ?? "" });
+    used.add(product.slug);
+    heroSlides.push({
+      banner,
+      product,
+      brandName: brandNames.get(product.brandSlug) ?? "",
+    });
   }
 
   const brandBays = await Promise.all(

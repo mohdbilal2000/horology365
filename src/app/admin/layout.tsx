@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { DatabaseBanner } from "@/components/admin/DatabaseBanner";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -18,6 +19,11 @@ export default function AdminLayout({
       <div className="bg-gold px-4 py-1.5 text-center text-xs font-semibold text-ink">
         Admin · password-protected · every change is saved and logged, and nothing is ever deleted
       </div>
+
+      {/* The one failure that must never be silent: no database means nothing
+          the owner does here can be saved. Checked at view time (not build
+          time) so the answer is always the live one. */}
+      <DatabaseBanner />
 
       <header className="sticky top-0 z-30 border-b border-bone-300 bg-bone-100/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">

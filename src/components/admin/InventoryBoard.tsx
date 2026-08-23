@@ -133,7 +133,7 @@ export function InventoryBoard() {
       const res = await fetch("/api/admin/seed", { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Re-sync failed.");
-      setNotice("Catalogue re-synced from the site's built-in data.");
+      setNotice("Starter catalogue loaded. Your own products were not touched — this only ever adds.");
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Re-sync failed.");
@@ -200,10 +200,10 @@ export function InventoryBoard() {
             type="button"
             onClick={resyncCatalogue}
             disabled={syncing}
-            title="Reload the built-in categories, brands and starter products from the site's code"
+            title="Adds any missing starter watches and refreshes brand/category artwork. Products you have added or edited are never touched."
             className="rounded-full border border-bone-300 px-4 py-2 text-sm font-medium transition enabled:hover:border-gold enabled:hover:text-gold disabled:opacity-50"
           >
-            {syncing ? "Re-syncing…" : "Re-sync catalogue"}
+            {syncing ? "Loading…" : "Load starter catalogue"}
           </button>
           <Link href="/admin/products/new" className="btn-gold">
             + Add product

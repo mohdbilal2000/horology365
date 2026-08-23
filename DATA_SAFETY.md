@@ -51,13 +51,22 @@ mistake cannot undo the guarantee.
 
 ## This cannot regress
 
-`tests/data-safety.test.ts` fails the build if a future commit reintroduces any
-of it: a `.delete()` on products, a DELETE route that doesn't soft-delete, a
-missing restore handler, a seed without `ignoreDuplicates`, an unfiltered read,
-or a removed database trigger.
+Two suites run on every push:
 
-Both original bugs were re-introduced deliberately to confirm the suite goes red
-for each. CI (`.github/workflows/verify.yml`) runs it on every push and pull
+- **`tests/data-safety.test.ts`** — reads the source and fails on a `.delete()`
+  against products, a DELETE route that doesn't soft-delete, a missing restore
+  handler, a seed without `ignoreDuplicates`, an unfiltered read, or a removed
+  database trigger.
+- **`tests/product-routes.test.ts`** — executes the real route handlers against
+  a stand-in PostgREST and asserts the actual HTTP call. It proves removal sends
+  `PATCH ?deleted_at=is.null` and never a `DELETE`, that restore clears
+  `deleted_at` and the owner's image survives the round trip, that the shop
+  query excludes removed products, and that the seed sends
+  `Prefer: resolution=ignore-duplicates` rather than `merge-duplicates`.
+
+Both original bugs were re-introduced deliberately to confirm the suites go red
+for each — the route test reports the difference at the wire level
+(`resolution=merge-duplicates` vs `ignore-duplicates`). CI (`.github/workflows/verify.yml`) runs it on every push and pull
 request.
 
 > If one of these tests fails, **do not loosen the test.** It is reporting that

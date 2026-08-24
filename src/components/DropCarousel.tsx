@@ -51,6 +51,7 @@ export function DropCarousel({ products }: DropCarouselProps) {
                 key={product.id}
                 product={product}
                 brandName={getBrandBySlug(product.brandSlug)?.name ?? ""}
+                brandLogo={getBrandBySlug(product.brandSlug)?.logoUrl || undefined}
                 fixedWidth
               />
             ))}

@@ -57,6 +57,7 @@ export function BrandBay({ brand, products, tone }: BrandBayProps) {
                 key={product.id}
                 product={product}
                 brandName={brand.name}
+                brandLogo={brand.logoUrl || undefined}
                 fixedWidth
               />
             ))}

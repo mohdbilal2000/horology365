@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/lib/store/cart";
 import { useWishlistStore } from "@/lib/store/wishlist";
+import { BrandMark } from "@/components/BrandMark";
 import { PriceTag } from "@/components/PriceTag";
 import { StarRating } from "@/components/ui/StarRating";
 import { cn, discountPercent, formatDropDate } from "@/lib/utils";
@@ -12,6 +13,8 @@ import type { Product } from "@/lib/types";
 interface ProductCardProps {
   product: Product;
   brandName: string;
+  /** Optional — products of a brand with no logo file show the name alone. */
+  brandLogo?: string;
   className?: string;
   /** Carousel cards get their own width; grid cards stay fluid. */
   fixedWidth?: boolean;
@@ -20,6 +23,7 @@ interface ProductCardProps {
 export function ProductCard({
   product,
   brandName,
+  brandLogo,
   className,
   fixedWidth = false,
 }: ProductCardProps) {
@@ -125,9 +129,11 @@ export function ProductCard({
 
       {/* Content */}
       <div className="flex flex-1 flex-col p-3.5 sm:p-4">
-        <span className="text-[11px] font-semibold uppercase tracking-label text-c-55">
-          {brandName}
-        </span>
+        <BrandMark
+          name={brandName}
+          logoUrl={brandLogo}
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-label text-c-55"
+        />
         <Link
           href={`/product/${product.slug}`}
           className="mt-1 line-clamp-2 text-[15px] font-semibold leading-snug tracking-tight transition hover:text-gold"

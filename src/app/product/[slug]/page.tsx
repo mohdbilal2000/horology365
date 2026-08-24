@@ -53,5 +53,12 @@ export default async function ProductPage({ params }: PageProps) {
   const brandName = brand?.name ?? "";
   const related = await getRelatedProducts(product);
 
-  return <ProductDetail product={product} brandName={brandName} related={related} />;
+  return (
+    <ProductDetail
+      product={product}
+      brandName={brandName}
+      brandLogo={brand?.logoUrl || undefined}
+      related={related}
+    />
+  );
 }

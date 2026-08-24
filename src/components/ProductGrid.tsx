@@ -25,6 +25,7 @@ export function ProductGrid({ products, brandName }: ProductGridProps) {
           <ProductCard
             product={product}
             brandName={brandName ?? getBrandBySlug(product.brandSlug)?.name ?? ""}
+            brandLogo={getBrandBySlug(product.brandSlug)?.logoUrl || undefined}
           />
         </Reveal>
       ))}

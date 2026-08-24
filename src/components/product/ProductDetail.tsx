@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/BrandMark";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { ProductGrid } from "@/components/ProductGrid";
@@ -11,12 +12,19 @@ import type { Product } from "@/lib/types";
 interface ProductDetailProps {
   product: Product;
   brandName: string;
+  /** Optional — brands with no logo file show the name alone. */
+  brandLogo?: string;
   related: Product[];
 }
 
 /** Full product page body — shared by the statically-seeded product route
  *  and the client-side fallback that resolves admin-added products. */
-export function ProductDetail({ product, brandName, related }: ProductDetailProps) {
+export function ProductDetail({
+  product,
+  brandName,
+  brandLogo,
+  related,
+}: ProductDetailProps) {
   const inStock = product.isPreorder || product.stock > 0;
 
   const jsonLd = {
@@ -83,7 +91,12 @@ export function ProductDetail({ product, brandName, related }: ProductDetailProp
               href={`/brand/${product.brandSlug}`}
               className="text-xs font-semibold uppercase tracking-label text-gold hover:text-gold-600"
             >
-              {brandName}
+              <BrandMark
+                name={brandName}
+                logoUrl={brandLogo}
+                className="inline-flex items-center gap-2"
+                logoClassName="h-4 max-w-[64px]"
+              />
             </Link>
             <h1 className="mt-2 font-serif text-3xl leading-tight sm:text-4xl">
               {product.title}

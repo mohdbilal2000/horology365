@@ -1,9 +1,42 @@
 /** Site-wide configuration sourced from env with safe fallbacks. */
 
+/** The shop's own domain. A fact about this deployment, not a setting. */
+export const PRODUCTION_SITE_URL = "https://www.horology365.com";
+
+/**
+ * Resolves the site's public address.
+ *
+ * Exported and pure so tests/site-url.test.ts can check the production branch
+ * without reloading modules: the localhost fallback reaching production is the
+ * exact bug this guards against.
+ */
+export function resolveSiteUrl(
+  explicit: string | undefined,
+  nodeEnv: string | undefined,
+): string {
+  if (explicit) return explicit;
+  return nodeEnv === "production" ? PRODUCTION_SITE_URL : "http://localhost:3000";
+}
+
 export const SITE = {
   name: "Horology365",
   tagline: "Authentic watches, dropped in batches.",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  /**
+   * The site's public address, used for canonical URLs, the sitemap, link
+   * previews and the signed invoice links sent to customers.
+   *
+   * Production must never fall back to localhost. It did: NEXT_PUBLIC_SITE_URL
+   * was never set on the deployment, so the live sitemap advertised all 68
+   * pages as http://localhost:3000, link previews pointed their image there
+   * (which is why no logo appeared when the shop was shared), and an invoice
+   * link would have sent a customer to their own machine.
+   *
+   * The domain is a fact about this shop, not a per-environment setting, so it
+   * is the default rather than something an env var has to remember to supply.
+   * NEXT_PUBLIC_SITE_URL still overrides it — for a staging domain — and dev
+   * still gets localhost.
+   */
+  url: resolveSiteUrl(process.env.NEXT_PUBLIC_SITE_URL, process.env.NODE_ENV),
   whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "919217239733",
   description:
     "Horology365 — authentic, affordable fashion watches from the brands you love. UPI-secure checkout, easy returns, and pre-order drops every week.",

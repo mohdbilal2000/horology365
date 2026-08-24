@@ -72,7 +72,7 @@ export async function PUT(request: Request, { params }: RouteParams): Promise<Ne
   try {
     const model = await updateProduct(id, body);
     if (!model) return notFound();
-    revalidateCatalog();
+    revalidateCatalog({ brandSlug: model.brandSlug, categorySlug: model.categorySlug });
     return NextResponse.json({ model });
   } catch (err) {
     return failed(err, "Could not save the product.");
@@ -111,7 +111,7 @@ export async function PATCH(request: Request, { params }: RouteParams): Promise<
       set: body.set,
     });
     if (!model) return notFound();
-    revalidateCatalog();
+    revalidateCatalog({ brandSlug: model.brandSlug, categorySlug: model.categorySlug });
     return NextResponse.json({ ok: true, model });
   } catch (err) {
     return failed(err, "Could not adjust stock.");
@@ -131,7 +131,7 @@ export async function DELETE(_request: Request, { params }: RouteParams): Promis
   try {
     const model = await softDeleteProduct(id);
     if (!model) return notFound();
-    revalidateCatalog();
+    revalidateCatalog({ brandSlug: model.brandSlug, categorySlug: model.categorySlug });
     return NextResponse.json({ ok: true, model });
   } catch (err) {
     return failed(err, "Could not remove the product.");
@@ -146,7 +146,7 @@ export async function POST(_request: Request, { params }: RouteParams): Promise<
   try {
     const model = await restoreProduct(id);
     if (!model) return notFound();
-    revalidateCatalog();
+    revalidateCatalog({ brandSlug: model.brandSlug, categorySlug: model.categorySlug });
     return NextResponse.json({ ok: true, model });
   } catch (err) {
     return failed(err, "Could not restore the product.");

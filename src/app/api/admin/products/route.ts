@@ -51,7 +51,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     const model = await createProduct(body);
-    revalidateCatalog();
+    revalidateCatalog({ brandSlug: model.brandSlug, categorySlug: model.categorySlug });
     return NextResponse.json({ model }, { status: 201 });
   } catch (err) {
     return NextResponse.json(

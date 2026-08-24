@@ -303,3 +303,52 @@ test("restoring never overwrites what is already there", { skip }, async () => {
   );
   assert.equal(after?.price, 1234, "the newer price must survive the restore");
 });
+
+test("an uploaded photo is served by URL to shoppers and kept raw for the owner", { skip }, async () => {
+  const storefront = await import("../src/lib/data/products");
+
+  // A data URL is what the admin uploader produces; a link is what pasting an
+  // image address produces. Both must keep working.
+  const uploaded =
+    "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=";
+  const linked = "https://images.unsplash.com/photo-1524592094714-0f0654e20314";
+
+  const created = await adminQ.createProduct({
+    ...sampleProduct("photo-serving"),
+    imageUrl: uploaded,
+    images: [uploaded, linked],
+  });
+
+  const rows = await db.query<{ slug: string }>("select slug from products where id = $1", [
+    created.id,
+  ]);
+  const slug = rows[0]!.slug;
+
+  const shopper = (await storefront.getAllProducts()).find((p) => p.slug === slug);
+  assert.ok(shopper, "the product must reach the storefront");
+
+  // What the page embeds: a link, never the photo itself. This is the whole
+  // point — inline photos took the home page to 14 MB.
+  assert.ok(
+    shopper.images[0]!.url.startsWith(`/api/product-image/${slug}/0`),
+    `expected a served URL, got ${shopper.images[0]!.url.slice(0, 40)}`,
+  );
+  assert.ok(
+    !shopper.images.some((i) => i.url.startsWith("data:")),
+    "no photo may be embedded in a storefront page",
+  );
+  assert.equal(shopper.images[1]!.url, linked, "an ordinary image link must be left alone");
+
+  // What the owner gets back when he opens the edit form: the original photo.
+  // If this ever returns the served URL, saving would replace his photo with a
+  // link to itself and the image would be lost on the next edit.
+  const owner = await adminQ.getAdminProduct(created.id);
+  assert.equal(owner?.images?.[0], uploaded, "the admin must still receive the real photo");
+
+  // And the stored row is untouched by any of this.
+  const stored = await db.query<{ url: string }>(
+    "select images->0->>'url' as url from products where id = $1",
+    [created.id],
+  );
+  assert.equal(stored[0]!.url, uploaded, "the row must still hold the original photo");
+});

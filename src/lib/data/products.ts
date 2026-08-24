@@ -23,9 +23,27 @@ interface ProductRow {
   drop_date: string | null;
   is_featured: boolean;
   tags: string[];
+  updated_at?: string | Date;
+}
+
+/**
+ * An uploaded photo is stored in the row as a data URL. Embedding those in the
+ * HTML made the home page 14 MB; pointing at the route that serves them keeps
+ * the same bytes in the same row while the page carries a link instead.
+ *
+ * Only the storefront is rewritten. The admin edit form, the backup and the
+ * restore read their own queries and still see the original data URL, so a
+ * product edited after this change round-trips unchanged.
+ */
+function servableImageUrl(url: string, slug: string, index: number, version: string): string {
+  if (!url.startsWith("data:")) return url;
+  return `/api/product-image/${encodeURIComponent(slug)}/${index}?v=${version}`;
 }
 
 function rowToProduct(row: ProductRow): Product {
+  const version = String(
+    row.updated_at ? new Date(row.updated_at).getTime() : 0,
+  );
   return {
     id: row.id,
     slug: row.slug,
@@ -43,7 +61,11 @@ function rowToProduct(row: ProductRow): Product {
         url: typeof i?.url === "string" ? i.url : ((i?.url as unknown as { url?: string })?.url ?? ""),
         alt: typeof i?.alt === "string" ? i.alt : row.title,
       }))
-      .filter((i) => i.url),
+      .filter((i) => i.url)
+      .map((image, index) => ({
+        ...image,
+        url: servableImageUrl(image.url, row.slug, index, version),
+      })),
     videoUrl: row.video_url ?? undefined,
     videoPoster: row.video_poster ?? undefined,
     rating: Number(row.rating) || 0,
@@ -84,7 +106,7 @@ const fileGShock = (p: Product): Product =>
 export const PRODUCT_SELECT = `
   id, slug, title, description, brand_slug, category_slug, price, mrp,
   images, video_url, video_poster, rating, review_count, stock,
-  is_preorder, drop_date, is_featured, tags
+  is_preorder, drop_date, is_featured, tags, updated_at
 `;
 
 export const getAllProducts = cache(async (): Promise<Product[]> => {

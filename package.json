@@ -9,7 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "seed": "tsx scripts/seed-db.ts",
-    "test": "tsx --test tests/site-url.test.ts tests/setup-sql.test.ts tests/image-shape.test.ts tests/data-safety.test.ts tests/invoice-link.test.ts tests/inventory-maths.test.ts",
+    "test": "tsx --tsconfig tsconfig.test.json --test tests/backup-store.test.ts tests/site-url.test.ts tests/setup-sql.test.ts tests/image-shape.test.ts tests/data-safety.test.ts tests/invoice-link.test.ts tests/inventory-maths.test.ts",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run test:db && npm run build",
     "test:db": "bash scripts/with-test-db.sh",
     "db:setup": "bash scripts/db-setup.sh",

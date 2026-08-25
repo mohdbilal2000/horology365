@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { queryOne, isDatabaseConfigured } from "@/lib/db/client";
+import { backupHealth, listBackups } from "@/lib/data/backupStore";
 import { EMAIL_ENABLED, WHATSAPP_ENABLED } from "@/lib/config";
 
 /**
@@ -83,6 +84,19 @@ export async function GET(): Promise<NextResponse> {
   }
 
   // ── Order delivery ──
+  // ── Backups ──
+  // Reported whether or not the database is reachable: "no backup is running"
+  // is exactly the thing that must never again be invisible, and it is most
+  // urgent precisely when the database is in trouble.
+  try {
+    checks.backups = backupHealth(await listBackups());
+  } catch (err) {
+    checks.backups = {
+      ok: false,
+      detail: `Could not read the backup store: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+
   checks.invoiceSigning = {
     ok: Boolean(process.env.APP_SECRET),
     detail: process.env.APP_SECRET
@@ -104,7 +118,9 @@ export async function GET(): Promise<NextResponse> {
 
   // The database is the only check that makes the site genuinely unhealthy.
   // The rest are degraded-but-serving, so they must not fail a platform probe.
-  const healthy = checks.database.ok;
+  // A shop with a working database but no backups is one bad day from the
+  // incident this whole system exists to prevent, so it does not report "ok".
+  const healthy = checks.database.ok && checks.backups.ok;
 
   return NextResponse.json(
     { status: healthy ? "ok" : "degraded", checks },

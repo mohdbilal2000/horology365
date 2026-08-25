@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { buildBackup } from "@/lib/data/backup";
 import { ORDER_NOTIFY, EMAIL_ENABLED, SITE } from "@/lib/config";
+import { putBackup, backupStoreConfigured } from "@/lib/data/backupStore";
 
 /**
- * Scheduled off-site backup: emails a full snapshot to the store inbox.
+ * Scheduled off-site backup: writes a full snapshot to Vercel Blob, and emails
+ * a copy too when email is configured.
  *
- * A backup the owner has to remember to take is one he will stop taking. This
- * puts a copy somewhere the database cannot reach — his mailbox — without
- * adding another vendor, since the order emails already go through Resend.
+ * A backup the owner has to remember to take is one he will stop taking. The
+ * previous version only knew how to email, so with no RESEND_API_KEY it
+ * returned 503 every night and nothing anywhere said so — the store ran for
+ * weeks with no backup at all, and that only came to light when the database
+ * stopped answering. Blob needs no third-party account, and /api/health now
+ * reports the age of the newest backup so silence is not mistaken for success.
  *
  * Vercel signs cron requests with CRON_SECRET; unauthenticated calls are
  * refused so this can't be used to pull the whole catalogue.
@@ -35,9 +40,12 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (!isDatabaseConfigured()) {
     return NextResponse.json({ error: "No database is configured." }, { status: 503 });
   }
-  if (!EMAIL_ENABLED) {
+  if (!backupStoreConfigured() && !EMAIL_ENABLED) {
     return NextResponse.json(
-      { error: "RESEND_API_KEY is not set, so the backup has nowhere to go." },
+      {
+        error:
+          "Nowhere to put the backup: set BLOB_READ_WRITE_TOKEN (Vercel → Storage → Blob) or RESEND_API_KEY.",
+      },
       { status: 503 },
     );
   }
@@ -46,6 +54,20 @@ export async function GET(request: Request): Promise<NextResponse> {
     const backup = await buildBackup();
     const date = backup.takenAt.slice(0, 10);
     const json = JSON.stringify(backup, null, 2);
+    const stored: { blobUrl?: string; emailedTo?: string } = {};
+
+    // Blob first: it is the copy the admin banner and /api/health watch, and
+    // the one that must exist even when email is not set up.
+    if (backupStoreConfigured()) {
+      stored.blobUrl = await putBackup(
+        `backups/horology365-backup-${backup.takenAt.replace(/[:.]/g, "-")}.json`,
+        json,
+      );
+    }
+
+    if (!EMAIL_ENABLED) {
+      return NextResponse.json({ ok: true, counts: backup.counts, ...stored });
+    }
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -75,7 +97,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     if (!res.ok) {
       throw new Error(`Resend responded ${res.status}: ${await res.text()}`);
     }
-    return NextResponse.json({ ok: true, counts: backup.counts, sentTo: ORDER_NOTIFY.storeEmail });
+    stored.emailedTo = ORDER_NOTIFY.storeEmail;
+    return NextResponse.json({ ok: true, counts: backup.counts, ...stored });
   } catch (err) {
     console.error("[cron/backup] failed:", err);
     return NextResponse.json(

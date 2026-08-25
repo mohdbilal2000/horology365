@@ -25,16 +25,25 @@ export function DatabaseBanner() {
   const [detail, setDetail] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState("");
+  const [backups, setBackups] = useState<{ ok?: boolean; detail?: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/health", { cache: "no-store" })
       .then((r) => r.json())
-      .then((d: { checks?: { database?: { ok?: boolean; detail?: string } } }) => {
-        if (cancelled) return;
-        setDown(d.checks?.database?.ok === false);
-        setDetail(d.checks?.database?.detail ?? "");
-      })
+      .then(
+        (d: {
+          checks?: {
+            database?: { ok?: boolean; detail?: string };
+            backups?: { ok?: boolean; detail?: string };
+          };
+        }) => {
+          if (cancelled) return;
+          setDown(d.checks?.database?.ok === false);
+          setDetail(d.checks?.database?.detail ?? "");
+          setBackups(d.checks?.backups ?? null);
+        },
+      )
       .catch(() => {
         // Can't reach our own health route: say nothing rather than guess.
       });
@@ -67,8 +76,24 @@ export function DatabaseBanner() {
     }
   }
 
-  if (!down) return null;
+  // Shown even when the database is fine. A shop whose backups stopped looks
+  // perfectly healthy right up until the day it isn't, which is how this store
+  // ended up with no copy of its catalogue at all.
+  const backupWarning =
+    backups && backups.ok === false ? (
+      <div
+        role="alert"
+        className="border-b border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-900"
+      >
+        No backup is being taken — your products are not protected.
+        <span className="block font-normal">{backups.detail}</span>
+      </div>
+    ) : null;
+
+  if (!down) return backupWarning;
   return (
+    <>
+      {backupWarning}
     <div
       role="alert"
       className="border-b border-red-300 bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-800"
@@ -92,5 +117,6 @@ export function DatabaseBanner() {
         </span>
       ) : null}
     </div>
+    </>
   );
 }

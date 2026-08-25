@@ -1,5 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { MAINTENANCE_MODE } from "@/lib/maintenance";
 
 /**
  * Integration tests against a REAL PostgreSQL database.
@@ -304,7 +305,15 @@ test("restoring never overwrites what is already there", { skip }, async () => {
   assert.equal(after?.price, 1234, "the newer price must survive the restore");
 });
 
-test("an uploaded photo is served by URL to shoppers and kept raw for the owner", { skip }, async () => {
+// While the shop is locked the storefront reads the shipped catalogue, not the
+// database, so a product created here cannot reach it. The behaviour this test
+// pins still matters the moment the database is the source again — skipped
+// with a reason rather than deleted, so it comes back with the lock.
+const skipWhileLocked = MAINTENANCE_MODE
+  ? "maintenance mode: the storefront does not read the database"
+  : skip;
+
+test("an uploaded photo is served by URL to shoppers and kept raw for the owner", { skip: skipWhileLocked }, async () => {
   const storefront = await import("../src/lib/data/products");
 
   // A data URL is what the admin uploader produces; a link is what pasting an

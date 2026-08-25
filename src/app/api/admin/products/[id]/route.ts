@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MAINTENANCE_MODE, maintenanceResponse } from "@/lib/maintenance";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import {
   getAdminProduct,
@@ -56,6 +57,9 @@ export async function GET(_request: Request, { params }: RouteParams): Promise<N
 
 /** Full edit — replaces every editable field. The slug is left untouched. */
 export async function PUT(request: Request, { params }: RouteParams): Promise<NextResponse> {
+  // Maintenance mode — see src/lib/maintenance.ts.
+  if (MAINTENANCE_MODE) return maintenanceResponse();
+
   if (!isDatabaseConfigured()) return unavailable();
   const { id } = await params;
 
@@ -81,6 +85,9 @@ export async function PUT(request: Request, { params }: RouteParams): Promise<Ne
 
 /** Stock adjustment, or moving a pre-order batch into delivery. */
 export async function PATCH(request: Request, { params }: RouteParams): Promise<NextResponse> {
+  // Maintenance mode — see src/lib/maintenance.ts.
+  if (MAINTENANCE_MODE) return maintenanceResponse();
+
   if (!isDatabaseConfigured()) return unavailable();
   const { id } = await params;
 
@@ -125,6 +132,9 @@ export async function PATCH(request: Request, { params }: RouteParams): Promise<
  * kept in full and can be brought back via POST or from /admin/trash.
  */
 export async function DELETE(_request: Request, { params }: RouteParams): Promise<NextResponse> {
+  // Maintenance mode — see src/lib/maintenance.ts.
+  if (MAINTENANCE_MODE) return maintenanceResponse();
+
   if (!isDatabaseConfigured()) return unavailable();
   const { id } = await params;
 
@@ -140,6 +150,9 @@ export async function DELETE(_request: Request, { params }: RouteParams): Promis
 
 /** Restores a soft-deleted product, images and variants intact. */
 export async function POST(_request: Request, { params }: RouteParams): Promise<NextResponse> {
+  // Maintenance mode — see src/lib/maintenance.ts.
+  if (MAINTENANCE_MODE) return maintenanceResponse();
+
   if (!isDatabaseConfigured()) return unavailable();
   const { id } = await params;
 

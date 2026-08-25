@@ -110,11 +110,29 @@ test("seeding never overwrites an existing product", () => {
 });
 
 test("the storefront and admin list hide removed products", () => {
-  assert.match(
-    read(path.join("src", "lib", "data", "products.ts")),
-    /where\s+deleted_at\s+is\s+null/i,
-    "getAllProducts must filter out soft-deleted products.",
-  );
+  // The guarantee is that a removed product never reaches a shopper. How that
+  // is enforced depends on where the storefront reads from, and during
+  // maintenance mode it reads a file rather than the database — so there is no
+  // SQL filter to look for. The rule is unchanged; only its location moved.
+  const storefront = read(path.join("src", "lib", "data", "products.ts"));
+  if (/from\s+products/i.test(storefront)) {
+    assert.match(
+      storefront,
+      /where\s+deleted_at\s+is\s+null/i,
+      "getAllProducts must filter out soft-deleted products.",
+    );
+  } else {
+    const snapshot = JSON.parse(
+      read(path.join("src", "lib", "data", "catalogueSnapshot.json")),
+    ) as { slug: string; deletedAt?: string | null }[];
+    assert.ok(snapshot.length > 0, "the shipped catalogue must not be empty.");
+    const removed = snapshot.filter((p) => p.deletedAt);
+    assert.deepEqual(
+      removed.map((p) => p.slug),
+      [],
+      "a removed product must never be shipped in the catalogue the shop serves.",
+    );
+  }
   assert.match(
     read(path.join("src", "lib", "data", "adminProductQueries.ts")),
     /deleted_at\s+is\s+\$\{|deleted_at\s+is\s+null/i,

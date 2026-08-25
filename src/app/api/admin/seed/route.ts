@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MAINTENANCE_MODE, maintenanceResponse } from "@/lib/maintenance";
 import { query, isDatabaseConfigured } from "@/lib/db/client";
 import { categoryRows, brandRows, productRows } from "@/lib/seedCatalog";
 import { revalidateCatalog } from "@/lib/revalidateCatalog";
@@ -30,6 +31,9 @@ function placeholders(rows: number, width: number): string {
 }
 
 export async function POST(): Promise<NextResponse> {
+  // Maintenance mode — see src/lib/maintenance.ts.
+  if (MAINTENANCE_MODE) return maintenanceResponse();
+
   if (!isDatabaseConfigured()) {
     return NextResponse.json(
       { error: "The database isn't configured (DATABASE_URL missing)." },

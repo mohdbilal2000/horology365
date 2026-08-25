@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MAINTENANCE_MODE, maintenanceResponse } from "@/lib/maintenance";
 import { isDatabaseConfigured } from "@/lib/db/client";
 import { listAdminProducts, createProduct } from "@/lib/data/adminProductQueries";
 import { revalidateCatalog } from "@/lib/revalidateCatalog";
@@ -36,6 +37,9 @@ export async function GET(request: Request): Promise<NextResponse> {
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
+  // Maintenance mode — see src/lib/maintenance.ts.
+  if (MAINTENANCE_MODE) return maintenanceResponse();
+
   if (!isDatabaseConfigured()) return unavailable();
 
   let body: Omit<AdminModel, "id" | "createdAt">;

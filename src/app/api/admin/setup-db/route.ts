@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MAINTENANCE_MODE, maintenanceResponse } from "@/lib/maintenance";
 import { isDatabaseConfigured, runScript, query } from "@/lib/db/client";
 import { SETUP_SQL } from "@/lib/db/setupSql";
 
@@ -26,6 +27,9 @@ const PROTECTIONS = [
 ];
 
 export async function POST(): Promise<NextResponse> {
+  // Maintenance mode — see src/lib/maintenance.ts.
+  if (MAINTENANCE_MODE) return maintenanceResponse();
+
   if (!isDatabaseConfigured()) {
     return NextResponse.json(
       { error: "No database connection string is configured." },

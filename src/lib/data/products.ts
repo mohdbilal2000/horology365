@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { query, isDatabaseConfigured } from "@/lib/db/client";
 import { products as seedProducts } from "@/lib/mock/products";
+import { CATALOGUE_SNAPSHOT } from "@/lib/data/catalogueSnapshot";
 import { DELISTED_BRAND_SLUGS } from "@/lib/data/brands";
 import type { CategorySlug, Product } from "@/lib/types";
 
@@ -109,8 +110,23 @@ export const PRODUCT_SELECT = `
   is_preorder, drop_date, is_featured, tags, updated_at
 `;
 
+/**
+ * What the shop shows when the database cannot answer.
+ *
+ * Never the demo catalogue in production. When the database went down, the
+ * storefront served 28 built-in sample watches with stock photos and invented
+ * prices to real customers, several of whom tried to pay for them. The owner's
+ * own catalogue is shipped with the site for exactly this case; the demo set
+ * survives only for local development, where there is no shop and no customer.
+ */
+function fallbackProducts(): Product[] {
+  if (CATALOGUE_SNAPSHOT.length > 0) return CATALOGUE_SNAPSHOT;
+  if (process.env.NODE_ENV === "production") return [];
+  return seedProducts;
+}
+
 export const getAllProducts = cache(async (): Promise<Product[]> => {
-  if (!isDatabaseConfigured()) return seedProducts.filter(sellable).map(fileGShock);
+  if (!isDatabaseConfigured()) return fallbackProducts().filter(sellable).map(fileGShock);
 
   try {
     const rows = await query<ProductRow>(
@@ -123,10 +139,10 @@ export const getAllProducts = cache(async (): Promise<Product[]> => {
     return rows.map(rowToProduct).filter(sellable).map(fileGShock);
   } catch (err) {
     console.error(
-      "[data/products] query failed, using seed catalogue:",
+      "[data/products] query failed, falling back to the shipped catalogue:",
       err instanceof Error ? err.message : err,
     );
-    return seedProducts.filter(sellable).map(fileGShock);
+    return fallbackProducts().filter(sellable).map(fileGShock);
   }
 });
 

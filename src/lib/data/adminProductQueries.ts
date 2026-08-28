@@ -25,6 +25,30 @@ import type { AdminModel, Variant } from "@/lib/types";
 
 type Editable = Omit<AdminModel, "id" | "createdAt">;
 
+/**
+ * Shrinks a product before it goes into `admin_audit`'s before/after columns.
+ *
+ * Uploaded photos are stored as base64 data URLs on the product row itself
+ * (see `src/app/api/product-image/[slug]/[index]/route.ts`), which can run to
+ * hundreds of KB per photo. `admin_audit` is append-only and every edit writes
+ * a fresh snapshot, so without this a product edited ten times would carry its
+ * full photo set ten extra times over — the table (and every future backup
+ * and DB migration) grows in proportion to edit count, not product count. The
+ * audit only needs to show *that* a photo changed, not hold a duplicate copy
+ * of it forever; the real photo stays exactly once, on the product row.
+ */
+function auditSnapshot(product: AdminModel | null): unknown {
+  if (!product) return product;
+  return {
+    ...product,
+    images: (product.images ?? []).map((url) =>
+      url.startsWith("data:")
+        ? `[uploaded photo, ${Math.ceil(url.length / 1024)} KB — omitted from audit log]`
+        : url,
+    ),
+  };
+}
+
 /** Live products, newest first. */
 export async function listAdminProducts(
   opts: { onlyDeleted?: boolean } = {},
@@ -79,7 +103,7 @@ export async function createProduct(model: Editable): Promise<AdminModel> {
     action: "product.create",
     targetId: product.id,
     summary: `Added "${product.title}"`,
-    after: product,
+    after: auditSnapshot(product),
   });
   return product;
 }
@@ -123,8 +147,8 @@ export async function updateProduct(
     action: "product.update",
     targetId: id,
     summary: `Updated "${product.title}"`,
-    before,
-    after: product,
+    before: auditSnapshot(before),
+    after: auditSnapshot(product),
   });
   return product;
 }
@@ -230,7 +254,7 @@ export async function softDeleteProduct(id: string): Promise<AdminModel | null> 
     action: "product.delete",
     targetId: id,
     summary: `Removed "${product.title}" from the storefront (kept in records)`,
-    before: product,
+    before: auditSnapshot(product),
     after: null,
   });
   return product;
@@ -252,7 +276,7 @@ export async function restoreProduct(id: string): Promise<AdminModel | null> {
     action: "product.restore",
     targetId: id,
     summary: `Restored "${product.title}"`,
-    after: product,
+    after: auditSnapshot(product),
   });
   return product;
 }

@@ -83,6 +83,30 @@ export async function GET(): Promise<NextResponse> {
     }
   }
 
+  // ── Database size ──
+  // Read before every migration to a new host or provider: shows whether the
+  // database is actually light enough to move without surprises (a slow
+  // pg_dump, a storage-tier limit) rather than assuming it from row counts.
+  if (checks.database.ok) {
+    try {
+      const row = await queryOne<{ total: string; products: string; audit: string }>(
+        `select
+           pg_size_pretty(pg_database_size(current_database())) as total,
+           pg_size_pretty(pg_total_relation_size('products')) as products,
+           pg_size_pretty(pg_total_relation_size('admin_audit')) as audit`,
+      );
+      checks.databaseSize = {
+        ok: true,
+        detail: `database ${row?.total ?? "?"} · products table ${row?.products ?? "?"} · admin_audit table ${row?.audit ?? "?"}`,
+      };
+    } catch (err) {
+      checks.databaseSize = {
+        ok: true,
+        detail: `Could not measure size: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+
   // ── Order delivery ──
   // ── Backups ──
   // Reported whether or not the database is reachable: "no backup is running"

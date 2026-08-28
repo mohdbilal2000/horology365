@@ -72,6 +72,29 @@ request.
 > If one of these tests fails, **do not loosen the test.** It is reporting that
 > your change can destroy live customer data.
 
+## Getting a copy onto your own computer
+
+`/admin/backup` downloads everything — every product (including removed
+ones), every order, the full change log — as one JSON file. `/api/admin/restore`
+puts back anything that's missing from a file like that; it never overwrites
+what's already there, so running it is always safe.
+
+Editing a single product also offers **"Download this product"**
+(`/api/admin/products/:id/export`) — the same file shape, scoped to one
+product, for "I just finished this one, save a copy before I touch anything
+else." Either file restores through the same `/admin/backup` restore panel.
+
+## Keeping the database itself light
+
+`admin_audit` used to store a full copy of a product — photos included —
+on every single edit. A product edited ten times carried its uploaded photos
+ten extra times over in the audit table alone, so the table (and every future
+backup or migration) grew with edit count, not product count. Audit entries
+now record that a photo changed, not another copy of it; the real photo stays
+exactly once, on the product row. `GET /api/health` reports the actual size of
+the database, the `products` table and `admin_audit` — check it before moving
+to a new host.
+
 ## Applying this to an existing deployment
 
 Run once, in the Supabase SQL editor:

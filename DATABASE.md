@@ -84,6 +84,7 @@ only, no secrets:
   "checks": {
     "database":       { "ok": true,  "detail": "connected · 45 live products" },
     "dataSafety":     { "ok": true,  "detail": "soft delete + all 3 protection triggers active" },
+    "databaseSize":   { "ok": true,  "detail": "database 41 MB · products table 38 MB · admin_audit table 2 MB" },
     "invoiceSigning": { "ok": true,  "detail": "APP_SECRET set — invoice links are signed" },
     "email":          { "ok": true,  "detail": "RESEND_API_KEY set — invoices are emailed" },
     "whatsapp":       { "ok": false, "detail": "… falling back to a wa.me link" }

@@ -307,6 +307,31 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
     }
   }
 
+  async function downloadThisProduct() {
+    if (!initial) return;
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/products/${initial.id}/export`, {
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error ?? `Download failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `horology365-product-${initial.brandSlug}-${initial.id}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not download this product.");
+    }
+  }
+
   const saveLabel = isEdit
     ? saving
       ? "Saving…"
@@ -317,14 +342,28 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
 
   return (
     <div>
-      <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
-        {isEdit ? "Edit product" : "Add a product"}
-      </h1>
-      <p className="mt-1 text-ink-500">
-        {isEdit
-          ? "Change anything — photos, price, variants — then save. The live preview updates as you type."
-          : "Pick the brand, pick the model, then the variants you actually stock — watch it build live."}
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
+            {isEdit ? "Edit product" : "Add a product"}
+          </h1>
+          <p className="mt-1 text-ink-500">
+            {isEdit
+              ? "Change anything — photos, price, variants — then save. The live preview updates as you type."
+              : "Pick the brand, pick the model, then the variants you actually stock — watch it build live."}
+          </p>
+        </div>
+        {isEdit ? (
+          <button
+            type="button"
+            onClick={() => void downloadThisProduct()}
+            title="Save a copy of this product — photos, description, price, variants — to your computer"
+            className="shrink-0 rounded-full border border-bone-300 px-4 py-2 text-sm font-semibold transition hover:border-gold hover:text-gold"
+          >
+            Download this product
+          </button>
+        ) : null}
+      </div>
 
       {/* Stepper */}
       <ol className="mt-7 flex items-center gap-2">

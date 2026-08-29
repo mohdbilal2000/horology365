@@ -14,6 +14,15 @@ import { putBlob, sortableTimestamp, randomSuffix } from "@/lib/data/blobClient"
  * Never overwritten: every upload gets a fresh, unique pathname, so removing
  * a photo from a product (which only ever changes what the catalogue points
  * at, see catalogue.ts) never touches the file itself.
+ *
+ * The Blob store is private (it also holds orders, which carry customers'
+ * names, phone numbers and addresses — those must never be fetchable by
+ * URL alone). A private object can't be loaded directly by a shopper's
+ * browser, so this returns an app-relative URL
+ * (`/api/blob-image/<pathname>`) instead of Vercel's own URL — that route
+ * fetches the real bytes server-side, with the token, and streams them
+ * back. One store stays private end to end; photos still just work in an
+ * `<img>` tag.
  */
 
 const EXT_BY_TYPE: Record<string, string> = {
@@ -29,12 +38,12 @@ function extensionFor(contentType: string): string {
   return EXT_BY_TYPE[contentType.toLowerCase()] ?? "jpg";
 }
 
-/** Uploads raw image bytes (from the admin's file picker) and returns the public URL. */
+/** Uploads raw image bytes (from the admin's file picker) and returns a URL any browser can load. */
 export async function uploadImageBytes(bytes: Buffer, contentType: string, hint: string): Promise<string> {
   const safeHint = hint.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/(^-|-$)/g, "") || "product";
   const pathname = `store/images/${safeHint}/${sortableTimestamp()}-${randomSuffix()}.${extensionFor(contentType)}`;
-  const { url } = await putBlob(pathname, bytes, { contentType });
-  return url;
+  await putBlob(pathname, bytes, { contentType });
+  return `/api/blob-image/${pathname}`;
 }
 
 /** Decodes a `data:` URL and uploads it the same way — used by restoreFromBackup for legacy photos. */

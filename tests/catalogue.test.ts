@@ -164,7 +164,7 @@ test("an order survives status changes and is retrievable by id", async () => {
 test("removing a product's photo from the array never deletes the photo file itself", async () => {
   const { uploadImageBytes } = await import("@/lib/data/images");
   const url = await uploadImageBytes(Buffer.from("fake-jpeg-bytes"), "image/jpeg", "test-watch");
-  const pathname = decodeURIComponent(new URL(url).pathname.slice(1));
+  const pathname = decodeURIComponent(url.replace(/^\/api\/blob-image\//, ""));
   assert.ok(stub.blobs.has(pathname), "the uploaded photo must exist in storage");
 
   const { createProduct, updateProduct } = await import("@/lib/data/catalogue");

@@ -60,6 +60,7 @@ export async function putBlob(
     headers: {
       ...auth(),
       "content-type": opts.contentType,
+      "x-vercel-blob-access": "private",
       "x-add-random-suffix": "0",
       "x-cache-control-max-age": opts.overwrite ? "0" : "31536000",
       ...(opts.overwrite ? { "x-allow-overwrite": "1" } : {}),
@@ -85,9 +86,13 @@ export async function putJSON(
   });
 }
 
-/** Fetches and parses a JSON blob by its public URL. Never cached — always the true current bytes. */
+/**
+ * Fetches and parses a JSON blob by its URL. Never cached — always the true
+ * current bytes. Private-store blobs require the same bearer token as every
+ * other call here — there is no such thing as an anonymous read.
+ */
 export async function getJSON<T>(url: string): Promise<T | null> {
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetch(url, { cache: "no-store", headers: auth() });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Blob read failed for ${url} (${res.status})`);
   return (await res.json()) as T;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { queryOne, isDatabaseConfigured } from "@/lib/db/client";
+import { blobConfigured, listPrefix } from "@/lib/data/blobClient";
+import { readCatalogue } from "@/lib/data/catalogue";
 import { backupHealth, listBackups } from "@/lib/data/backupStore";
 import { EMAIL_ENABLED, WHATSAPP_ENABLED } from "@/lib/config";
 
@@ -11,8 +12,8 @@ import { EMAIL_ENABLED, WHATSAPP_ENABLED } from "@/lib/config";
  * spotting which branch an error page rendered. That is slow and easy to read
  * wrong. This answers the question directly.
  *
- * Deliberately returns only booleans and counts. No connection string, no key,
- * no customer data — nothing here is worth anything to someone who finds it,
+ * Deliberately returns only booleans and counts. No token, no secret, no
+ * customer data — nothing here is worth anything to someone who finds it,
  * and everything here is needed to confirm a deploy is wired up.
  */
 
@@ -24,70 +25,77 @@ interface Check {
   detail: string;
 }
 
+function bytesToSize(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export async function GET(): Promise<NextResponse> {
   const checks: Record<string, Check> = {};
 
-  // ── Database ──
-  if (!isDatabaseConfigured()) {
-    checks.database = {
+  // ── Product storage ──
+  if (!blobConfigured()) {
+    checks.storage = {
       ok: false,
-      detail: "No database connection string found (DATABASE_URL or POSTGRES_URL) — the site is serving the static catalogue, the admin cannot save, and orders are not being stored.",
+      detail: "BLOB_READ_WRITE_TOKEN not set — the site is serving the shipped catalogue snapshot, the admin cannot save, and orders are not being stored.",
     };
   } else {
     try {
-      const row = await queryOne<{ products: string }>(
-        "select count(*)::text as products from products where deleted_at is null",
-      );
-      checks.database = {
-        ok: true,
-        detail: `connected · ${row?.products ?? "?"} live products`,
-      };
+      const { entries } = await readCatalogue();
+      const live = entries.filter((e) => e.deleted_at === null).length;
+      checks.storage = { ok: true, detail: `connected · ${live} live products` };
     } catch (err) {
-      checks.database = {
+      checks.storage = {
         ok: false,
-        detail: `DATABASE_URL is set but the query failed: ${
+        detail: `BLOB_READ_WRITE_TOKEN is set but the read failed: ${
           err instanceof Error ? err.message : String(err)
         }`,
       };
     }
   }
 
-  // ── Data-safety migration ──
-  // Without these the app-level protections still hold, but the database
-  // backstop that stops a bug erasing products does not exist yet.
-  if (checks.database.ok) {
+  // ── Data safety ──
+  // There's no trigger to check here — the guarantee is structural: nothing
+  // in catalogue.ts ever removes an entry from the array, and every write
+  // lands as a brand-new, immutable history file before the small "current"
+  // pointer is ever touched. What's worth reporting is how much of that
+  // history actually exists, as a sanity check that writes are landing.
+  if (checks.storage.ok) {
     try {
-      const row = await queryOne<{ has_column: boolean; triggers: string }>(
-        `select
-           exists (
-             select 1 from information_schema.columns
-              where table_name = 'products' and column_name = 'deleted_at'
-           ) as has_column,
-           (select count(*)::text from pg_trigger
-             where tgname in ('products_no_hard_delete','orders_no_hard_delete','admin_audit_append_only')
-           ) as triggers`,
-      );
-      const triggers = Number(row?.triggers ?? 0);
-      const ok = Boolean(row?.has_column) && triggers === 3;
+      const history = await listPrefix("store/catalogue/history/");
       checks.dataSafety = {
-        ok,
-        detail: ok
-          ? "soft delete + all 3 protection triggers active"
-          : `incomplete (deleted_at: ${row?.has_column ? "yes" : "no"}, triggers: ${triggers}/3) — run db/migrations/20260823-product-data-safety.sql`,
+        ok: true,
+        detail: `soft delete only, no hard-delete code path · ${history.length} catalogue version(s) retained`,
       };
     } catch (err) {
-      checks.dataSafety = {
-        ok: false,
-        detail: err instanceof Error ? err.message : String(err),
-      };
+      checks.dataSafety = { ok: false, detail: err instanceof Error ? err.message : String(err) };
     }
   }
 
-  // ── Order delivery ──
+  // ── Storage size ──
+  // Read before every migration to a new Vercel account: shows whether the
+  // store is actually light enough to move without surprises.
+  if (checks.storage.ok) {
+    try {
+      const [catalogueHistory, images, orders] = await Promise.all([
+        listPrefix("store/catalogue/history/"),
+        listPrefix("store/images/"),
+        listPrefix("store/orders/"),
+      ]);
+      const totalBytes = [...catalogueHistory, ...images, ...orders].reduce((n, b) => n + b.size, 0);
+      checks.storageSize = {
+        ok: true,
+        detail: `${bytesToSize(totalBytes)} total · ${images.length} photo(s) · ${catalogueHistory.length} catalogue version(s) · ${orders.length} order file(s)`,
+      };
+    } catch (err) {
+      checks.storageSize = { ok: true, detail: `Could not measure size: ${err instanceof Error ? err.message : String(err)}` };
+    }
+  }
+
   // ── Backups ──
-  // Reported whether or not the database is reachable: "no backup is running"
-  // is exactly the thing that must never again be invisible, and it is most
-  // urgent precisely when the database is in trouble.
+  // Reported whether or not storage is reachable: "no backup is running" is
+  // exactly the thing that must never again be invisible.
   try {
     checks.backups = backupHealth(await listBackups());
   } catch (err) {
@@ -116,11 +124,9 @@ export async function GET(): Promise<NextResponse> {
       : "WHATSAPP_TOKEN / WHATSAPP_PHONE_ID missing — falling back to a wa.me link",
   };
 
-  // The database is the only check that makes the site genuinely unhealthy.
-  // The rest are degraded-but-serving, so they must not fail a platform probe.
-  // A shop with a working database but no backups is one bad day from the
-  // incident this whole system exists to prevent, so it does not report "ok".
-  const healthy = checks.database.ok && checks.backups.ok;
+  // Storage is the only check that makes the site genuinely unhealthy. The
+  // rest are degraded-but-serving, so they must not fail a platform probe.
+  const healthy = checks.storage.ok && checks.backups.ok;
 
   return NextResponse.json(
     { status: healthy ? "ok" : "degraded", checks },

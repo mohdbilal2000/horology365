@@ -24,47 +24,62 @@ const FALLBACK_IMG =
 const MAX_EDGE = 1200;
 
 /**
- * Read a picked file and letterbox it onto a square canvas on white.
+ * Read a picked file, letterbox it onto a square canvas on white, and upload
+ * the result to Blob storage — returning a URL, not the photo's bytes.
  *
  * Product frames across the site are square (or 4:3), and a non-square photo
  * dropped into one gets visually cropped by `object-cover` — which is exactly
  * the "photo crops itself after upload" the client hit. Padding to a square
- * here means the whole photo survives every frame it lands in, uncropped. The
- * canvas step also downscales, keeping the stored data URL small.
+ * here means the whole photo survives every frame it lands in, uncropped.
+ *
+ * Uploading rather than embedding is what keeps the catalogue itself small:
+ * every product used to carry its photos' full bytes inline. The letterbox
+ * and downscale still happen first, in the browser, so what gets uploaded is
+ * already the small, final version.
  */
-async function fileToSquareDataUrl(file: File, quality = 0.85): Promise<string> {
+async function fileToUploadedUrl(file: File, hint: string, quality = 0.85): Promise<string> {
   const raw = await new Promise<string>((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(String(r.result));
     r.onerror = () => reject(r.error);
     r.readAsDataURL(file);
   });
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const im = new window.Image();
-      im.onload = () => resolve(im);
-      im.onerror = reject;
-      im.src = raw;
-    });
-    const longest = Math.max(img.width, img.height);
-    const scale = Math.min(1, MAX_EDGE / longest);
-    const size = Math.round(longest * scale);
-    const w = Math.round(img.width * scale);
-    const h = Math.round(img.height * scale);
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const im = new window.Image();
+    im.onload = () => resolve(im);
+    im.onerror = reject;
+    im.src = raw;
+  });
+  const longest = Math.max(img.width, img.height);
+  const scale = Math.min(1, MAX_EDGE / longest);
+  const size = Math.round(longest * scale);
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
 
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return raw;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
     // White backdrop so the padding reads as studio background, not a hole.
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, size, size);
     ctx.drawImage(img, Math.round((size - w) / 2), Math.round((size - h) / 2), w, h);
-    return canvas.toDataURL("image/jpeg", quality);
-  } catch {
-    return raw;
   }
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    ctx ? canvas.toBlob(resolve, "image/jpeg", quality) : resolve(null),
+  );
+  const body = blob ?? file;
+
+  const res = await fetch(`/api/admin/upload-image?hint=${encodeURIComponent(hint)}`, {
+    method: "POST",
+    headers: { "Content-Type": body.type || "image/jpeg" },
+    body,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.url) throw new Error(data.error ?? "Upload failed.");
+  return data.url as string;
 }
 
 function blankVariant(): Variant {
@@ -175,13 +190,14 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
   async function onPickFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     setUploading(true);
+    const hint = brandSlug || title || "product";
     const added: string[] = [];
     for (const f of Array.from(files)) {
       if (!f.type.startsWith("image/")) continue;
       try {
-        added.push(await fileToSquareDataUrl(f));
-      } catch {
-        /* skip files we can't read */
+        added.push(await fileToUploadedUrl(f, hint));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not upload a photo.");
       }
     }
     setImages((arr) => [...arr.filter((u) => u.trim()), ...added]);
@@ -307,6 +323,31 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
     }
   }
 
+  async function downloadThisProduct() {
+    if (!initial) return;
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/products/${initial.id}/export`, {
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error ?? `Download failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `horology365-product-${initial.brandSlug}-${initial.id}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not download this product.");
+    }
+  }
+
   const saveLabel = isEdit
     ? saving
       ? "Saving…"
@@ -317,14 +358,28 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
 
   return (
     <div>
-      <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
-        {isEdit ? "Edit product" : "Add a product"}
-      </h1>
-      <p className="mt-1 text-ink-500">
-        {isEdit
-          ? "Change anything — photos, price, variants — then save. The live preview updates as you type."
-          : "Pick the brand, pick the model, then the variants you actually stock — watch it build live."}
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-serif text-3xl font-bold tracking-tight sm:text-4xl">
+            {isEdit ? "Edit product" : "Add a product"}
+          </h1>
+          <p className="mt-1 text-ink-500">
+            {isEdit
+              ? "Change anything — photos, price, variants — then save. The live preview updates as you type."
+              : "Pick the brand, pick the model, then the variants you actually stock — watch it build live."}
+          </p>
+        </div>
+        {isEdit ? (
+          <button
+            type="button"
+            onClick={() => void downloadThisProduct()}
+            title="Save a copy of this product — photos, description, price, variants — to your computer"
+            className="shrink-0 rounded-full border border-bone-300 px-4 py-2 text-sm font-semibold transition hover:border-gold hover:text-gold"
+          >
+            Download this product
+          </button>
+        ) : null}
+      </div>
 
       {/* Stepper */}
       <ol className="mt-7 flex items-center gap-2">

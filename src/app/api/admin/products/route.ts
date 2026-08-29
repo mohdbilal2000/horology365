@@ -1,26 +1,26 @@
 import { NextResponse } from "next/server";
 import { MAINTENANCE_MODE, maintenanceResponse } from "@/lib/maintenance";
-import { isDatabaseConfigured } from "@/lib/db/client";
-import { listAdminProducts, createProduct } from "@/lib/data/adminProductQueries";
+import { blobConfigured } from "@/lib/data/blobClient";
+import { listAdminProducts, createProduct } from "@/lib/data/catalogue";
 import { revalidateCatalog } from "@/lib/revalidateCatalog";
 import type { AdminModel } from "@/lib/types";
 
 /**
  * Admin product list and create. Authentication is handled by middleware.
  *
- * All SQL lives in @/lib/data/adminProductQueries, which is where the
+ * All storage lives in @/lib/data/catalogue, which is where the
  * never-hard-delete and always-audit rules are enforced.
  */
 
 function unavailable() {
   return NextResponse.json(
-    { error: "The product database isn't configured yet." },
+    { error: "Product storage isn't configured yet." },
     { status: 503 },
   );
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
-  if (!isDatabaseConfigured()) return unavailable();
+  if (!blobConfigured()) return unavailable();
 
   // ?includeDeleted=true returns only the removed products, for /admin/trash.
   const onlyDeleted =
@@ -40,7 +40,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Maintenance mode — see src/lib/maintenance.ts.
   if (MAINTENANCE_MODE) return maintenanceResponse();
 
-  if (!isDatabaseConfigured()) return unavailable();
+  if (!blobConfigured()) return unavailable();
 
   let body: Omit<AdminModel, "id" | "createdAt">;
   try {

@@ -18,7 +18,7 @@ import {
   getBestSellers,
 } from "@/lib/data/products";
 
-// Re-fetch from Supabase at most once per this many seconds, so admin
+// Re-fetch the catalogue at most once per this many seconds, so admin
 // catalog changes (new products, stock, etc.) show up without a redeploy —
 // see the admin write routes for the complementary on-demand revalidation.
 // One hour, not one minute. Every admin write already calls

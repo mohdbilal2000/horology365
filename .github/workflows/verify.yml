@@ -2,8 +2,10 @@ name: Verify
 
 # The data-safety checks are why this exists: a commit that reintroduces a way
 # to erase the store owner's products must fail here, before it reaches
-# production. The integration job runs them against a real PostgreSQL, so the
-# protection triggers are verified too, not just the application code.
+# production. tests/catalogue.test.ts exercises the real storage code against
+# a stub Blob HTTP server, so the insert-only/soft-delete/audit guarantees are
+# verified against actual read-modify-write behaviour, not just source-code
+# pattern checks.
 
 on:
   push:
@@ -14,23 +16,6 @@ jobs:
   verify:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: h365test
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    env:
-      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/h365test
-      DATABASE_SSL: disable
-
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,18 +24,11 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - name: Apply schema
-        run: |
-          psql "$TEST_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f db/schema.sql
-          psql "$TEST_DATABASE_URL" -q -v ON_ERROR_STOP=1 -f db/migrations/20260823-product-data-safety.sql
-
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
         run: npm run lint
-      - name: Data-safety guardrails
+      - name: Tests (data-safety guardrails included)
         run: npm run test
-      - name: Database integration tests
-        run: npm run test:db
       - name: Build
         run: npm run build

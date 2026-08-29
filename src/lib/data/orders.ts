@@ -1,95 +1,83 @@
 import "server-only";
-import { query, queryOne, isDatabaseConfigured } from "@/lib/db/client";
-import type { CartItem, CheckoutDetails, Order, OrderStatus } from "@/lib/types";
+import { blobConfigured, findExact, getJSON, listPrefix, putJSON, sortableTimestamp, randomSuffix } from "@/lib/data/blobClient";
+import type { Order, OrderStatus } from "@/lib/types";
 
 /**
- * Order persistence.
+ * Razorpay linkage used to be separate Postgres columns, queried by
+ * `razorpay_order_id`. Blob has no query language, so these just ride along
+ * on the order's own JSON, and `markOrderPaidViaRazorpay` finds its order by
+ * scanning `listOrders()` instead of a WHERE clause — fine at this store's
+ * order volume, and it's the same "read everything, filter in memory"
+ * pattern the rest of this codebase already uses for products.
+ */
+type StoredOrder = Order & {
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
+};
+
+/**
+ * Order persistence, in Vercel Blob.
  *
- * No static fallback — orders never existed as static data — but every function
- * degrades to a no-op when no database is configured, so checkout still
+ * `store/orders/<id>/latest.json` is the current state of one order — the
+ * only object this module ever overwrites, and only for that one order (a
+ * status update can never touch another order's file, so two orders can
+ * never race each other). `store/orders/<id>/history/<timestamp>.json` is an
+ * immutable snapshot written on every change — creation and every status
+ * update — so an order's full history survives even if `latest.json` is ever
+ * wrong.
+ *
+ * No static fallback — orders never existed as static data — but every
+ * function degrades to a no-op when Blob isn't configured, so checkout still
  * completes before the backend is set up.
  */
 
-const ORDER_SELECT =
-  "id, items, details, status, subtotal, shipping, total, created_at";
-
-interface OrderRow {
-  id: string;
-  items: CartItem[];
-  details: CheckoutDetails;
-  status: OrderStatus;
-  subtotal: number;
-  shipping: number;
-  total: number;
-  created_at: string | Date;
+function latestPath(id: string): string {
+  return `store/orders/${id}/latest.json`;
+}
+function historyPath(id: string): string {
+  return `store/orders/${id}/history/${sortableTimestamp()}-${randomSuffix()}.json`;
 }
 
-function rowToOrder(row: OrderRow): Order {
-  return {
-    id: row.id,
-    items: row.items,
-    details: row.details,
-    subtotal: row.subtotal,
-    shipping: row.shipping,
-    total: row.total,
-    status: row.status,
-    // pg returns timestamptz as a Date; the app's Order type is an ISO string.
-    createdAt:
-      row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
-  };
+async function writeOrder(order: StoredOrder): Promise<void> {
+  // History first: even if the pointer write below fails, this version of
+  // the order is not lost.
+  await putJSON(historyPath(order.id), order);
+  await putJSON(latestPath(order.id), order, { overwrite: true });
 }
 
 export async function createOrder(order: Order): Promise<{ ok: boolean; error?: string }> {
-  if (!isDatabaseConfigured()) return { ok: false, error: "DATABASE_URL not configured" };
-
+  if (!blobConfigured()) return { ok: false, error: "BLOB_READ_WRITE_TOKEN not configured" };
   try {
-    await query(
-      `insert into orders
-         (id, items, details, payment_method, upi_reference,
-          subtotal, shipping, total, status)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [
-        order.id,
-        JSON.stringify(order.items),
-        JSON.stringify(order.details),
-        order.details.paymentMethod,
-        order.details.upiReference ?? null,
-        order.subtotal,
-        order.shipping,
-        order.total,
-        order.status,
-      ],
-    );
+    await writeOrder(order);
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
-export async function getOrderById(id: string): Promise<Order | null> {
-  if (!isDatabaseConfigured()) return null;
-
+export async function getOrderById(id: string): Promise<StoredOrder | null> {
+  if (!blobConfigured()) return null;
   try {
-    const row = await queryOne<OrderRow>(
-      `select ${ORDER_SELECT} from orders where id = $1`,
-      [id],
-    );
-    return row ? rowToOrder(row) : null;
+    const blob = await findExact(latestPath(id));
+    if (!blob) return null;
+    return await getJSON<StoredOrder>(blob.url);
   } catch (err) {
     console.error("[data/orders] getOrderById failed:", err instanceof Error ? err.message : err);
     return null;
   }
 }
 
-export async function listOrders(limit = 200): Promise<Order[]> {
-  if (!isDatabaseConfigured()) return [];
-
+/** Every order's current state, newest first. */
+export async function listOrders(limit = 200): Promise<StoredOrder[]> {
+  if (!blobConfigured()) return [];
   try {
-    const rows = await query<OrderRow>(
-      `select ${ORDER_SELECT} from orders order by created_at desc limit $1`,
-      [limit],
-    );
-    return rows.map(rowToOrder);
+    const blobs = (await listPrefix("store/orders/")).filter((b) => b.pathname.endsWith("/latest.json"));
+    const orders = await Promise.all(blobs.map((b) => getJSON<StoredOrder>(b.url)));
+    return orders
+      .filter((o): o is StoredOrder => o !== null)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, limit);
   } catch (err) {
     console.error("[data/orders] listOrders failed:", err instanceof Error ? err.message : err);
     return [];
@@ -97,14 +85,12 @@ export async function listOrders(limit = 200): Promise<Order[]> {
 }
 
 export async function updateOrderStatus(id: string, status: OrderStatus): Promise<boolean> {
-  if (!isDatabaseConfigured()) return false;
-
+  if (!blobConfigured()) return false;
   try {
-    const rows = await query(
-      "update orders set status = $2, updated_at = now() where id = $1 returning id",
-      [id, status],
-    );
-    return rows.length > 0;
+    const current = await getOrderById(id);
+    if (!current) return false;
+    await writeOrder({ ...current, status });
+    return true;
   } catch (err) {
     console.error("[data/orders] updateOrderStatus failed:", err instanceof Error ? err.message : err);
     return false;
@@ -116,38 +102,31 @@ export async function markOrderPaidViaRazorpay(
   paymentId: string,
   signature: string,
 ): Promise<boolean> {
-  if (!isDatabaseConfigured()) return false;
-
+  if (!blobConfigured()) return false;
   try {
-    const rows = await query(
-      `update orders
-          set status = 'paid',
-              razorpay_payment_id = $2,
-              razorpay_signature = $3,
-              updated_at = now()
-        where razorpay_order_id = $1
-        returning id`,
-      [razorpayOrderId, paymentId, signature],
-    );
-    return rows.length > 0;
+    const orders = await listOrders(1000);
+    const order = orders.find((o) => o.razorpayOrderId === razorpayOrderId);
+    if (!order) return false;
+    await writeOrder({
+      ...order,
+      status: "paid",
+      razorpayPaymentId: paymentId,
+      razorpaySignature: signature,
+    });
+    return true;
   } catch (err) {
     console.error("[data/orders] markOrderPaid failed:", err instanceof Error ? err.message : err);
     return false;
   }
 }
 
-export async function attachRazorpayOrderId(
-  orderId: string,
-  razorpayOrderId: string,
-): Promise<boolean> {
-  if (!isDatabaseConfigured()) return false;
-
+export async function attachRazorpayOrderId(orderId: string, razorpayOrderId: string): Promise<boolean> {
+  if (!blobConfigured()) return false;
   try {
-    const rows = await query(
-      "update orders set razorpay_order_id = $2 where id = $1 returning id",
-      [orderId, razorpayOrderId],
-    );
-    return rows.length > 0;
+    const current = await getOrderById(orderId);
+    if (!current) return false;
+    await writeOrder({ ...current, razorpayOrderId });
+    return true;
   } catch (err) {
     console.error("[data/orders] attachRazorpayOrderId failed:", err instanceof Error ? err.message : err);
     return false;

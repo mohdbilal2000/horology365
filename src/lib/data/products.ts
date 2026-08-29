@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { readCatalogue, entryToProduct } from "@/lib/data/catalogue";
 import { CATALOGUE_SNAPSHOT } from "@/lib/data/catalogueSnapshot";
 import { DELISTED_BRAND_SLUGS } from "@/lib/data/brands";
 import type { CategorySlug, Product } from "@/lib/types";
@@ -6,12 +7,17 @@ import type { CategorySlug, Product } from "@/lib/types";
 /**
  * The full catalog, fetched once per request (React `cache()`) and filtered
  * in memory by every other helper below — mirrors how the static seed array
- * already works, and avoids an N+1 query pattern (e.g. the home page loops
- * over every brand). Falls back to the static seed catalogue only when
- * Supabase isn't configured or the query itself fails — never merely because
- * a configured query returned zero rows.
+ * already worked, and avoids an N+1 query pattern (e.g. the home page loops
+ * over every brand).
+ *
+ * Reads the live catalogue from Vercel Blob — the admin's own writes, not a
+ * database. `CATALOGUE_SNAPSHOT` (the owner's real stock, shipped with the
+ * site) is the fallback of last resort: used only when Blob isn't configured
+ * or a read genuinely fails, never merely because the live catalogue happens
+ * to be empty. It is never the built-in demo catalogue — that file is not
+ * importable from here at all — so a Blob outage degrades to "yesterday's
+ * real stock," never to fake products in front of real customers.
  */
-/** Delisted brands' watches never reach the storefront, even if their DB rows remain. */
 const sellable = (p: Product): boolean => !DELISTED_BRAND_SLUGS.has(p.brandSlug);
 
 /**
@@ -28,16 +34,17 @@ const fileGShock = (p: Product): Product =>
   isGShock(p) ? { ...p, brandSlug: "g-shock" } : p;
 
 export const getAllProducts = cache(async (): Promise<Product[]> => {
-  // Maintenance mode: the shipped catalogue is the only source. There is no
-  // database call here at all — not a guarded one, not a fallback.
-  //
-  // The database went over its bandwidth allowance and stopped answering, and
-  // the storefront then served the built-in demo catalogue: 28 sample watches
-  // with stock photos at invented prices, to real customers, several of whom
-  // tried to buy them. Removing the database from this path removes the whole
-  // class of failure — nothing can go stale, time out, or fall back to
-  // something fake, because there is nothing left to fall back from.
-  return CATALOGUE_SNAPSHOT.filter(sellable).map(fileGShock);
+  let products: Product[];
+  try {
+    const { entries } = await readCatalogue();
+    products = entries.length
+      ? entries.filter((e) => e.deleted_at === null).map(entryToProduct)
+      : CATALOGUE_SNAPSHOT;
+  } catch (err) {
+    console.error("[data/products] catalogue read failed, serving the shipped snapshot:", err);
+    products = CATALOGUE_SNAPSHOT;
+  }
+  return products.filter(sellable).map(fileGShock);
 });
 
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {

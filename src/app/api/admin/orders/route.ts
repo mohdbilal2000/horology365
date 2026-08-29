@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { listOrders } from "@/lib/data/orders";
-import { isDatabaseConfigured } from "@/lib/db/client";
+import { blobConfigured } from "@/lib/data/blobClient";
 
 export async function GET(): Promise<NextResponse> {
-  if (!isDatabaseConfigured()) {
+  if (!blobConfigured()) {
     return NextResponse.json(
-      { error: "The order database isn't configured yet.", orders: [] },
+      { error: "Order storage isn't configured yet.", orders: [] },
       { status: 503 },
     );
   }

@@ -35,63 +35,66 @@ image attached to it, with no undo and no record that it had existed.
 Categories and brands are still refreshed by the seed. They are code-managed
 configuration, not the owner's content — no admin-entered data lives in them.
 
+## The second incident: the database itself disappeared
+
+Everything above stops the *app* from destroying data. It did nothing the day
+the *database* went away — a Postgres/Neon project lost outside the app
+entirely (a dashboard action, a storage integration disconnected, an account
+issue), which no soft-delete flag or trigger can see, because there is no row
+left to protect.
+
+So the storage layer moved off a database entirely, onto Vercel Blob (see
+[`DATABASE.md`](./DATABASE.md)). This removes the failure rather than adding a
+fifth layer of defense against it: there is no bandwidth allowance to exceed,
+no connection to drop, and every write is an independently-addressed,
+immutable object rather than a row inside one project that can be deleted
+whole. A nightly snapshot (`/api/cron/backup`) still lands somewhere else
+entirely — an inbox, not this Vercel account — for the one thing versioned
+storage in the same account still can't cover: that account itself being lost.
+
 ## Enforced in four layers
 
 Each of these is sufficient on its own; all four are in place so that one
 mistake cannot undo the guarantee.
 
-1. **Seed** — products are insert-only. An existing row is never rewritten.
+1. **Seed and restore** — both insert-only, through the exact same code path
+   (`restoreCatalogueEntries` in `catalogue.ts`). An existing product (by
+   slug) is never rewritten.
 2. **API** — `DELETE` soft-deletes and returns the record; `POST` restores it.
-   Reads filter `deleted_at is null` so removed products leave the shop.
+   Reads filter on `deleted_at` so removed products leave the shop.
 3. **Audit** — every create, update, stock change, delete and restore is
-   appended to `admin_audit` with before/after state.
-4. **Database** — triggers reject `DELETE` on `products` and `orders`, and
-   `UPDATE`/`DELETE` on `admin_audit`. These fire for the service-role key too,
-   so a bug in the app cannot get past them.
+   recorded as its own file under `store/audit/`, with before/after state.
+4. **Storage** — `catalogue.ts` contains no code path that removes an entry
+   from the stored array, and `blobClient.ts` has no delete function at all —
+   not "a delete that's disabled," an actual absence of the capability.
 
 ## This cannot regress
 
-Two suites run on every push:
-
-- **`tests/data-safety.test.ts`** — reads the source and fails on a `.delete()`
-  against products, a DELETE route that doesn't soft-delete, a missing restore
-  handler, a seed without `ignoreDuplicates`, an unfiltered read, or a removed
-  database trigger.
-- **`tests/product-routes.test.ts`** — executes the real route handlers against
-  a stand-in PostgREST and asserts the actual HTTP call. It proves removal sends
-  `PATCH ?deleted_at=is.null` and never a `DELETE`, that restore clears
-  `deleted_at` and the owner's image survives the round trip, that the shop
-  query excludes removed products, and that the seed sends
-  `Prefer: resolution=ignore-duplicates` rather than `merge-duplicates`.
-
-Both original bugs were re-introduced deliberately to confirm the suites go red
-for each — the route test reports the difference at the wire level
-(`resolution=merge-duplicates` vs `ignore-duplicates`). CI (`.github/workflows/verify.yml`) runs it on every push and pull
-request.
+**`tests/data-safety.test.ts`** reads the source and fails on a splice/shrink
+against the stored array, a DELETE route that doesn't soft-delete, a missing
+restore handler, a seed or restore that doesn't go through the insert-only
+path, or a database creeping back into the runtime code path. **`tests/catalogue.test.ts`**
+goes further and exercises the real code against a stub Blob server — a
+product genuinely survives a remove/restore round trip with its photo intact,
+a stale backup row is genuinely skipped rather than overwriting a newer edit,
+and every write genuinely produces a new, untouched history file. CI
+(`.github/workflows/verify.yml`) runs both on every push and pull request.
 
 > If one of these tests fails, **do not loosen the test.** It is reporting that
 > your change can destroy live customer data.
 
-## Applying this to an existing deployment
+## Getting a copy onto your own computer
 
-Run once, in the Supabase SQL editor:
+`/admin/backup` downloads everything — every product (including removed
+ones), every order, the full change log — as one JSON file. `/api/admin/restore`
+puts back anything that's missing from a file like that; it never overwrites
+what's already there, so running it is always safe.
 
-```
-db/migrations/20260823-product-data-safety.sql
-```
-
-It adds `products.deleted_at`, the `admin_audit` table, and the protection
-triggers. It is safe to re-run. Fresh projects get all of it from
-`db/schema.sql`.
-
-Verify afterwards:
-
-```sql
--- should return one row
-select column_name from information_schema.columns
-where table_name = 'products' and column_name = 'deleted_at';
-
--- should return three triggers
-select tgname from pg_trigger
-where tgname in ('products_no_hard_delete','orders_no_hard_delete','admin_audit_append_only');
-```
+Editing a single product also offers **"Download this product"**
+(`/api/admin/products/:id/export`) — the same file shape, scoped to one
+product, for "I just finished this one, save a copy before I touch anything
+else." Either file restores through the same `/admin/backup` restore panel.
+A backup taken before the Blob migration (with photos embedded as base64) also
+restores cleanly — each embedded photo is uploaded to Blob on the way in and
+replaced with its real URL, so restoring an old backup is also how a product
+finishes moving off an embedded photo.

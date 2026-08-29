@@ -6,7 +6,7 @@ import type { Order } from "@/lib/types";
 interface OrderConfirmationProps {
   order: Order;
   /** Hide the invoice link when the order only exists in sessionStorage
-   *  (pre-Supabase-setup) — the invoice route reads from the database. */
+   *  (pre-storage-setup) — the invoice route reads from Blob storage. */
   downloadable?: boolean;
   /** Signed invoice URL. Required for the download link to work: the invoice
    *  route rejects an unsigned request. */
@@ -16,7 +16,7 @@ interface OrderConfirmationProps {
 }
 
 /** Pure presentational order-confirmation body — shared by the server-side
- *  lookup path and the pre-Supabase-setup sessionStorage fallback. */
+ *  lookup path and the pre-storage-setup sessionStorage fallback. */
 export function OrderConfirmation({
   order,
   downloadable = true,

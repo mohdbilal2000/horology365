@@ -8,10 +8,11 @@ Tailwind, Zustand) for a real client. `main` deploys straight to production
 
 - `npm run verify` — the gate: typecheck + lint + all tests + build. **Run
   before every push; exit 0 or don't ship.**
-- `npm run test` — fast suites (data safety, invoice links, inventory maths)
-- `npm run test:db` — integration tests against a throwaway real Postgres
-- `npm run db:setup` — create tables + protection triggers (idempotent; must
-  end "protection triggers: 6 of 6")
+- `npm run test` — all suites (data safety, catalogue/orders/audit against a
+  stub Blob server, invoice links, inventory maths) — no external service
+  needed, this is the whole gate now
+- `npm run setup:prod -- "<BLOB_READ_WRITE_TOKEN>"` — loads the starter
+  catalogue into a fresh Vercel project (insert-only; safe to re-run)
 - `npm run seed` — load the starter catalogue (insert-only)
 - `npm run db:backup` — full JSON backup to a local file
 - `npm run health` — what production actually has configured
@@ -19,38 +20,56 @@ Tailwind, Zustand) for a real client. `main` deploys straight to production
 
 ## Architecture
 
-- Plain PostgreSQL over `pg` — **no vendor SDK**. Connection from
-  `DATABASE_URL` (or Vercel's `POSTGRES_URL`); schema and migrations in `db/`.
-- `src/lib/db/client.ts` — pooled query helpers (server-only)
-- `src/lib/data/` — all SQL lives here, not in route handlers.
-  `adminProductQueries.ts` is the only writer of products.
-- `src/lib/mock/` — static fallback catalogue served when no DB is configured;
-  `DEAL_OFF` there applies brand-wide discounts **at first seed only**
+- **No database.** Products, orders and the admin audit trail live in
+  **Vercel Blob** (`BLOB_READ_WRITE_TOKEN`), addressed over its plain REST API
+  — hand-rolled, not the `@vercel/blob` SDK, so it's testable against a local
+  stub server (`tests/stubs/blob-server.ts`). See DATABASE.md for why.
+- `src/lib/data/blobClient.ts` — the only thing that talks to Blob. No delete
+  function exists in it, deliberately.
+- `src/lib/data/catalogue.ts` — the only writer of products. Every write is a
+  new, immutable `store/catalogue/history/*.json` file before the small
+  `store/catalogue/latest.json` pointer is updated. Never overwrites, never
+  removes an entry from the array.
+- `src/lib/data/orders.ts`, `adminAudit.ts` — same pattern: `store/orders/<id>/`
+  and `store/audit/` respectively.
+- `src/lib/data/images.ts` — product photos are their own Blob objects
+  (`store/images/…`), not bytes embedded in the catalogue.
+- `src/lib/mock/` — static fallback catalogue served when Blob isn't
+  configured or a read fails; `DEAL_OFF` there applies brand-wide discounts
+  **at first seed only**
 - `src/lib/notify/` — order invoice delivery (Resend email + WhatsApp Cloud
   API); `src/lib/invoice.tsx` renders the PDF via @react-pdf
 - `src/lib/orders/invoiceLink.ts` — HMAC-signed invoice URLs (`APP_SECRET`)
-- `/api/health` — force-dynamic config report; the admin banner reads it
+- `/api/health` — force-dynamic config report, including live storage size;
+  the admin banner reads it
 
-## Data-safety rules (client lost data once — these are load-bearing)
+## Data-safety rules (client lost data twice — these are load-bearing)
 
-1. **Never hard-delete a product or order.** Removal = set `deleted_at`.
-   There is no `delete from products` anywhere; DB triggers also refuse
-   DELETE/TRUNCATE. Keep it that way.
-2. **Seeding is insert-only**: `on conflict (slug) do nothing`. Never change
-   it to `do update` — that exact upsert destroyed the client's products once.
-3. **`admin_audit` is append-only.** Every admin mutation records an audit
-   entry with before/after.
-4. **Restore never overwrites** existing rows (insert-only), so it can't
-   become a new way to lose data.
-5. `tests/data-safety.test.ts` enforces all of this. **If it fails, fix the
-   code, never loosen the test.**
+1. **Never remove a product or order from stored data.** Removal = set
+   `deleted_at`. There is no code path in `catalogue.ts` that shrinks the
+   stored array, and `blobClient.ts` has no delete function at all. Keep it
+   that way.
+2. **Seeding and restoring are insert-only**, both through
+   `restoreCatalogueEntries()` in `catalogue.ts`. Never make either capable of
+   overwriting an existing product (matched by slug) — that exact upsert
+   destroyed the client's products once.
+3. **The audit trail is append-only by construction.** Every admin mutation
+   writes its own uniquely-named file under `store/audit/`; there is no
+   update or delete path in `adminAudit.ts`.
+4. **The database itself disappearing is a real failure mode, not a
+   hypothetical** — it happened. That's why storage is Blob, not a database:
+   no connection to drop, no bandwidth allowance to exceed, nothing that goes
+   away except by someone deleting the whole Vercel project. The nightly
+   snapshot email (`/api/cron/backup`) is what actually survives that.
+5. `tests/data-safety.test.ts` and `tests/catalogue.test.ts` enforce all of
+   this — the latter against real read-modify-write behavior, not just source
+   patterns. **If either fails, fix the code, never loosen the test.**
 
 ## Conventions
 
-- Every read of products filters `deleted_at is null`.
-- Parameterised SQL only — never interpolate values into query strings.
+- Every read of products filters on `deleted_at`.
 - Secrets stay in Vercel env / `.env.local` (gitignored). Never print, log,
   or commit them; never echo a token into chat or a file.
 - Dependencies are pinned exactly; add nothing to the order/data path without
   strong reason (see CODEBASE_LOCK-era rationale in DATA_SAFETY.md).
-- Docs: DATABASE.md (hosting/pooling), DATA_SAFETY.md (protections).
+- Docs: DATABASE.md (storage layout, migrating hosts), DATA_SAFETY.md (protections).

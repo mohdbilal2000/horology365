@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { updateOrderStatus } from "@/lib/data/orders";
-import { isDatabaseConfigured } from "@/lib/db/client";
+import { blobConfigured } from "@/lib/data/blobClient";
 import type { OrderStatus } from "@/lib/types";
 
 const VALID_STATUSES: OrderStatus[] = ["pending", "paid", "shipped", "delivered"];
@@ -10,8 +10,8 @@ interface RouteParams {
 }
 
 export async function PATCH(request: Request, { params }: RouteParams): Promise<NextResponse> {
-  if (!isDatabaseConfigured()) {
-    return NextResponse.json({ error: "The order database isn't configured yet." }, { status: 503 });
+  if (!blobConfigured()) {
+    return NextResponse.json({ error: "Order storage isn't configured yet." }, { status: 503 });
   }
   const { id } = await params;
 

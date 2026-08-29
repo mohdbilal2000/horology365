@@ -1,37 +1,16 @@
 import { cache } from "react";
-import { query, isDatabaseConfigured } from "@/lib/db/client";
 import { brands as seedBrands } from "@/lib/mock/brands";
 import type { Brand } from "@/lib/types";
 
-interface BrandRow {
-  id: string;
-  slug: string;
-  name: string;
-  tagline: string;
-  logo_url: string;
-  cover_url: string;
-  is_active: boolean;
-  sort_order: number;
-}
-
-function rowToBrand(row: BrandRow): Brand {
-  return {
-    id: row.id,
-    slug: row.slug,
-    name: row.name,
-    tagline: row.tagline,
-    logoUrl: row.logo_url,
-    coverUrl: row.cover_url,
-    isActive: row.is_active,
-    sortOrder: row.sort_order,
-  };
-}
+/**
+ * Brands are code-managed configuration, not the owner's content — no
+ * admin-entered data lives here (see DATA_SAFETY.md). They ship with the
+ * site rather than living in a store, the same way categories do.
+ */
 
 /**
- * Brands the store no longer carries. Forced inactive here — not just in the
- * seed — so the delisting ships with a deploy even while the Supabase rows
- * still say is_active=true. Once the rows are flipped (or re-seeded from the
- * updated seed data), entries here become redundant and can be removed.
+ * Brands the store no longer carries. Forced inactive here so the delisting
+ * ships with a deploy.
  */
 export const DELISTED_BRAND_SLUGS = new Set([
   "armani-exchange",
@@ -45,35 +24,8 @@ export const DELISTED_BRAND_SLUGS = new Set([
 const applyDelisting = (brand: Brand): Brand =>
   DELISTED_BRAND_SLUGS.has(brand.slug) ? { ...brand, isActive: false } : brand;
 
-/**
- * G-Shock sells as its own storefront brand (its own tile, bay and page),
- * split out of Casio. The Supabase brands table may predate that split, so
- * the seed entry is appended whenever the DB has no g-shock row — once the
- * row exists (or after a re-seed), this shim is a no-op.
- */
-function ensureGShock(brands: Brand[]): Brand[] {
-  if (brands.some((b) => b.slug === "g-shock")) return brands;
-  const seed = seedBrands.find((b) => b.slug === "g-shock");
-  return seed ? [...brands, seed] : brands;
-}
-
 export const getAllBrands = cache(async (): Promise<Brand[]> => {
-  if (!isDatabaseConfigured()) return ensureGShock(seedBrands.map(applyDelisting));
-
-  try {
-    const rows = await query<BrandRow>(
-      `select id, slug, name, tagline, logo_url, cover_url, is_active, sort_order
-         from brands
-        order by sort_order asc`,
-    );
-    return ensureGShock(rows.map(rowToBrand).map(applyDelisting));
-  } catch (err) {
-    console.error(
-      "[data/brands] query failed, using seed brands:",
-      err instanceof Error ? err.message : err,
-    );
-    return ensureGShock(seedBrands.map(applyDelisting));
-  }
+  return seedBrands.map(applyDelisting);
 });
 
 export async function getActiveBrands(): Promise<Brand[]> {

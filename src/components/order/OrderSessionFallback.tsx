@@ -10,9 +10,9 @@ interface OrderSessionFallbackProps {
 }
 
 /**
- * Pre-Supabase-setup safety net: reads the order the checkout page stashed
+ * Pre-storage-setup safety net: reads the order the checkout page stashed
  * into sessionStorage right after placing it. Only reached when the server
- * lookup (`getOrderById`) found nothing AND Supabase isn't configured yet —
+ * lookup (`getOrderById`) found nothing AND Blob storage isn't configured yet —
  * i.e. before the business owner has run the backend setup.
  */
 export function OrderSessionFallback({ id }: OrderSessionFallbackProps) {
@@ -58,7 +58,7 @@ export function OrderSessionFallback({ id }: OrderSessionFallbackProps) {
     );
   }
 
-  // The invoice route reads from Supabase — unavailable pre-setup, when this
+  // The invoice route reads from Blob storage — unavailable pre-setup, when this
   // fallback path is the one being used at all.
   return <OrderConfirmation order={order} downloadable={false} />;
 }

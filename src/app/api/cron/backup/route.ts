@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server";
-import { isDatabaseConfigured } from "@/lib/db/client";
+import { blobConfigured } from "@/lib/data/blobClient";
 import { buildBackup } from "@/lib/data/backup";
 import { ORDER_NOTIFY, EMAIL_ENABLED, SITE } from "@/lib/config";
 import { putBackup, backupStoreConfigured } from "@/lib/data/backupStore";
 
 /**
- * Scheduled off-site backup: writes a full snapshot to Vercel Blob, and emails
- * a copy too when email is configured.
+ * Scheduled snapshot: writes a dated, standalone copy to Blob and, when email
+ * is configured, emails a copy too.
  *
- * A backup the owner has to remember to take is one he will stop taking. The
- * previous version only knew how to email, so with no RESEND_API_KEY it
- * returned 503 every night and nothing anywhere said so — the store ran for
- * weeks with no backup at all, and that only came to light when the database
- * stopped answering. Blob needs no third-party account, and /api/health now
- * reports the age of the newest backup so silence is not mistaken for success.
+ * The live catalogue already lives in Blob as immutable, versioned history
+ * (see catalogue.ts) — so this snapshot is not protection against a bug or a
+ * bad edit, that's already covered. It exists for the one thing versioned
+ * history in the same Blob store can't cover: the whole Blob store itself
+ * disappearing (the project deleted, the integration disconnected). The
+ * emailed copy is the one that actually lands somewhere else entirely — an
+ * inbox, not this Vercel account — so it's the backup that survives even
+ * that. A backup the owner has to remember to take is one he will stop
+ * taking, which is why this runs on its own every night rather than waiting
+ * to be asked.
  *
  * Vercel signs cron requests with CRON_SECRET; unauthenticated calls are
  * refused so this can't be used to pull the whole catalogue.
@@ -37,8 +41,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   }
 
-  if (!isDatabaseConfigured()) {
-    return NextResponse.json({ error: "No database is configured." }, { status: 503 });
+  if (!blobConfigured()) {
+    return NextResponse.json({ error: "Product storage isn't configured yet." }, { status: 503 });
   }
   if (!backupStoreConfigured() && !EMAIL_ENABLED) {
     return NextResponse.json(

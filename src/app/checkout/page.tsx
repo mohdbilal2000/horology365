@@ -149,7 +149,7 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Safety net for pre-Supabase-setup: /order/[id] falls back to this if
+      // Safety net for pre-storage-setup: /order/[id] falls back to this if
       // the server-side order lookup finds nothing yet.
       sessionStorage.setItem(
         `order:${data.order.id}`,

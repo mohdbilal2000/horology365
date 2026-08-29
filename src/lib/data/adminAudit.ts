@@ -1,18 +1,16 @@
 import "server-only";
-import { query, isDatabaseConfigured } from "@/lib/db/client";
+import { blobConfigured, listPrefix, getJSON, putJSON, sortableTimestamp, randomSuffix } from "@/lib/data/blobClient";
 
 /**
- * Append-only record of every admin change to the catalog.
+ * Append-only record of every admin change to the catalogue.
  *
- * The rule this supports: an admin action is never destructive to history.
- * Removing a product sets `deleted_at` and writes a `product.delete` entry; the
- * row itself, and the images attached to it, stay. Every entry keeps the
- * before/after state so any change can be inspected — or reversed — later.
- *
- * Nothing in the app updates or deletes rows in this table, and a Postgres
- * trigger (db/migrations/20260823-product-data-safety.sql) rejects the
- * attempt even for a superuser connection, so a bug cannot rewrite history.
+ * Each entry is its own Blob object, written once and never touched again —
+ * "append-only" here isn't a rule the code has to remember to follow, it's
+ * the only thing a new, uniquely-named file can do. There is no update or
+ * delete path in this module at all.
  */
+
+const AUDIT_PREFIX = "store/audit/";
 
 export type AuditAction =
   | "product.create"
@@ -23,42 +21,11 @@ export type AuditAction =
 
 export interface RecordAuditInput {
   action: AuditAction;
-  /** The product's id. */
   targetId: string;
-  /** Human-readable summary shown in the admin audit log. */
   summary: string;
   actor?: string;
   before?: unknown;
   after?: unknown;
-}
-
-/**
- * Writes one audit entry. Deliberately never throws: failing to log must not
- * fail the admin action the owner just took. A failure is logged loudly so it
- * shows up in the server logs instead.
- */
-export async function recordAudit(input: RecordAuditInput): Promise<void> {
-  if (!isDatabaseConfigured()) return;
-
-  try {
-    await query(
-      `insert into admin_audit (action, target_id, summary, actor, before, after)
-       values ($1, $2, $3, $4, $5, $6)`,
-      [
-        input.action,
-        input.targetId,
-        input.summary,
-        input.actor ?? "admin",
-        input.before === undefined ? null : JSON.stringify(input.before),
-        input.after === undefined ? null : JSON.stringify(input.after),
-      ],
-    );
-  } catch (err) {
-    console.error(
-      `[audit] failed to record ${input.action} on ${input.targetId}:`,
-      err instanceof Error ? err.message : err,
-    );
-  }
 }
 
 export interface AuditEntry {
@@ -72,22 +39,45 @@ export interface AuditEntry {
   after: unknown;
 }
 
-/** Newest entries first. */
-export async function listAudit(limit = 200): Promise<AuditEntry[]> {
-  if (!isDatabaseConfigured()) return [];
+/**
+ * Writes one audit entry. Deliberately never throws: failing to log must not
+ * fail the admin action the owner just took. A failure is logged loudly so it
+ * shows up in the server logs instead.
+ */
+export async function recordAudit(input: RecordAuditInput): Promise<void> {
+  if (!blobConfigured()) return;
+
+  const id = `${sortableTimestamp()}-${randomSuffix()}`;
+  const entry: AuditEntry = {
+    id,
+    at: new Date().toISOString(),
+    action: input.action,
+    target_id: input.targetId,
+    summary: input.summary,
+    actor: input.actor ?? "admin",
+    before: input.before === undefined ? null : input.before,
+    after: input.after === undefined ? null : input.after,
+  };
 
   try {
-    const rows = await query<Omit<AuditEntry, "at"> & { at: string | Date }>(
-      `select id, at, action, target_id, summary, actor, before, after
-         from admin_audit
-        order by at desc
-        limit $1`,
-      [limit],
+    await putJSON(`${AUDIT_PREFIX}${id}.json`, entry);
+  } catch (err) {
+    console.error(
+      `[audit] failed to record ${input.action} on ${input.targetId}:`,
+      err instanceof Error ? err.message : err,
     );
-    return rows.map((r) => ({
-      ...r,
-      at: r.at instanceof Date ? r.at.toISOString() : r.at,
-    }));
+  }
+}
+
+/** Newest entries first. Pathnames are sortable timestamps, so a lexicographic sort is chronological. */
+export async function listAudit(limit = 200): Promise<AuditEntry[]> {
+  if (!blobConfigured()) return [];
+
+  try {
+    const blobs = await listPrefix(AUDIT_PREFIX);
+    const newest = blobs.sort((a, b) => b.pathname.localeCompare(a.pathname)).slice(0, limit);
+    const entries = await Promise.all(newest.map((b) => getJSON<AuditEntry>(b.url)));
+    return entries.filter((e): e is AuditEntry => e !== null);
   } catch (err) {
     console.error("[audit] list failed:", err instanceof Error ? err.message : err);
     return [];

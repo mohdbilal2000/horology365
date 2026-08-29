@@ -16,33 +16,30 @@ champagne-gold accent (`#C8A55B`), display serif headlines and a clean grotesk s
 ## Product data safety
 
 Products the store owner saves are never destroyed. Removing one is a soft
-delete that can be undone from `/admin/trash`; re-seeding can only ever add
-products, never overwrite an existing one; and every admin change is recorded in
-an append-only audit trail. Postgres triggers reject a hard delete even for the
-service-role key.
+delete that can be undone from `/admin/trash`; re-seeding and restoring can
+only ever add products, never overwrite an existing one; and every admin
+change is recorded in an append-only audit trail. There is no code path
+anywhere in the storage layer that removes a product from the catalogue —
+every write lands as a brand-new, immutable version before the small "current"
+pointer is ever touched.
 
-This is enforced by `tests/data-safety.test.ts`, which runs in CI on every push.
-**If one of those tests fails, do not loosen it** — it means the change can
-destroy live data. Full detail: [`DATA_SAFETY.md`](./DATA_SAFETY.md).
+This is enforced by `tests/data-safety.test.ts` and `tests/catalogue.test.ts`
+(the latter against a real read-modify-write cycle, not just source-code
+patterns), which run in CI on every push. **If one of those tests fails, do
+not loosen it** — it means the change can destroy live data. Full detail:
+[`DATA_SAFETY.md`](./DATA_SAFETY.md).
 
-Applying to an existing database: run
-`db/migrations/20260823-product-data-safety.sql` once.
+## Storage
 
-
-
-## Database
-
-Plain PostgreSQL over the standard wire protocol — **no vendor SDK**. One
-environment variable moves the whole app between Supabase, Neon, Railway, RDS or
-your own server:
+Products, orders and the audit trail live in **Vercel Blob**, not a database —
+no connection pool, no bandwidth allowance to exceed, nothing to spin up.
+Storage → Create → Blob in Vercel, then set:
 
 ```bash
-DATABASE_URL=postgresql://user:password@host:5432/dbname
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
 ```
 
-Schema and migrations live in `db/`. **Use a transaction-mode pooler in
-production** — serverless functions each open their own connections and will
-exhaust Postgres otherwise. Full detail: [`DATABASE.md`](./DATABASE.md).
+Full detail: [`DATABASE.md`](./DATABASE.md).
 
 ## Order delivery
 
@@ -69,7 +66,7 @@ numbers. **`APP_SECRET` is required in production.**
 - **Tailwind CSS** — design tokens in `tailwind.config.ts`
 - **Zustand** — cart state, persisted to `localStorage`
 - `next/image`, `next/font`, native `<video>` with `preload="none"` + poster
-- **PostgreSQL** via `pg` — no vendor SDK, so any provider works ([`DATABASE.md`](./DATABASE.md))
+- **Vercel Blob** for product/order storage — no database, no vendor SDK beyond the REST API itself ([`DATABASE.md`](./DATABASE.md))
 - **Razorpay** UPI (Phase 2) — Orders API + server-side signature verification
 - **Vercel** hosting
 
@@ -169,10 +166,10 @@ under the dedicated g-shock brand.)
 
 ## Roadmap — Phase 2 (Backend)
 
-- Schema + migrations + seed live in `db/`; RLS (public read on active
-  brands/categories/products/offers/banners/reviews; writes restricted to authenticated
-  admin; `orders` / `order_items` inserted via server route only).
-- Swap `@/lib/mock` for typed SQL queries.
+- Product/order storage lives in Vercel Blob (`src/lib/data/catalogue.ts`,
+  `orders.ts`); admin routes are gated by the shared password, writes are the
+  only thing that can reach storage.
+- Swap `@/lib/mock` for the live catalogue.
 - Razorpay UPI checkout: server route creates the order, client opens UPI, a server route
   verifies the signature before writing `orders` + `order_items` and marking `paid`
   (**fail closed** — never mark paid without a verified signature). Order-confirmation

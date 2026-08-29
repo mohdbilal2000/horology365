@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isDatabaseConfigured } from "@/lib/db/client";
+import { blobConfigured } from "@/lib/data/blobClient";
 import { buildBackup } from "@/lib/data/backup";
 
 /** Downloads a complete snapshot as a JSON file. Admin-gated by middleware. */
@@ -7,8 +7,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(): Promise<NextResponse> {
-  if (!isDatabaseConfigured()) {
-    return NextResponse.json({ error: "No database is configured." }, { status: 503 });
+  if (!blobConfigured()) {
+    return NextResponse.json({ error: "Product storage isn't configured yet." }, { status: 503 });
   }
   try {
     const backup = await buildBackup();

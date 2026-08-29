@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { MAINTENANCE_MODE, maintenanceResponse } from "@/lib/maintenance";
-import { isDatabaseConfigured } from "@/lib/db/client";
+import { blobConfigured } from "@/lib/data/blobClient";
 import { isBackup, restoreFromBackup } from "@/lib/data/backup";
 import { revalidateCatalog } from "@/lib/revalidateCatalog";
 
@@ -18,8 +18,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Maintenance mode — see src/lib/maintenance.ts.
   if (MAINTENANCE_MODE) return maintenanceResponse();
 
-  if (!isDatabaseConfigured()) {
-    return NextResponse.json({ error: "No database is configured." }, { status: 503 });
+  if (!blobConfigured()) {
+    return NextResponse.json({ error: "Product storage isn't configured yet." }, { status: 503 });
   }
 
   let body: unknown;

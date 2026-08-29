@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getOrderById } from "@/lib/data/orders";
-import { isDatabaseConfigured } from "@/lib/db/client";
+import { blobConfigured } from "@/lib/data/blobClient";
 import { OrderConfirmation } from "@/components/order/OrderConfirmation";
 import { invoicePath } from "@/lib/orders/invoiceLink";
 import { EMAIL_ENABLED, WHATSAPP_ENABLED } from "@/lib/config";
@@ -30,9 +30,9 @@ export default async function OrderConfirmationPage({ params }: PageProps) {
     );
   }
 
-  // Supabase not set up yet — fall back to the sessionStorage the checkout
-  // page wrote right after placing the order (same-tab only, pre-setup).
-  if (!isDatabaseConfigured()) {
+  // Blob storage not set up yet — fall back to the sessionStorage the
+  // checkout page wrote right after placing the order (same-tab only, pre-setup).
+  if (!blobConfigured()) {
     return <OrderSessionFallback id={id} />;
   }
 

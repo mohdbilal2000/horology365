@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { MAINTENANCE_MODE, maintenanceResponse } from "@/lib/maintenance";
-import { isDatabaseConfigured } from "@/lib/db/client";
+import { blobConfigured } from "@/lib/data/blobClient";
 import {
   getAdminProduct,
   updateProduct,
   adjustVariant,
   softDeleteProduct,
   restoreProduct,
-} from "@/lib/data/adminProductQueries";
+} from "@/lib/data/catalogue";
 import { revalidateCatalog } from "@/lib/revalidateCatalog";
 import type { AdminModel } from "@/lib/types";
 
@@ -25,7 +25,7 @@ interface RouteParams {
 
 function unavailable() {
   return NextResponse.json(
-    { error: "The product database isn't configured yet." },
+    { error: "Product storage isn't configured yet." },
     { status: 503 },
   );
 }
@@ -44,7 +44,7 @@ function failed(err: unknown, fallback: string) {
 
 /** Loads a single product for the admin edit screen. */
 export async function GET(_request: Request, { params }: RouteParams): Promise<NextResponse> {
-  if (!isDatabaseConfigured()) return unavailable();
+  if (!blobConfigured()) return unavailable();
   const { id } = await params;
 
   try {
@@ -60,7 +60,7 @@ export async function PUT(request: Request, { params }: RouteParams): Promise<Ne
   // Maintenance mode — see src/lib/maintenance.ts.
   if (MAINTENANCE_MODE) return maintenanceResponse();
 
-  if (!isDatabaseConfigured()) return unavailable();
+  if (!blobConfigured()) return unavailable();
   const { id } = await params;
 
   let body: Omit<AdminModel, "id" | "createdAt">;
@@ -88,7 +88,7 @@ export async function PATCH(request: Request, { params }: RouteParams): Promise<
   // Maintenance mode — see src/lib/maintenance.ts.
   if (MAINTENANCE_MODE) return maintenanceResponse();
 
-  if (!isDatabaseConfigured()) return unavailable();
+  if (!blobConfigured()) return unavailable();
   const { id } = await params;
 
   let body: {
@@ -135,7 +135,7 @@ export async function DELETE(_request: Request, { params }: RouteParams): Promis
   // Maintenance mode — see src/lib/maintenance.ts.
   if (MAINTENANCE_MODE) return maintenanceResponse();
 
-  if (!isDatabaseConfigured()) return unavailable();
+  if (!blobConfigured()) return unavailable();
   const { id } = await params;
 
   try {
@@ -153,7 +153,7 @@ export async function POST(_request: Request, { params }: RouteParams): Promise<
   // Maintenance mode — see src/lib/maintenance.ts.
   if (MAINTENANCE_MODE) return maintenanceResponse();
 
-  if (!isDatabaseConfigured()) return unavailable();
+  if (!blobConfigured()) return unavailable();
   const { id } = await params;
 
   try {

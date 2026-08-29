@@ -61,6 +61,7 @@ export async function listBackups(): Promise<StoredBackup[]> {
   if (!backupStoreConfigured()) return [];
   const res = await fetch(`${BASE}/?prefix=${encodeURIComponent("backups/")}&limit=100`, {
     headers: auth(),
+    cache: "no-store",
   });
   if (!res.ok) {
     throw new Error(`Blob list failed (${res.status}): ${await res.text()}`);

@@ -115,7 +115,12 @@ export async function listPrefix(prefix: string): Promise<BlobEntry[]> {
     url.searchParams.set("prefix", prefix);
     url.searchParams.set("limit", "1000");
     if (cursor) url.searchParams.set("cursor", cursor);
-    const res = await fetch(url.toString(), { headers: auth() });
+    // Next.js caches a plain fetch() indefinitely by default inside a static
+    // page render — without this, an admin write would never appear on a
+    // statically-rendered storefront page, only in routes exempt from that
+    // cache (like /api/search). The pointer this lists is what tells every
+    // read whether anything changed at all, so it can never be stale.
+    const res = await fetch(url.toString(), { headers: auth(), cache: "no-store" });
     if (!res.ok) throw new Error(`Blob list failed for ${prefix} (${res.status}): ${await res.text()}`);
     const body = (await res.json()) as {
       blobs?: { pathname: string; url: string; uploadedAt: string; size: number }[];

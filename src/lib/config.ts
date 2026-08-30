@@ -37,7 +37,7 @@ export const SITE = {
    * still gets localhost.
    */
   url: resolveSiteUrl(process.env.NEXT_PUBLIC_SITE_URL, process.env.NODE_ENV),
-  whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "919217239733",
+  whatsappNumber: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919217239733",
   description:
     "Horology365 — authentic, affordable fashion watches from the brands you love. UPI-secure checkout, easy returns, and pre-order drops every week.",
 } as const;

@@ -10,9 +10,14 @@ import { revalidateCatalog } from "@/lib/revalidateCatalog";
  * Admin-gated equivalent of `npm run seed` — loads the starter catalogue into
  * a deployed environment without needing to run a script locally.
  *
- * Categories and brands need no seeding step at all: they're code-managed
- * configuration read straight from `src/lib/mock/` on every request (see
- * DATA_SAFETY.md), not stored data.
+ * DISABLED as of the domain cutover: the live store now holds the client's
+ * real products, so POST below refuses instead of running this. The
+ * insert-only implementation is kept intact (not deleted, not commented out)
+ * because tests/data-safety.test.ts requires the seed route's own source to
+ * go through restoreCatalogueEntries() rather than writing products
+ * directly — see that test's comment on why it must never be loosened.
+ * `npm run seed` (fresh/local project) is unaffected — it calls
+ * restoreCatalogueEntries() directly and never goes through this route.
  *
  * PRODUCTS ARE ONLY EVER INSERTED, via the exact same insert-only path
  * `/api/admin/restore` uses. An existing product (matched by slug) is never
@@ -22,7 +27,7 @@ import { revalidateCatalog } from "@/lib/revalidateCatalog";
  */
 export const maxDuration = 60;
 
-export async function POST(): Promise<NextResponse> {
+async function seedStarterCatalogue(): Promise<NextResponse> {
   // Maintenance mode — see src/lib/maintenance.ts.
   if (MAINTENANCE_MODE) return maintenanceResponse();
 
@@ -50,4 +55,13 @@ export async function POST(): Promise<NextResponse> {
       { status: 500 },
     );
   }
+}
+
+export async function POST(): Promise<NextResponse> {
+  if (MAINTENANCE_MODE) return maintenanceResponse();
+  void seedStarterCatalogue; // kept intact for a future fresh deployment; not called on this store
+  return NextResponse.json(
+    { error: "Loading the starter catalogue is disabled on this store." },
+    { status: 410 },
+  );
 }

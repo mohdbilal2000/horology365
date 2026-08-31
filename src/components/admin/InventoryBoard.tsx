@@ -22,7 +22,6 @@ export function InventoryBoard() {
   const [models, setModels] = useState<AdminModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   async function load() {
@@ -122,26 +121,6 @@ export function InventoryBoard() {
     });
   }
 
-  /** Re-upserts the built-in catalogue (categories, brands, seed products) from
-   *  the code into the database. Needed after a seed-data change — e.g. swapping a
-   *  category image — since the database keeps its own copy of those rows. */
-  async function resyncCatalogue() {
-    setSyncing(true);
-    setNotice(null);
-    setError(null);
-    try {
-      const res = await fetch("/api/admin/seed", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Re-sync failed.");
-      setNotice("Starter catalogue loaded. Your own products were not touched — this only ever adds.");
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Re-sync failed.");
-    } finally {
-      setSyncing(false);
-    }
-  }
-
   /**
    * Takes a product off the storefront. This is a soft delete: the record and
    * its photos are kept and can be restored from /admin/trash.
@@ -196,15 +175,6 @@ export function InventoryBoard() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={resyncCatalogue}
-            disabled={syncing}
-            title="Adds any missing starter watches and refreshes brand/category artwork. Products you have added or edited are never touched."
-            className="rounded-full border border-bone-300 px-4 py-2 text-sm font-medium transition enabled:hover:border-gold enabled:hover:text-gold disabled:opacity-50"
-          >
-            {syncing ? "Loading…" : "Load starter catalogue"}
-          </button>
           <Link href="/admin/products/new" className="btn-gold">
             + Add product
           </Link>

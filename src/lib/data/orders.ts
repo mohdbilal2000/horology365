@@ -1,5 +1,5 @@
 import "server-only";
-import { blobConfigured, findExact, getJSON, listPrefix, putJSON, sortableTimestamp, randomSuffix } from "@/lib/data/blobClient";
+import { blobConfigured, blobUrl, getJSON, listPrefix, putJSON, sortableTimestamp, randomSuffix } from "@/lib/data/blobClient";
 import type { Order, OrderStatus } from "@/lib/types";
 
 /**
@@ -59,9 +59,8 @@ export async function createOrder(order: Order): Promise<{ ok: boolean; error?: 
 export async function getOrderById(id: string): Promise<StoredOrder | null> {
   if (!blobConfigured()) return null;
   try {
-    const blob = await findExact(latestPath(id));
-    if (!blob) return null;
-    return await getJSON<StoredOrder>(blob.url);
+    // One named file, fetched directly — no list() to locate it.
+    return await getJSON<StoredOrder>(blobUrl(latestPath(id)));
   } catch (err) {
     console.error("[data/orders] getOrderById failed:", err instanceof Error ? err.message : err);
     return null;

@@ -20,11 +20,15 @@ export interface BlobStub {
   server: Server;
   base: string;
   blobs: Map<string, StoredBlob>;
+  /** How many list() calls have been made — Advanced Operations, the scarce budget. */
+  listCalls: () => number;
   reset(): void;
 }
 
 export async function startBlobStub(): Promise<BlobStub> {
   const blobs = new Map<string, StoredBlob>();
+
+  let listCalls = 0;
 
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
@@ -51,6 +55,7 @@ export async function startBlobStub(): Promise<BlobStub> {
     }
 
     if (req.method === "GET" && url.pathname === "/") {
+      listCalls += 1;
       const prefix = url.searchParams.get("prefix") ?? "";
       const matches = [...blobs.values()].filter((b) => b.pathname.startsWith(prefix));
       res.writeHead(200, { "content-type": "application/json" });
@@ -86,12 +91,18 @@ export async function startBlobStub(): Promise<BlobStub> {
   const base = `http://127.0.0.1:${port}`;
 
   process.env.BLOB_API_BASE = base;
+  // Reads are addressed to the content host, which this stub also plays.
+  process.env.BLOB_CONTENT_BASE = base;
   process.env.BLOB_READ_WRITE_TOKEN = "test-token";
 
   return {
     server,
     base,
     blobs,
-    reset: () => blobs.clear(),
+    listCalls: () => listCalls,
+    reset: () => {
+      blobs.clear();
+      listCalls = 0;
+    },
   };
 }

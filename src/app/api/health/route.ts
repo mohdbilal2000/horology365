@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { blobConfigured, listPrefix, readCredentialNames } from "@/lib/data/blobClient";
+import { blobConfigured, contentHost, listPrefix, readCredentialNames } from "@/lib/data/blobClient";
 import { readCatalogue } from "@/lib/data/catalogue";
 import { backupHealth, listBackups } from "@/lib/data/backupStore";
 import { EMAIL_ENABLED, WHATSAPP_ENABLED } from "@/lib/config";
@@ -31,7 +31,18 @@ function bytesToSize(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export async function GET(): Promise<NextResponse> {
+/**
+ * `?deep=1` adds the checks that have to enumerate the store.
+ *
+ * Those cost `list()` calls — Advanced Operations, of which the Hobby plan
+ * includes only 2,000 a month — and the admin banner calls this endpoint on
+ * every single admin page view. Four lists per view is how the store's
+ * allowance was spent, which locked the store and took the shop's products off
+ * the site. The default answer now costs no listing at all; the full audit is
+ * asked for explicitly (`npm run health`), not fired automatically.
+ */
+export async function GET(request: Request): Promise<NextResponse> {
+  const deep = new URL(request.url).searchParams.get("deep") === "1";
   const checks: Record<string, Check> = {};
 
   // ── Product storage ──
@@ -44,7 +55,7 @@ export async function GET(): Promise<NextResponse> {
     try {
       const { entries } = await readCatalogue();
       const live = entries.filter((e) => e.deleted_at === null).length;
-      checks.storage = { ok: true, detail: `connected · ${live} live products` };
+      checks.storage = { ok: true, detail: `connected · ${live} live products · ${contentHost()}` };
     } catch (err) {
       // Name the credentials that were available, so "the read failed" can be
       // told apart from "there was nothing to read with". Names only — this
@@ -52,7 +63,7 @@ export async function GET(): Promise<NextResponse> {
       const credentials = readCredentialNames().join(", ") || "none";
       checks.storage = {
         ok: false,
-        detail: `the catalogue read failed (credentials available: ${credentials}): ${
+        detail: `the catalogue read failed (host: ${contentHost()}, credentials available: ${credentials}): ${
           err instanceof Error ? err.message : String(err)
         }`,
       };
@@ -71,7 +82,7 @@ export async function GET(): Promise<NextResponse> {
   // read hid the one fact that mattered while reads were refused: the store
   // still holds everything. "Your data is gone" and "your data is there but
   // unreadable" must never look the same on this page again.
-  if (blobConfigured()) {
+  if (blobConfigured() && deep) {
     try {
       const history = await listPrefix("store/catalogue/history/");
       checks.dataSafety = {
@@ -86,7 +97,7 @@ export async function GET(): Promise<NextResponse> {
   // ── Storage size ──
   // Read before every migration to a new Vercel account: shows whether the
   // store is actually light enough to move without surprises.
-  if (blobConfigured()) {
+  if (blobConfigured() && deep) {
     try {
       const [catalogueHistory, images, orders] = await Promise.all([
         listPrefix("store/catalogue/history/"),

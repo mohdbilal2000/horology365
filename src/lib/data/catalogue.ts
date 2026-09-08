@@ -2,7 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import {
   blobConfigured,
-  findExact,
+  blobUrl,
   getJSON,
   putJSON,
   sortableTimestamp,
@@ -78,9 +78,9 @@ interface CataloguePointer {
 /** Reads the current catalogue. Empty array if nothing has ever been saved. */
 export async function readCatalogue(): Promise<{ version: string | null; entries: CatalogueEntry[] }> {
   if (!blobConfigured()) return { version: null, entries: [] };
-  const pointerBlob = await findExact(CATALOGUE_LATEST);
-  if (!pointerBlob) return { version: null, entries: [] };
-  const pointer = await getJSON<CataloguePointer>(pointerBlob.url);
+  // Straight to the pointer's own URL. Nothing is listed to find it — see
+  // blobUrl(): listing here is what exhausted the store's operation budget.
+  const pointer = await getJSON<CataloguePointer>(blobUrl(CATALOGUE_LATEST));
   if (!pointer) return { version: null, entries: [] };
   return { version: pointer.version, entries: pointer.entries };
 }

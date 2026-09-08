@@ -1,7 +1,7 @@
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createServer, type Server, type IncomingHttpHeaders } from "node:http";
-import { getJSON, getStream, readCredentialNames } from "@/lib/data/blobClient";
+import { blobUrl, contentHost, getJSON, getStream, readCredentialNames } from "@/lib/data/blobClient";
 
 /**
  * How a private blob is *read*.
@@ -56,6 +56,8 @@ beforeEach(() => {
   accepted = new Set();
   delete process.env.VERCEL_OIDC_TOKEN;
   delete process.env.BLOB_READ_WRITE_TOKEN;
+  delete process.env.BLOB_STORE_ID;
+  process.env.BLOB_CONTENT_BASE = base;
 });
 
 test("a read sends only the bearer token — never the API-only x-api-version header", async () => {
@@ -121,4 +123,40 @@ test("readCredentialNames reports names only", () => {
   assert.deepEqual(readCredentialNames(), ["BLOB_READ_WRITE_TOKEN"]);
   process.env.VERCEL_OIDC_TOKEN = "oidc-token";
   assert.deepEqual(readCredentialNames(), ["VERCEL_OIDC_TOKEN", "BLOB_READ_WRITE_TOKEN"]);
+});
+
+/**
+ * The operation budget.
+ *
+ * Vercel bills `list()` as an Advanced Operation — 2,000/month on Hobby —
+ * while fetching a blob by URL is a Simple Operation, with 10,000 included and
+ * cache hits free. Reading one file whose pathname is already known used to
+ * list the whole store just to find its URL, so every page render, product
+ * photo and health check spent from the small budget. The store's allowance
+ * ran out eight days after it was created; Vercel locked it, the catalogue
+ * read began failing, and the shop silently fell back to its shipped snapshot
+ * with the owner's real products gone from the site.
+ *
+ * So: reading a named file must never list. This test is the guard.
+ */
+test("blobUrl addresses a blob from its pathname alone — no lookup", () => {
+  delete process.env.BLOB_CONTENT_BASE;
+  delete process.env.BLOB_STORE_ID;
+  process.env.BLOB_READ_WRITE_TOKEN = "vercel_blob_rw_t0an0mugwd76xva4_abc123secret";
+  assert.equal(
+    blobUrl("store/catalogue/latest.json"),
+    "https://t0an0mugwd76xva4.private.blob.vercel-storage.com/store/catalogue/latest.json",
+  );
+  assert.equal(contentHost(), "t0an0mugwd76xva4.private.blob.vercel-storage.com");
+
+  // An explicit store id wins, for a token shape we have not seen.
+  process.env.BLOB_STORE_ID = "otherstore";
+  assert.match(blobUrl("a/b.json"), /^https:\/\/otherstore\.private\./);
+});
+
+test("an unreadable store id is an error, not a request to a guessed host", () => {
+  delete process.env.BLOB_CONTENT_BASE;
+  delete process.env.BLOB_STORE_ID;
+  process.env.BLOB_READ_WRITE_TOKEN = "nonsense";
+  assert.throws(() => blobUrl("a.json"), /BLOB_STORE_ID/);
 });

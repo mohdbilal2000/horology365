@@ -1,4 +1,4 @@
-import { findExact, blobConfigured, getStream } from "@/lib/data/blobClient";
+import { blobConfigured, blobUrl, getStream } from "@/lib/data/blobClient";
 
 /**
  * Serves one product photo to a shopper's browser.
@@ -32,15 +32,12 @@ export async function GET(_request: Request, { params }: RouteParams): Promise<R
     return new Response("Not found", { status: 404 });
   }
 
-  const blob = await findExact(pathname);
-  if (!blob) return new Response("Not found", { status: 404 });
-
   // One authenticated read path for the whole store (see blobClient.getStream)
   // — a photo that 403s is the same failure as a catalogue that 403s, and it
   // should not be diagnosed twice, differently, in two places.
   let photo: Awaited<ReturnType<typeof getStream>>;
   try {
-    photo = await getStream(blob.url);
+    photo = await getStream(blobUrl(pathname));
   } catch (err) {
     console.error("[blob-image] could not read", pathname, err);
     return new Response("Not found", { status: 404 });

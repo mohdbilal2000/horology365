@@ -56,6 +56,60 @@ export function readCredentialNames(): string[] {
   return readCredentials().map((c) => c.name);
 }
 
+/**
+ * The store id, from the environment or from the token that already carries it
+ * (`vercel_blob_rw_<storeId>_<secret>`).
+ */
+function storeId(): string {
+  const explicit = process.env.BLOB_STORE_ID;
+  if (explicit) return explicit;
+  const parts = (process.env.BLOB_READ_WRITE_TOKEN ?? "").split("_");
+  const id = parts[3];
+  if (!id) {
+    throw new Error(
+      "Could not work out the Blob store id from BLOB_READ_WRITE_TOKEN — set BLOB_STORE_ID.",
+    );
+  }
+  return id;
+}
+
+/**
+ * Where a blob lives, worked out rather than looked up.
+ *
+ * A blob's URL is fully determined by its store and its pathname, so reading a
+ * file whose pathname is already known — the catalogue pointer, one order, one
+ * product photo — needs no help from the API to find it.
+ *
+ * It used to ask anyway: every such read ran `findExact()`, which lists the
+ * store and picks the one matching entry. Vercel counts `list()` as an
+ * *Advanced Operation* (`put`, `copy`, `list`), and the Hobby plan includes
+ * 2,000 of them per month — while a plain GET is a *Simple Operation*, with
+ * 10,000 included and cache hits free. So every page render, every photo and
+ * every health check spent from the small budget instead of the large one, and
+ * eight days after the store was created the allowance ran out. Vercel then
+ * refused all access to the store, the catalogue read started failing, and the
+ * storefront fell back to its shipped snapshot — which looked, from the
+ * outside, exactly like the owner's products having been deleted.
+ *
+ * Listing is still the right tool for enumerating things whose names are not
+ * known ahead of time (`listOrders`, the audit trail, the health audit). It is
+ * the wrong tool for fetching one file you can already name.
+ */
+export function blobUrl(pathname: string): string {
+  const base =
+    process.env.BLOB_CONTENT_BASE ?? `https://${storeId()}.private.blob.vercel-storage.com`;
+  return `${base}/${encodeURI(pathname)}`;
+}
+
+/** The content host reads are addressed to. Reported by /api/health; no secret in it. */
+export function contentHost(): string {
+  try {
+    return new URL(blobUrl("x")).host;
+  } catch {
+    return "unknown";
+  }
+}
+
 function requireConfigured(): void {
   if (!blobConfigured()) {
     throw new Error("BLOB_READ_WRITE_TOKEN is not set — there is nowhere to store this.");
@@ -228,11 +282,12 @@ export async function listPrefix(prefix: string): Promise<BlobEntry[]> {
   return out;
 }
 
-/** The single blob at an exact pathname, or null if it doesn't exist yet. */
-export async function findExact(pathname: string): Promise<BlobEntry | null> {
-  const matches = await listPrefix(pathname);
-  return matches.find((b) => b.pathname === pathname) ?? null;
-}
+// There is deliberately no "find one blob by pathname" helper here. It could
+// only be a `list()` — an Advanced Operation — to discover a URL that
+// `blobUrl()` already knows without asking. That helper existed, every read
+// used it, and it is what drained the store's operation allowance. `listPrefix`
+// remains for the callers that genuinely enumerate: orders, the audit trail,
+// and the deep health audit.
 
 /**
  * Sortable timestamp for a pathname segment: fixed-width and colon/dot-free,

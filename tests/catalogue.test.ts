@@ -175,3 +175,45 @@ test("removing a product's photo from the array never deletes the photo file its
   // there is no delete call anywhere in images.ts or blobClient.ts.
   assert.ok(stub.blobs.has(pathname), "the photo file must still exist even after being removed from a product");
 });
+
+/**
+ * Reads must not spend from the operation budget.
+ *
+ * Vercel counts `list()` as an Advanced Operation — 2,000/month included on
+ * Hobby — while fetching a blob by its URL is a Simple Operation (10,000
+ * included, cache hits free). Every read here used to list the whole store
+ * just to work out the URL of a file whose pathname it already knew, so a
+ * storefront render, a product photo and a health check each spent from the
+ * small budget. Eight days after the store was created the allowance ran out,
+ * Vercel locked the store, the catalogue read started returning 403, and the
+ * shop quietly fell back to its shipped snapshot — indistinguishable, from the
+ * owner's side, from every product having been deleted.
+ *
+ * Writes still list (they must, to enumerate history). Reads must not.
+ */
+test("reading the catalogue and one order costs no list() at all", async () => {
+  const { createProduct, readCatalogue } = await import("@/lib/data/catalogue");
+  const { getOrderById } = await import("@/lib/data/orders");
+
+  await createProduct(model({ slug: "ops-budget", title: "Ops Budget" }));
+
+  const listsAfterWrite = stub.listCalls();
+  await readCatalogue();
+  await readCatalogue();
+  await getOrderById("no-such-order");
+
+  assert.equal(
+    stub.listCalls() - listsAfterWrite,
+    0,
+    "a read of a file whose pathname is known must never list the store",
+  );
+});
+
+test("the catalogue read still returns what was written, without listing", async () => {
+  const { createProduct, readCatalogue } = await import("@/lib/data/catalogue");
+  await createProduct(model({ slug: "direct-read", title: "Direct Read" }));
+  const { entries } = await readCatalogue();
+  assert.equal(entries.length, 1);
+  // Slugs get a random suffix on create, as the owner's real products show.
+  assert.match(entries[0]?.slug ?? "", /^direct-read-/);
+});

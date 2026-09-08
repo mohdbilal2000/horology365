@@ -65,7 +65,13 @@ export async function GET(): Promise<NextResponse> {
   // lands as a brand-new, immutable history file before the small "current"
   // pointer is ever touched. What's worth reporting is how much of that
   // history actually exists, as a sanity check that writes are landing.
-  if (checks.storage.ok) {
+  //
+  // Reported whether or not the catalogue *read* worked. Listing and reading
+  // are different services with different failures, and gating this on the
+  // read hid the one fact that mattered while reads were refused: the store
+  // still holds everything. "Your data is gone" and "your data is there but
+  // unreadable" must never look the same on this page again.
+  if (blobConfigured()) {
     try {
       const history = await listPrefix("store/catalogue/history/");
       checks.dataSafety = {
@@ -80,7 +86,7 @@ export async function GET(): Promise<NextResponse> {
   // ── Storage size ──
   // Read before every migration to a new Vercel account: shows whether the
   // store is actually light enough to move without surprises.
-  if (checks.storage.ok) {
+  if (blobConfigured()) {
     try {
       const [catalogueHistory, images, orders] = await Promise.all([
         listPrefix("store/catalogue/history/"),

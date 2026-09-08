@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { blobConfigured, listPrefix } from "@/lib/data/blobClient";
+import { blobConfigured, listPrefix, readCredentialNames } from "@/lib/data/blobClient";
 import { readCatalogue } from "@/lib/data/catalogue";
 import { backupHealth, listBackups } from "@/lib/data/backupStore";
 import { EMAIL_ENABLED, WHATSAPP_ENABLED } from "@/lib/config";
@@ -46,9 +46,13 @@ export async function GET(): Promise<NextResponse> {
       const live = entries.filter((e) => e.deleted_at === null).length;
       checks.storage = { ok: true, detail: `connected · ${live} live products` };
     } catch (err) {
+      // Name the credentials that were available, so "the read failed" can be
+      // told apart from "there was nothing to read with". Names only — this
+      // endpoint is public.
+      const credentials = readCredentialNames().join(", ") || "none";
       checks.storage = {
         ok: false,
-        detail: `BLOB_READ_WRITE_TOKEN is set but the read failed: ${
+        detail: `the catalogue read failed (credentials available: ${credentials}): ${
           err instanceof Error ? err.message : String(err)
         }`,
       };

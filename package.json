@@ -9,7 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "seed": "tsx scripts/seed-db.ts",
-    "test": "tsx --tsconfig tsconfig.test.json --test tests/maintenance-lock.test.ts tests/no-demo-in-production.test.ts tests/backup-store.test.ts tests/site-url.test.ts tests/image-shape.test.ts tests/data-safety.test.ts tests/catalogue.test.ts tests/invoice-link.test.ts tests/inventory-maths.test.ts",
+    "test": "tsx --tsconfig tsconfig.test.json --test tests/maintenance-lock.test.ts tests/no-demo-in-production.test.ts tests/backup-store.test.ts tests/site-url.test.ts tests/image-shape.test.ts tests/data-safety.test.ts tests/catalogue.test.ts tests/blob-read.test.ts tests/invoice-link.test.ts tests/inventory-maths.test.ts",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build",
     "setup:prod": "bash scripts/setup-production.sh",
     "db:backup": "tsx scripts/backup-db.ts",

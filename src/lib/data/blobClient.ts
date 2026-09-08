@@ -24,11 +24,36 @@ export function blobConfigured(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
+/**
+ * Headers for the REST API host (`blob.vercel-storage.com`) — writes and
+ * listings. `x-api-version` selects the API contract and belongs only here.
+ */
 function auth(): Record<string, string> {
   return {
     authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
     "x-api-version": API_VERSION,
   };
+}
+
+/**
+ * Credentials for the *content* host, in the order the Blob SDK itself tries
+ * them: the short-lived OIDC token Vercel injects into a Function when a store
+ * is connected to the project, then the long-lived read-write token (the only
+ * option when the code runs off Vercel, e.g. `npm run db:backup`).
+ *
+ * Named, never valued, in anything this module reports — see `readBlob`.
+ */
+function readCredentials(): { name: string; token: string }[] {
+  const candidates = [
+    { name: "VERCEL_OIDC_TOKEN", token: process.env.VERCEL_OIDC_TOKEN },
+    { name: "BLOB_READ_WRITE_TOKEN", token: process.env.BLOB_READ_WRITE_TOKEN },
+  ];
+  return candidates.filter((c): c is { name: string; token: string } => Boolean(c.token));
+}
+
+/** Which credentials this deployment could read a private blob with. Names only. */
+export function readCredentialNames(): string[] {
+  return readCredentials().map((c) => c.name);
 }
 
 function requireConfigured(): void {
@@ -87,15 +112,84 @@ export async function putJSON(
 }
 
 /**
- * Fetches and parses a JSON blob by its URL. Never cached — always the true
- * current bytes. Private-store blobs require the same bearer token as every
- * other call here — there is no such thing as an anonymous read.
+ * Fetches one blob's bytes by its URL. Never cached — always the true current
+ * bytes. Returns null for a blob that isn't there.
+ *
+ * A read goes to the *content* host (`<store>.private.blob.vercel-storage.com`),
+ * not the REST API host above, and that host takes a bare bearer token and
+ * nothing else — exactly the request Vercel documents:
+ *
+ *   curl https://<store>.private.blob.vercel-storage.com/<pathname> \
+ *     -H "Authorization: Bearer $TOKEN"
+ *
+ * Two things this gets right that the previous one-liner did not, and both
+ * matter because a failed read here is invisible to a shopper — the storefront
+ * silently falls back to its shipped snapshot, so the owner's own products
+ * appear to have vanished from the site while sitting safely in the store:
+ *
+ *   1. It sends *only* `authorization`. The API-only `x-api-version` header
+ *      has no meaning on the content host.
+ *   2. It tries OIDC before the static read-write token, and falls back to the
+ *      other credential on a 401/403. On Vercel the SDK reads OIDC by default;
+ *      a store connected to the project authorises reads that way, and a
+ *      hand-pasted read-write token is not guaranteed to be accepted in its
+ *      place.
+ *
+ * When every credential is refused, the thrown error carries the status *and*
+ * the store's own explanation (`{"error":{"code":...}}`), which is what tells
+ * an operator whether the token is wrong, the store is suspended, or the
+ * pathname is genuinely off-limits. Credentials are named, never printed.
  */
+async function readBlob(url: string): Promise<Response | null> {
+  const credentials = readCredentials();
+  if (credentials.length === 0) {
+    throw new Error(
+      "No Blob credential is set (BLOB_READ_WRITE_TOKEN or VERCEL_OIDC_TOKEN) — there is nothing to read with.",
+    );
+  }
+
+  const refusals: string[] = [];
+  for (const { name, token } of credentials) {
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (res.status === 404) return null;
+    if (res.ok) return res;
+    // Only an authorisation refusal is worth re-trying with the other
+    // credential; anything else is the store telling us something real.
+    if (res.status !== 401 && res.status !== 403) {
+      throw new Error(`Blob read failed for ${url} (${res.status}): ${await readDetail(res)}`);
+    }
+    refusals.push(`${name} → ${res.status} ${await readDetail(res)}`);
+  }
+  throw new Error(`Blob read refused for ${url} — ${refusals.join("; ")}`);
+}
+
+/** The store's own error text, trimmed to something an operator can read. */
+async function readDetail(res: Response): Promise<string> {
+  const body = await res.text().catch(() => "");
+  const detail = body.trim().slice(0, 300);
+  return detail || "(no response body)";
+}
+
+/** Fetches and parses a JSON blob by its URL. Null if it isn't there. */
 export async function getJSON<T>(url: string): Promise<T | null> {
-  const res = await fetch(url, { cache: "no-store", headers: auth() });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Blob read failed for ${url} (${res.status})`);
+  const res = await readBlob(url);
+  if (!res) return null;
   return (await res.json()) as T;
+}
+
+/**
+ * A blob's raw bytes and content type — the same authenticated read, for the
+ * route that streams product photos to a shopper's browser.
+ */
+export async function getStream(
+  url: string,
+): Promise<{ body: ReadableStream<Uint8Array>; contentType: string } | null> {
+  const res = await readBlob(url);
+  if (!res?.body) return null;
+  return { body: res.body, contentType: res.headers.get("content-type") ?? "image/jpeg" };
 }
 
 export interface BlobEntry {

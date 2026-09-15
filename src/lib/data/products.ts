@@ -33,7 +33,30 @@ const isGShock = (p: Product): boolean =>
 const fileGShock = (p: Product): Product =>
   isGShock(p) ? { ...p, brandSlug: "g-shock" } : p;
 
-export const getAllProducts = cache(async (): Promise<Product[]> => {
+/**
+ * Collapses duplicate rows so one product is never rendered twice.
+ *
+ * The stored catalogue is append-only by design (see catalogue.ts), so a
+ * retried create or a re-imported backup can leave two rows describing the
+ * same watch. Nothing is deleted to fix that — the listings simply show each
+ * product once, keeping the first (canonical) row. Identity is the
+ * product id, then the slug (the public URL), then brand + title, which is
+ * what a shopper actually perceives as "the same product".
+ */
+const dedupe = (products: Product[]): Product[] => {
+  const seen = new Set<string>();
+  return products.filter((p) => {
+    const keys = [`id:${p.id}`, `slug:${p.slug}`, `t:${p.brandSlug}|${p.title.trim().toLowerCase()}`];
+    if (keys.some((k) => seen.has(k))) return false;
+    for (const k of keys) seen.add(k);
+    return true;
+  });
+};
+
+/** Every sellable row, duplicates included — only slug lookup uses this, so a
+ *  product page stays reachable at the URL it was published under even when
+ *  its row is the one a listing collapses away. */
+const loadSellableProducts = cache(async (): Promise<Product[]> => {
   let products: Product[];
   try {
     const { entries } = await readCatalogue();
@@ -47,8 +70,11 @@ export const getAllProducts = cache(async (): Promise<Product[]> => {
   return products.filter(sellable).map(fileGShock);
 });
 
+export const getAllProducts = cache(async (): Promise<Product[]> =>
+  dedupe(await loadSellableProducts()));
+
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {
-  const all = await getAllProducts();
+  const all = await loadSellableProducts();
   return all.find((p) => p.slug === slug);
 }
 

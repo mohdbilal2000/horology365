@@ -14,8 +14,20 @@ import type { AdminModel, CategorySlug, Variant } from "@/lib/types";
 let uidN = 0;
 const uid = (p: string) => `${p}-${Date.now().toString(36)}-${uidN++}`;
 
-const STEPS = ["Brand", "Model", "Variants", "Review"] as const;
+const STEPS = ["Brand", "Model", "Colour & stock", "Review"] as const;
 const CUSTOM = "__custom__";
+
+/** One-tap colours for the product form — the names the owner actually uses. */
+const COMMON_COLOURS = [
+  { name: "Black", hex: "#1A1A1A" },
+  { name: "Silver", hex: "#C0C4C9" },
+  { name: "Gold", hex: "#C9A227" },
+  { name: "Rose Gold", hex: "#B76E79" },
+  { name: "Blue", hex: "#1F3A93" },
+  { name: "Brown", hex: "#6B4423" },
+  { name: "Green", hex: "#1E5631" },
+  { name: "White", hex: "#F2F2F0" },
+] as const;
 const NEW_BRAND = "__new__";
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=900&q=70";
@@ -89,7 +101,7 @@ function blankVariant(): Variant {
     colorHex: "#1A1A1A",
     sku: "",
     availability: "in_stock",
-    stockQty: 10,
+    stockQty: 1,
     preorderTarget: 50,
     preorderReserved: 0,
     dropDate: "",
@@ -234,9 +246,9 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
       if (mrpN < priceN) return "MRP can't be lower than the price.";
     }
     if (s === 2) {
-      if (variants.length === 0) return "Add at least one variant.";
+      if (variants.length === 0) return "Add at least one colour.";
       if (variants.some((v) => v.name.trim().length < 1))
-        return "Every variant needs a name.";
+        return "Every colour needs a name — tap one of the suggestions if unsure.";
     }
     return null;
   }
@@ -366,7 +378,7 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
           <p className="mt-1 text-ink-500">
             {isEdit
               ? "Change anything — photos, price, variants — then save. The live preview updates as you type."
-              : "Pick the brand, pick the model, then the variants you actually stock — watch it build live."}
+              : "Pick the brand, pick the model, then the colours and quantity you actually have — watch it build live."}
           </p>
         </div>
         {isEdit ? (
@@ -687,7 +699,7 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
                 onClick={() => setVariants((vs) => [...vs, blankVariant()])}
                 className="w-full rounded-xl border border-dashed border-bone-400 py-3 text-sm font-semibold text-ink-600 transition hover:border-gold hover:text-gold"
               >
-                + Add another variant
+                + Add another colour
               </button>
             </div>
           ) : null}
@@ -699,7 +711,7 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
                 <strong>
                   {brandName} {title || "this model"}
                 </strong>{" "}
-                with <strong>{variants.length}</strong> variant
+                with <strong>{variants.length}</strong> colour
                 {variants.length === 1 ? "" : "s"} and{" "}
                 <strong>{cleanImages.length || 1}</strong> photo
                 {cleanImages.length === 1 ? "" : "s"}
@@ -938,7 +950,7 @@ function VariantEditor({
     <div className="rounded-2xl border border-bone-300 p-4">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-ink-600">
-          Variant {index + 1}
+          Colour {index + 1}
         </span>
         {canRemove ? (
           <button
@@ -951,10 +963,15 @@ function VariantEditor({
         ) : null}
       </div>
 
-      <div className="mt-3 grid grid-cols-[auto_1fr] items-center gap-3">
+      {/* Colour. The swatch alone read as decoration, so the common colours
+          are one tap each and the free-text box is clearly labelled. */}
+      <label className="mt-3 block text-xs font-medium text-ink-600">
+        Colour name
+      </label>
+      <div className="mt-1 grid grid-cols-[auto_1fr] items-center gap-3">
         <input
           type="color"
-          aria-label="Variant colour"
+          aria-label="Colour swatch"
           value={v.colorHex}
           onChange={(e) => onChange({ colorHex: e.target.value })}
           className="h-10 w-12 cursor-pointer rounded-lg border border-bone-300 bg-bone-100"
@@ -962,9 +979,30 @@ function VariantEditor({
         <input
           value={v.name}
           onChange={(e) => onChange({ name: e.target.value })}
-          placeholder="Colourway, e.g. Matte Black"
+          placeholder="e.g. Matte Black"
           className={inputCls}
         />
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {COMMON_COLOURS.map((c) => (
+          <button
+            key={c.name}
+            type="button"
+            onClick={() => onChange({ name: c.name, colorHex: c.hex })}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition",
+              v.name === c.name
+                ? "border-gold text-gold"
+                : "border-bone-300 text-ink-500 hover:border-gold hover:text-gold",
+            )}
+          >
+            <span
+              className="h-3 w-3 rounded-full ring-1 ring-bone-400"
+              style={{ backgroundColor: c.hex }}
+            />
+            {c.name}
+          </button>
+        ))}
       </div>
 
       {/* Availability toggle */}
@@ -985,16 +1023,40 @@ function VariantEditor({
       </div>
 
       {v.availability === "in_stock" ? (
-        <div className="mt-3 flex items-center gap-3">
-          <span className="text-sm text-ink-600">Quantity in stock</span>
-          <input
-            inputMode="numeric"
-            value={String(v.stockQty)}
-            onChange={(e) =>
-              onChange({ stockQty: Number(e.target.value.replace(/\D/g, "")) || 0 })
-            }
-            className={cn(inputCls, "w-24")}
-          />
+        <div className="mt-4">
+          <label className="mb-1 block text-xs font-medium text-ink-600">
+            Quantity — how many pieces of this colour you have
+          </label>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="One less"
+              onClick={() => onChange({ stockQty: Math.max(0, v.stockQty - 1) })}
+              className="h-10 w-10 rounded-xl border border-bone-300 text-lg font-semibold text-ink-600 transition hover:border-gold hover:text-gold"
+            >
+              −
+            </button>
+            <input
+              inputMode="numeric"
+              aria-label="Quantity in stock"
+              value={String(v.stockQty)}
+              onChange={(e) =>
+                onChange({ stockQty: Number(e.target.value.replace(/\D/g, "")) || 0 })
+              }
+              className={cn(inputCls, "w-20 text-center")}
+            />
+            <button
+              type="button"
+              aria-label="One more"
+              onClick={() => onChange({ stockQty: v.stockQty + 1 })}
+              className="h-10 w-10 rounded-xl border border-bone-300 text-lg font-semibold text-ink-600 transition hover:border-gold hover:text-gold"
+            >
+              +
+            </button>
+            <span className="text-sm text-ink-500">
+              {v.stockQty === 1 ? "piece" : "pieces"}
+            </span>
+          </div>
         </div>
       ) : (
         <div className="mt-3 grid gap-3 sm:grid-cols-2">

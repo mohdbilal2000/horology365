@@ -34,3 +34,8 @@ next-env.d.ts
 # generated client deck (regenerate via scripts/capture-deck.cjs)
 *.pdf
 /tmp
+
+# Shop backups and catalogue exports. This repository is public: a backup
+# carries the audit trail and, once orders exist, customer names, addresses
+# and phone numbers. Keep them out of git entirely.
+backups/*.json

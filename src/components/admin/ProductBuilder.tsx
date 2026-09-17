@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
@@ -116,6 +116,17 @@ interface ProductBuilderProps {
 export function ProductBuilder({ initial }: ProductBuilderProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  /**
+   * Hard guard against publishing the same product twice.
+   *
+   * `saving` disables the button, but React applies that on the next render —
+   * a double tap on a phone, or a tap on a slow connection followed by an
+   * impatient second one, both fire `save()` before the disable lands. Each
+   * call POSTs, each POST mints its own slug, and the shop ends up with two
+   * rows for one watch. A ref flips synchronously, so the second call returns
+   * before it can reach the network.
+   */
+  const inFlight = useRef(false);
 
   const isEdit = Boolean(initial);
   const knownBrand = initial ? getBrandBySlug(initial.brandSlug) : undefined;
@@ -282,6 +293,7 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
   }
 
   async function save() {
+    if (inFlight.current) return;
     for (let s = 0; s < 3; s++) {
       const e = validateStep(s);
       if (e) {
@@ -311,6 +323,7 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
       })),
     };
 
+    inFlight.current = true;
     setSaving(true);
     setError(null);
     const failure = isEdit
@@ -331,6 +344,9 @@ export function ProductBuilder({ initial }: ProductBuilderProps) {
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : failure);
+      // Only a failed save re-arms the button: after a success the router is
+      // already leaving this page, and re-arming would invite a second POST.
+      inFlight.current = false;
       setSaving(false);
     }
   }

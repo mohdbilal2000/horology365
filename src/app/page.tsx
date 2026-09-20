@@ -6,6 +6,7 @@ import { CategoryBlock } from "@/components/CategoryBlock";
 import { OfferBand } from "@/components/OfferBand";
 import { DropCarousel } from "@/components/DropCarousel";
 import { ReviewsSection } from "@/components/ReviewCard";
+import { VideoWall } from "@/components/VideoWall";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ProductGrid } from "@/components/ProductGrid";
 import { activeBanners, offers, reviews } from "@/lib/mock";
@@ -97,6 +98,8 @@ export default async function HomePage() {
           <ProductGrid products={bestSellers} />
         </div>
       </section>
+
+      <VideoWall />
 
       <CategoryBlock categories={categories} />
       <OfferBand offers={offers} />

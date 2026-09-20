@@ -58,9 +58,16 @@ export type PaymentMode = "cod" | "upi" | "both";
  * Current payment mode. UPI is live now (pay to our VPA via any UPI app);
  * Cash on Delivery is "coming soon" and switched on later by setting
  * NEXT_PUBLIC_PAYMENT_MODE to "cod" or "both".
+ *
+ * The value is validated: any unset, empty or unrecognised NEXT_PUBLIC_PAYMENT_MODE
+ * falls back to "upi" rather than silently disabling every method — a mistyped
+ * env must never leave the shop with nothing a customer can pay with.
  */
+const RAW_PAYMENT_MODE = process.env.NEXT_PUBLIC_PAYMENT_MODE;
 export const PAYMENT_MODE: PaymentMode =
-  (process.env.NEXT_PUBLIC_PAYMENT_MODE as PaymentMode) || "upi";
+  RAW_PAYMENT_MODE === "cod" || RAW_PAYMENT_MODE === "both" || RAW_PAYMENT_MODE === "upi"
+    ? RAW_PAYMENT_MODE
+    : "upi";
 
 export const COD_ENABLED = PAYMENT_MODE === "cod" || PAYMENT_MODE === "both";
 export const UPI_ENABLED = PAYMENT_MODE === "upi" || PAYMENT_MODE === "both";

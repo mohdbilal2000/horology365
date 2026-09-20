@@ -24,6 +24,22 @@ function monogramOf(name: string): string {
 }
 
 /**
+ * Distinct typographic treatment per logo-less brand, so its name reads as a
+ * designed wordmark rather than plain text. Rendered in the site's own fonts
+ * (crisp and identical on every device — unlike text baked into an SVG, which
+ * falls back to whatever font the viewer happens to have). Official logo art
+ * can replace any of these by dropping a file in /public/logos and setting the
+ * brand's logoUrl.
+ */
+const BRAND_WORDMARK: Record<string, string> = {
+  fastrack: "font-sans lowercase font-extrabold italic tracking-tight",
+  "g-shock": "font-sans uppercase font-extrabold tracking-tight",
+  sonata: "font-sans uppercase font-semibold tracking-[0.22em]",
+  "carter-london": "font-serif uppercase font-light tracking-[0.28em]",
+  "titan-raga": "font-serif uppercase italic font-medium tracking-[0.18em]",
+};
+
+/**
  * Renders a brand's real logo image when available (self-hosted SVG/PNG),
  * falling back to a typographic wordmark (or a monogram in tight tiles). Logos
  * are monochrome-ish marks, so always place this on a light "plate" for
@@ -62,6 +78,10 @@ export function BrandLogo({
     );
   }
   return (
-    <BrandWordmark name={brand.name} size={wordmarkSize} className={className} />
+    <BrandWordmark
+      name={brand.name}
+      size={wordmarkSize}
+      className={cn(BRAND_WORDMARK[brand.slug], className)}
+    />
   );
 }

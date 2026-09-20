@@ -19,7 +19,6 @@ import {
   CARD_ENABLED,
   UPI,
   BANK,
-  buildUpiUri,
 } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import type { CheckoutDetails, Order, PaymentMethod } from "@/lib/types";
@@ -67,6 +66,36 @@ export default function CheckoutPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
+  // Payment identity (UPI + bank) the buyer pays to. Starts from the shipped
+  // config, then reflects whatever the owner saved in /admin/settings.
+  const [pay, setPay] = useState({
+    upiVpa: UPI.vpa,
+    upiPayeeName: UPI.payeeName,
+    bankAccountName: BANK.accountName,
+    bankAccountNumber: BANK.accountNumber,
+    bankIfsc: BANK.ifsc,
+  });
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) => {
+        if (!active || !s) return;
+        setPay((prev) => ({
+          upiVpa: s.upiVpa || prev.upiVpa,
+          upiPayeeName: s.upiPayeeName || prev.upiPayeeName,
+          bankAccountName: s.bankAccountName || prev.bankAccountName,
+          bankAccountNumber: s.bankAccountNumber || prev.bankAccountNumber,
+          bankIfsc: s.bankIfsc || prev.bankIfsc,
+        }));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function copyToClipboard(text: string, field: string) {
     navigator.clipboard
       ?.writeText(text)
@@ -82,7 +111,13 @@ export default function CheckoutPage() {
   const savings = cartSavings(items);
   const total = subtotal + shipping;
 
-  const upiUri = buildUpiUri(total, "Horology365 order");
+  const upiUri = `upi://pay?${new URLSearchParams({
+    pa: pay.upiVpa,
+    pn: pay.upiPayeeName,
+    am: String(total),
+    cu: "INR",
+    tn: "Horology365 order",
+  }).toString()}`;
 
   // Generate the UPI QR whenever the payable amount changes.
   useEffect(() => {
@@ -410,11 +445,11 @@ export default function CheckoutPage() {
                         </span>
                         <div className="mt-1 flex items-center gap-2">
                           <code className="rounded-lg bg-bone-200 px-3 py-1.5 text-sm font-semibold">
-                            {UPI.vpa}
+                            {pay.upiVpa}
                           </code>
                           <button
                             type="button"
-                            onClick={() => copyToClipboard(UPI.vpa, "vpa")}
+                            onClick={() => copyToClipboard(pay.upiVpa, "vpa")}
                             className="rounded-lg border border-bone-300 px-3 py-1.5 text-xs font-medium transition hover:border-gold hover:text-gold-600"
                           >
                             {copiedField === "vpa" ? "Copied!" : "Copy"}
@@ -456,17 +491,17 @@ export default function CheckoutPage() {
                   <dl className="mt-4 space-y-3 text-sm">
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-ink-500">Account name</dt>
-                      <dd className="font-medium">{BANK.accountName}</dd>
+                      <dd className="font-medium">{pay.bankAccountName}</dd>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <dt className="text-ink-500">Account number</dt>
                       <dd className="flex items-center gap-2">
                         <code className="rounded-lg bg-bone-200 px-3 py-1.5 font-semibold">
-                          {BANK.accountNumber}
+                          {pay.bankAccountNumber}
                         </code>
                         <button
                           type="button"
-                          onClick={() => copyToClipboard(BANK.accountNumber, "account")}
+                          onClick={() => copyToClipboard(pay.bankAccountNumber, "account")}
                           className="rounded-lg border border-bone-300 px-3 py-1.5 text-xs font-medium transition hover:border-gold hover:text-gold-600"
                         >
                           {copiedField === "account" ? "Copied!" : "Copy"}
@@ -477,11 +512,11 @@ export default function CheckoutPage() {
                       <dt className="text-ink-500">IFSC</dt>
                       <dd className="flex items-center gap-2">
                         <code className="rounded-lg bg-bone-200 px-3 py-1.5 font-semibold">
-                          {BANK.ifsc}
+                          {pay.bankIfsc}
                         </code>
                         <button
                           type="button"
-                          onClick={() => copyToClipboard(BANK.ifsc, "ifsc")}
+                          onClick={() => copyToClipboard(pay.bankIfsc, "ifsc")}
                           className="rounded-lg border border-bone-300 px-3 py-1.5 text-xs font-medium transition hover:border-gold hover:text-gold-600"
                         >
                           {copiedField === "ifsc" ? "Copied!" : "Copy"}

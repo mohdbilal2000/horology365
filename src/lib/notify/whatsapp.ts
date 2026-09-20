@@ -1,4 +1,5 @@
-import { WHATSAPP, WHATSAPP_ENABLED, ORDER_NOTIFY, SITE } from "@/lib/config";
+import { WHATSAPP, ORDER_NOTIFY, SITE } from "@/lib/config";
+import { getWhatsAppRuntime, type WhatsAppRuntime } from "@/lib/data/settings";
 import { invoiceUrl } from "@/lib/orders/invoiceLink";
 import { formatINR, whatsappLink } from "@/lib/utils";
 import type { Order } from "@/lib/types";
@@ -55,7 +56,11 @@ async function withTimeout<T>(fn: (signal: AbortSignal) => Promise<T>): Promise<
 }
 
 /** Uploads the invoice and returns Meta's media id. */
-async function uploadPdf(pdf: Buffer, filename: string): Promise<string> {
+async function uploadPdf(
+  pdf: Buffer,
+  filename: string,
+  wa: WhatsAppRuntime,
+): Promise<string> {
   const form = new FormData();
   form.append("messaging_product", "whatsapp");
   form.append("type", "application/pdf");
@@ -66,10 +71,10 @@ async function uploadPdf(pdf: Buffer, filename: string): Promise<string> {
   );
 
   const res = await withTimeout((signal) =>
-    fetch(api(`${WHATSAPP.phoneNumberId}/media`), {
+    fetch(api(`${wa.phoneNumberId}/media`), {
       method: "POST",
       signal,
-      headers: { Authorization: `Bearer ${WHATSAPP.token}` },
+      headers: { Authorization: `Bearer ${wa.token}` },
       body: form,
     }),
   );
@@ -81,13 +86,16 @@ async function uploadPdf(pdf: Buffer, filename: string): Promise<string> {
   return data.id;
 }
 
-async function postMessage(payload: Record<string, unknown>): Promise<void> {
+async function postMessage(
+  payload: Record<string, unknown>,
+  wa: WhatsAppRuntime,
+): Promise<void> {
   const res = await withTimeout((signal) =>
-    fetch(api(`${WHATSAPP.phoneNumberId}/messages`), {
+    fetch(api(`${wa.phoneNumberId}/messages`), {
       method: "POST",
       signal,
       headers: {
-        Authorization: `Bearer ${WHATSAPP.token}`,
+        Authorization: `Bearer ${wa.token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ messaging_product: "whatsapp", ...payload }),
@@ -103,26 +111,33 @@ async function postMessage(payload: Record<string, unknown>): Promise<void> {
  * customer-service window Meta rejects the document without it, so a template
  * failure is logged but not fatal — the document attempt still runs.
  */
-async function openConversation(to: string, order: Order): Promise<void> {
+async function openConversation(
+  to: string,
+  order: Order,
+  wa: WhatsAppRuntime,
+): Promise<void> {
   if (!WHATSAPP.templateName) return;
   try {
-    await postMessage({
-      to,
-      type: "template",
-      template: {
-        name: WHATSAPP.templateName,
-        language: { code: WHATSAPP.templateLanguage },
-        components: [
-          {
-            type: "body",
-            parameters: [
-              { type: "text", text: order.details.name },
-              { type: "text", text: order.id },
-            ],
-          },
-        ],
+    await postMessage(
+      {
+        to,
+        type: "template",
+        template: {
+          name: WHATSAPP.templateName,
+          language: { code: WHATSAPP.templateLanguage },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: order.details.name },
+                { type: "text", text: order.id },
+              ],
+            },
+          ],
+        },
       },
-    });
+      wa,
+    );
   } catch (err) {
     console.error("[whatsapp] template send failed (continuing to document):", err);
   }
@@ -133,12 +148,16 @@ async function sendDocument(
   mediaId: string,
   filename: string,
   caption: string,
+  wa: WhatsAppRuntime,
 ): Promise<void> {
-  await postMessage({
-    to,
-    type: "document",
-    document: { id: mediaId, filename, caption },
-  });
+  await postMessage(
+    {
+      to,
+      type: "document",
+      document: { id: mediaId, filename, caption },
+    },
+    wa,
+  );
 }
 
 function customerCaption(order: Order): string {
@@ -166,8 +185,12 @@ export async function sendOrderWhatsApps(
   order: Order,
   pdf: Buffer,
 ): Promise<WhatsAppResult> {
+  // Effective WhatsApp credentials: the owner's admin settings if present,
+  // otherwise the environment. Reading never throws, so a store misconfig just
+  // degrades to the wa.me fallback below rather than failing the order.
+  const wa = await getWhatsAppRuntime();
   const customer = normalisePhone(order.details.phone);
-  const store = normalisePhone(ORDER_NOTIFY.storeWhatsApp);
+  const store = normalisePhone(wa.storeWhatsApp);
 
   // The manual link always points at the store's own number, prefilled with the
   // order summary and a signed link to the PDF.
@@ -177,20 +200,20 @@ export async function sendOrderWhatsApps(
       `Invoice: ${invoiceUrl(order.id)}`,
   );
 
-  if (!WHATSAPP_ENABLED) {
+  if (!wa.enabled) {
     return {
       sent: false,
       recipients: [],
       fallbackLink,
       skipped:
-        "WHATSAPP_TOKEN / WHATSAPP_PHONE_ID are not set — using a wa.me link instead.",
+        "WhatsApp isn't connected (no token / phone-number id) — using a wa.me link instead.",
     };
   }
 
   const filename = `invoice-${order.id}.pdf`;
   let mediaId: string;
   try {
-    mediaId = await uploadPdf(pdf, filename);
+    mediaId = await uploadPdf(pdf, filename, wa);
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
     console.error("[whatsapp] upload failed:", error);
@@ -206,8 +229,8 @@ export async function sendOrderWhatsApps(
 
   const results = await Promise.allSettled(
     targets.map(async (t) => {
-      if (t.template) await openConversation(t.to, order);
-      await sendDocument(t.to, mediaId, filename, t.caption);
+      if (t.template) await openConversation(t.to, order, wa);
+      await sendDocument(t.to, mediaId, filename, t.caption, wa);
     }),
   );
 

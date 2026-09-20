@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { ADMIN_COOKIE, adminPassword } from "@/lib/adminAuth";
-
-const MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+import {
+  ADMIN_COOKIE,
+  SESSION_TTL,
+  adminPassword,
+  createSessionToken,
+} from "@/lib/adminAuth";
 
 /**
  * Domain the session cookie is pinned to.
@@ -19,7 +22,7 @@ function cookieDomain(req: Request): string | undefined {
     : undefined;
 }
 
-/** Verify the password and, on success, set the admin session cookie. */
+/** Verify the password and, on success, set a signed admin session cookie. */
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as
     | { password?: string }
@@ -34,12 +37,12 @@ export async function POST(req: Request) {
   }
 
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(ADMIN_COOKIE, adminPassword(), {
+  res.cookies.set(ADMIN_COOKIE, await createSessionToken(), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: MAX_AGE,
+    maxAge: SESSION_TTL,
     domain: cookieDomain(req),
   });
   return res;

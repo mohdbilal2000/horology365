@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { ADMIN_COOKIE, adminPassword } from "@/lib/adminAuth";
+import { ADMIN_COOKIE, verifySessionToken } from "@/lib/adminAuth";
 
 /**
- * Gate every /admin page and /api/admin route behind the shared password.
+ * Gate every /admin page and /api/admin route behind a valid signed session.
  * Unauthenticated page requests are bounced to /admin-login (which lives
  * outside this matcher), preserving where they were headed via ?next=.
  * Unauthenticated API requests get a plain 401 instead of an HTML redirect —
  * the admin UI's fetch() calls need JSON, not a redirected login page.
  */
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const token = req.cookies.get(ADMIN_COOKIE)?.value;
-  if (token && token === adminPassword()) {
+  if (await verifySessionToken(token)) {
     return NextResponse.next();
   }
 

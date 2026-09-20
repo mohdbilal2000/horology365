@@ -20,6 +20,34 @@ import "server-only";
 const API_VERSION = "7";
 const BASE = process.env.BLOB_API_BASE ?? "https://blob.vercel-storage.com";
 
+/**
+ * Every Blob call is bounded by a timeout. Without one, a stalled connection to
+ * Vercel Blob hangs the render (or ISR regeneration) indefinitely — there is
+ * nothing to abort against — which is the dominant "the site is hanging" risk.
+ * A timed-out call throws a clear error instead, which the storefront read path
+ * already catches and falls back to the shipped snapshot for.
+ */
+const READ_TIMEOUT_MS = Number(process.env.BLOB_TIMEOUT_MS) || 10_000;
+const WRITE_TIMEOUT_MS = Number(process.env.BLOB_WRITE_TIMEOUT_MS) || 15_000;
+
+/** fetch() bounded by a timeout, with a legible error when it trips. */
+async function blobFetch(
+  input: string,
+  init: RequestInit,
+  timeoutMs: number,
+  what: string,
+): Promise<Response> {
+  try {
+    return await fetch(input, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+  } catch (err) {
+    const name = err instanceof Error ? err.name : "";
+    if (name === "TimeoutError" || name === "AbortError") {
+      throw new Error(`Blob ${what} timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  }
+}
+
 export function blobConfigured(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
@@ -55,18 +83,23 @@ export async function putBlob(
   opts: { contentType: string; overwrite?: boolean },
 ): Promise<PutResult> {
   requireConfigured();
-  const res = await fetch(`${BASE}/${encodeURI(pathname)}`, {
-    method: "PUT",
-    headers: {
-      ...auth(),
-      "content-type": opts.contentType,
-      "x-vercel-blob-access": "private",
-      "x-add-random-suffix": "0",
-      "x-cache-control-max-age": opts.overwrite ? "0" : "31536000",
-      ...(opts.overwrite ? { "x-allow-overwrite": "1" } : {}),
+  const res = await blobFetch(
+    `${BASE}/${encodeURI(pathname)}`,
+    {
+      method: "PUT",
+      headers: {
+        ...auth(),
+        "content-type": opts.contentType,
+        "x-vercel-blob-access": "private",
+        "x-add-random-suffix": "0",
+        "x-cache-control-max-age": opts.overwrite ? "0" : "31536000",
+        ...(opts.overwrite ? { "x-allow-overwrite": "1" } : {}),
+      },
+      body,
     },
-    body,
-  });
+    WRITE_TIMEOUT_MS,
+    `write ${pathname}`,
+  );
   if (!res.ok) {
     throw new Error(`Blob write failed for ${pathname} (${res.status}): ${await res.text()}`);
   }
@@ -92,7 +125,12 @@ export async function putJSON(
  * other call here — there is no such thing as an anonymous read.
  */
 export async function getJSON<T>(url: string): Promise<T | null> {
-  const res = await fetch(url, { cache: "no-store", headers: auth() });
+  const res = await blobFetch(
+    url,
+    { cache: "no-store", headers: auth() },
+    READ_TIMEOUT_MS,
+    "read",
+  );
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Blob read failed for ${url} (${res.status})`);
   return (await res.json()) as T;
@@ -120,7 +158,12 @@ export async function listPrefix(prefix: string): Promise<BlobEntry[]> {
     // statically-rendered storefront page, only in routes exempt from that
     // cache (like /api/search). The pointer this lists is what tells every
     // read whether anything changed at all, so it can never be stale.
-    const res = await fetch(url.toString(), { headers: auth(), cache: "no-store" });
+    const res = await blobFetch(
+      url.toString(),
+      { headers: auth(), cache: "no-store" },
+      READ_TIMEOUT_MS,
+      `list ${prefix}`,
+    );
     if (!res.ok) throw new Error(`Blob list failed for ${prefix} (${res.status}): ${await res.text()}`);
     const body = (await res.json()) as {
       blobs?: { pathname: string; url: string; uploadedAt: string; size: number }[];

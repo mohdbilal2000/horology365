@@ -35,9 +35,17 @@ export async function GET(_request: Request, { params }: RouteParams): Promise<R
   const blob = await findExact(pathname);
   if (!blob) return new Response("Not found", { status: 404 });
 
-  const upstream = await fetch(blob.url, {
-    headers: { authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-  });
+  // Bound the upstream fetch so a stalled Blob connection can't hang the image
+  // request forever (it would tie up a serverless invocation with no timeout).
+  let upstream: Response;
+  try {
+    upstream = await fetch(blob.url, {
+      headers: { authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+  } catch {
+    return new Response("Not found", { status: 404 });
+  }
   if (!upstream.ok || !upstream.body) return new Response("Not found", { status: 404 });
 
   return new Response(upstream.body, {
